@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-hub:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: hub/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: hub
+        run: npm ci
+      
+      - name: TypeScript compilation
+        working-directory: hub
+        run: npm run build
+      
+      - name: Run tests
+        working-directory: hub
+        run: |
+          # Start hub in background
+          npm start &
+          HUB_PID=$!
+          
+          # Wait for hub to start
+          sleep 5
+          
+          # Run test
+          timeout 30 node --loader ts-node/esm test.ts || true
+          
+          # Cleanup
+          kill $HUB_PID 2>/dev/null || true
+
+  docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: |
+          docker build -t clawlink/hub:latest ./hub
+      
+      - name: Run container
+        run: |
+          docker run -d --name clawlink-test -p 8080:8080 -p 8081:8081 clawlink/hub:latest
+          sleep 5
+          
+      - name: Health check
+        run: |
+          docker exec clawlink-test wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
+      
+      - name: Cleanup
+        run: |
+          docker stop clawlink-test
+          docker rm clawlink-test
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: hub
+        run: npm ci
+      
+      - name: TypeScript check
+        working-directory: hub
+        run: npx tsc --noEmit

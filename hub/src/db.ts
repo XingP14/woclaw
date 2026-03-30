@@ -1,111 +1,128 @@
-import BetterSqlite3 from 'better-sqlite3';
+// ClawLink Database - Simple JSON File Store
+// No native compilation required!
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { dirname } from 'path';
 import { DBMessage, DBMemory } from './types.js';
-import { existsSync, mkdirSync } from 'fs';
 
 export class ClawDB {
-  private db: BetterSqlite3.Database;
   private dbPath: string;
+  private data: {
+    messages: DBMessage[];
+    memory: { key: string; value: string; updatedAt: number; updatedBy: string }[];
+    topics: { name: string; createdAt: number; messageCount: number }[];
+  };
 
   constructor(dataDir: string) {
-    this.dbPath = `${dataDir}/clawlink.db`;
     if (!existsSync(dataDir)) {
       mkdirSync(dataDir, { recursive: true });
     }
-    this.db = new BetterSqlite3(this.dbPath);
-    this.init();
+    this.dbPath = `${dataDir}/clawlink.json`;
+    this.data = this.load();
   }
 
-  private init() {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY,
-        topic TEXT NOT NULL,
-        from_agent TEXT NOT NULL,
-        content TEXT NOT NULL,
-        timestamp INTEGER NOT NULL
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic);
-      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
-      
-      CREATE TABLE IF NOT EXISTS memory (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at INTEGER NOT NULL,
-        updated_by TEXT NOT NULL
-      );
-      
-      CREATE TABLE IF NOT EXISTS topics (
-        name TEXT PRIMARY KEY,
-        created_at INTEGER NOT NULL,
-        message_count INTEGER DEFAULT 0
-      );
-    `);
+  private load() {
+    if (existsSync(this.dbPath)) {
+      try {
+        return JSON.parse(readFileSync(this.dbPath, 'utf-8'));
+      } catch (e) {
+        console.error('[ClawDB] Failed to load DB, starting fresh');
+      }
+    }
+    return {
+      messages: [],
+      memory: [],
+      topics: [],
+    };
   }
 
+  private save() {
+    try {
+      writeFileSync(this.dbPath, JSON.stringify(this.data, null, 2));
+    } catch (e) {
+      console.error('[ClawDB] Failed to save:', e);
+    }
+  }
+
+  // Messages
   saveMessage(msg: DBMessage): void {
-    const stmt = this.db.prepare(
-      'INSERT INTO messages (id, topic, from_agent, content, timestamp) VALUES (?, ?, ?, ?, ?)'
-    );
-    stmt.run(msg.id, msg.topic, msg.from, msg.content, msg.timestamp);
+    this.data.messages.push(msg);
+    // Keep last 1000 messages per topic (simple cleanup)
+    if (this.data.messages.length > 10000) {
+      this.data.messages = this.data.messages.slice(-5000);
+    }
     
-    const upsertTopic = this.db.prepare(
-      `INSERT INTO topics (name, created_at, message_count) VALUES (?, ?, 1)
-       ON CONFLICT(name) DO UPDATE SET message_count = message_count + 1`
-    );
-    upsertTopic.run(msg.topic, Date.now());
+    // Update topic stats
+    const topic = this.data.topics.find(t => t.name === msg.topic);
+    if (topic) {
+      topic.messageCount++;
+    } else {
+      this.data.topics.push({ name: msg.topic, createdAt: Date.now(), messageCount: 1 });
+    }
+    this.save();
   }
 
   getMessages(topic: string, limit: number = 100, before?: number): DBMessage[] {
-    let query = 'SELECT id, topic, from_agent as from, content, timestamp FROM messages WHERE topic = ?';
-    const params: (string | number)[] = [topic];
-    
+    let msgs = this.data.messages.filter(m => m.topic === topic);
     if (before) {
-      query += ' AND timestamp < ?';
-      params.push(before);
+      msgs = msgs.filter(m => m.timestamp < before);
     }
-    
-    query += ' ORDER BY timestamp DESC LIMIT ?';
-    params.push(limit);
-    
-    const stmt = this.db.prepare(query);
-    return stmt.all(...params) as DBMessage[];
+    return msgs.slice(-limit).reverse();
   }
 
+  // Memory
   setMemory(key: string, value: string, updatedBy: string): void {
-    const stmt = this.db.prepare(
-      `INSERT INTO memory (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`
-    );
-    stmt.run(key, value, Date.now(), updatedBy);
+    const existing = this.data.memory.find(m => m.key === key);
+    if (existing) {
+      existing.value = value;
+      existing.updatedAt = Date.now();
+      existing.updatedBy = updatedBy;
+    } else {
+      this.data.memory.push({ key, value, updatedAt: Date.now(), updatedBy });
+    }
+    this.save();
   }
 
   getMemory(key: string): DBMemory | undefined {
-    const stmt = this.db.prepare(
-      'SELECT key, value, updated_at as updatedAt, updated_by as updatedBy FROM memory WHERE key = ?'
-    );
-    return stmt.get(key) as DBMemory | undefined;
+    const m = this.data.memory.find(mem => mem.key === key);
+    if (!m) return undefined;
+    return {
+      key: m.key,
+      value: m.value,
+      updatedAt: m.updatedAt,
+      updatedBy: m.updatedBy,
+    };
   }
 
   deleteMemory(key: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM memory WHERE key = ?');
-    const result = stmt.run(key);
-    return result.changes > 0;
+    const idx = this.data.memory.findIndex(m => m.key === key);
+    if (idx >= 0) {
+      this.data.memory.splice(idx, 1);
+      this.save();
+      return true;
+    }
+    return false;
   }
 
   getAllMemory(): DBMemory[] {
-    const stmt = this.db.prepare(
-      'SELECT key, value, updated_at as updatedAt, updated_by as updatedBy FROM memory ORDER BY updated_at DESC'
-    );
-    return stmt.all() as DBMemory[];
+    return this.data.memory.map(m => ({
+      key: m.key,
+      value: m.value,
+      updatedAt: m.updatedAt,
+      updatedBy: m.updatedBy,
+    }));
   }
 
+  // Topics
   getTopicStats(): { name: string; messageCount: number; createdAt: number }[] {
-    const stmt = this.db.prepare('SELECT name, message_count as messageCount, created_at as createdAt FROM topics ORDER BY message_count DESC');
-    return stmt.all() as { name: string; messageCount: number; createdAt: number }[];
+    return this.data.topics.map(t => ({
+      name: t.name,
+      messageCount: t.messageCount,
+      createdAt: t.createdAt,
+    }));
   }
 
   close(): void {
-    this.db.close();
+    this.save();
   }
 }

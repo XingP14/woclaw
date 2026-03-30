@@ -12,11 +12,9 @@
   },
   "dependencies": {
     "ws": "^8.16.0",
-    "better-sqlite3": "^9.4.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
     "tsx": "^4.7.1",
