@@ -1,26 +1,26 @@
 {
-  "name": "@clawlink/plugin",
+  "name": "@clawlink/openclaw-plugin",
   "version": "0.1.0",
-  "description": "ClawLink channel plugin for OpenClaw - connects agents to the ClawLink hub",
-  "main": "dist/index.js",
+  "description": "ClawLink skill/plugin for OpenClaw - Connect to ClawLink Hub for multi-agent communication",
+  "main": "src/index.js",
   "type": "module",
+  "bin": {
+    "clawlink": "./bin/clawlink-cli.js"
+  },
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "start": "node bin/clawlink-cli.js"
   },
   "dependencies": {
-    "ws": "^8.16.0",
-    "uuid": "^9.0.1"
-  },
-  "devDependencies": {
-    "@types/uuid": "^9.0.7",
-    "@types/ws": "^8.5.10",
-    "typescript": "^5.3.3"
+    "ws": "^8.16.0"
   },
   "openclaw": {
-    "plugin": {
-      "name": "clawlink",
-      "type": "channel"
-    }
-  }
+    "skills": [
+      {
+        "name": "clawlink",
+        "path": "./skills/clawlink"
+      }
+    ]
+  },
+  "keywords": ["openclaw", "clawlink", "multi-agent", "communication", "collaboration"],
+  "license": "MIT"
 }
