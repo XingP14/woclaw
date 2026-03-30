@@ -15,10 +15,10 @@
 - [ ] **API 文档** - 完整的 WebSocket/REST API 文档
 
 ### 核心功能
-- [ ] **REST API** - 管理接口（查看连接、主题、内存）
+- [x] **REST API** - 管理接口（查看连接、主题、内存）✅ v0.2
 - [ ] **OpenClaw Plugin** - 完整的 Channel Plugin 实现
-- [ ] **健康检查** - `/health` 端点
-- [ ] **指标统计** - 连接数、消息数等
+- [x] **健康检查** - `/health` 端点 ✅ v0.2
+- [x] **指标统计** - 连接数、消息数等 ✅ v0.2
 
 ### 部署
 - [ ] **Docker Hub 发布** - 自动构建推送到 Docker Hub
