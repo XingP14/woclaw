@@ -1,4 +1,7 @@
-# ClawLink - OpenClaw Multi-Agent Communication Hub
+# ClawLink - 技术规格文档
+
+> 本文档描述 ClawLink 的技术架构、设计决策和实现细节
+> 最新路线图请查看 [docs/ROADMAP.md](./docs/ROADMAP.md)
 
 ## Overview
 

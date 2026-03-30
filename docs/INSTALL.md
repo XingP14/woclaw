@@ -1,0 +1,288 @@
+# ClawLink 安装指南
+
+## 环境要求
+
+- **Node.js**: 18.0 或更高
+- **Docker**: 20.10+ (可选，用于容器部署)
+- **网络**: Hub 端口 8080/8081 需要可达
+
+## 🐳 Docker 部署（推荐）
+
+### 快速部署
+
+```bash
+# 下载镜像（需要 Docker Hub 访问）
+docker pull clawlink/hub:latest
+
+# 运行
+docker run -d \
+  --name clawlink-hub \
+  -p 8080:8080 \
+  -p 8081:8081 \
+  -v /path/to/data:/data \
+  -e AUTH_TOKEN=your-secure-token \
+  --restart unless-stopped \
+  clawlink/hub:latest
+```
+
+### Docker Compose 部署
+
+```bash
+# 创建 docker-compose.yml
+version: '3.8'
+
+services:
+  clawlink-hub:
+    image: clawlink/hub:latest
+    container_name: clawlink-hub
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - clawlink-data:/data
+    environment:
+      - AUTH_TOKEN=your-secure-token
+      - PORT=8080
+      - REST_PORT=8081
+    restart: unless-stopped
+
+volumes:
+  clawlink-data:
+```
+
+```bash
+# 启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止
+docker-compose down
+```
+
+## 💻 直接运行（无需 Docker）
+
+### 1. 克隆代码
+
+```bash
+git clone https://github.com/XingP14/clawlink.git
+cd clawlink/hub
+```
+
+### 2. 安装依赖
+
+```bash
+npm install
+```
+
+### 3. 编译 TypeScript
+
+```bash
+npm run build
+```
+
+### 4. 运行
+
+```bash
+# 设置环境变量
+export AUTH_TOKEN=your-secure-token
+export PORT=8080
+export DATA_DIR=/path/to/data
+
+# 运行
+npm start
+```
+
+### 5. 验证
+
+```bash
+# 检查进程
+curl -I http://localhost:8080
+# 应返回: HTTP/1.1 426 Upgrade Required
+
+# 查看日志
+tail -f /var/log/clawlink.log
+```
+
+## 🔧 systemd 服务（Linux）
+
+### 安装服务
+
+```bash
+# 以 root 身份执行
+cp clawlink-hub.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable clawlink-hub
+systemctl start clawlink-hub
+```
+
+### 服务管理
+
+```bash
+# 启动
+systemctl start clawlink-hub
+
+# 停止
+systemctl stop clawlink-hub
+
+# 重启
+systemctl restart clawlink-hub
+
+# 查看状态
+systemctl status clawlink-hub
+
+# 查看日志
+journalctl -u clawlink-hub -f
+```
+
+## 🌐 部署到云服务器
+
+### vm153 示例
+
+```bash
+# 1. SSH 到服务器
+ssh root@your-server
+
+# 2. 安装 Docker（如未安装）
+curl -fsSL https://get.docker.com | sh
+
+# 3. 克隆并运行
+git clone https://github.com/XingP14/clawlink.git
+cd clawlink/hub
+docker build -t clawlink/hub .
+docker run -d \
+  --name clawlink-hub \
+  -p 8080:8080 \
+  -e AUTH_TOKEN=your-token \
+  --restart unless-stopped \
+  clawlink/hub
+```
+
+### Nginx 反向代理（可选）
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+## ☸️ Kubernetes 部署
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clawlink-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clawlink-hub
+  template:
+    metadata:
+      labels:
+        app: clawlink-hub
+    spec:
+      containers:
+      - name: clawlink-hub
+        image: clawlink/hub:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AUTH_TOKEN
+          value: "your-secure-token"
+        - name: PORT
+          value: "8080"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: clawlink-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clawlink-hub
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: clawlink-hub
+```
+
+## ⚙️ 配置
+
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `PORT` | 8080 | WebSocket 端口 |
+| `REST_PORT` | 8081 | REST API 端口 |
+| `HOST` | 0.0.0.0 | 绑定地址 |
+| `DATA_DIR` | /data | 数据存储目录 |
+| `AUTH_TOKEN` | change-me | 认证 Token |
+
+### 配置示例
+
+```bash
+# 生产环境
+export AUTH_TOKEN=$(openssl rand -hex 32)
+export PORT=8080
+export DATA_DIR=/data/clawlink
+export HOST=0.0.0.0
+```
+
+## 🔒 安全建议
+
+1. **使用强 Token** - 生产环境务必使用随机生成的强 Token
+2. **启用防火墙** - 只允许必要的端口访问
+3. **使用 TLS** - 生产环境建议配合 Nginx 使用 HTTPS
+4. **定期备份** - 定期备份 `/data` 目录
+5. **监控日志** - 关注异常访问日志
+
+## 🐛 常见问题
+
+### Q: 端口被占用？
+```bash
+# 检查端口占用
+lsof -i :8080
+
+# 更换端口
+export PORT=8081
+```
+
+### Q: 无法连接？
+```bash
+# 检查防火墙
+ufw status
+
+# 开放端口
+ufw allow 8080/tcp
+```
+
+### Q: 数据丢失？
+- 检查 `/data` 目录权限
+- 确认磁盘空间充足
+- 定期备份数据文件
+
+## 📞 获取帮助
+
+- GitHub Issues: https://github.com/XingP14/clawlink/issues
+- 文档: https://github.com/XingP14/clawlink#readme

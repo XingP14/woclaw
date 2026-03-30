@@ -1,14 +1,17 @@
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer, WebSocket as WSType } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { Agent, InboundMessage, OutboundMessage, Config } from './types.js';
 import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { ClawDB } from './db.js';
 
+// Use ws WebSocket type explicitly
+type WS = InstanceType<typeof WSType>;
+
 export class WSServer {
   private wss: WebSocketServer;
-  private agents: Map<string, Agent> = new Map(); // agentId -> Agent
-  private agentByWs: Map<WebSocket, string> = new Map(); // reverse lookup
+  private agents: Map<string, Agent<WS>> = new Map();
+  private agentByWs: Map<WS, string> = new Map();
   private topics: TopicsManager;
   private memory: MemoryPool;
   private db: ClawDB;
@@ -23,11 +26,10 @@ export class WSServer {
     
     this.wss = new WebSocketServer({ port: config.port });
     
-    this.wss.on('connection', (ws: WebSocket, req) => {
+    this.wss.on('connection', (ws: WS, req) => {
       this.handleConnection(ws, req);
     });
 
-    // Start ping interval for keepalive
     this.pingInterval = setInterval(() => {
       this.pingAll();
     }, 30000);
@@ -35,29 +37,24 @@ export class WSServer {
     console.log(`[ClawLink] WebSocket server running on ws://${config.host}:${config.port}`);
   }
 
-  private handleConnection(ws: WebSocket, req: any): void {
-    // Parse query params from URL
+  private handleConnection(ws: WS, req: any): void {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const agentId = url.searchParams.get('agentId');
     const token = url.searchParams.get('token');
 
-    // Auth check
     if (!agentId || token !== this.config.authToken) {
       ws.close(4001, 'Unauthorized');
       return;
     }
 
-    // Check if agent already connected (prevent duplicates)
     if (this.agents.has(agentId)) {
-      // Force disconnect old connection
       const oldAgent = this.agents.get(agentId);
-      if (oldAgent?.ws.readyState === WebSocket.OPEN) {
+      if (oldAgent?.ws.readyState === 1) { // OPEN = 1
         oldAgent.ws.close(4002, 'Replaced by new connection');
       }
     }
 
-    // Register agent
-    const agent: Agent = {
+    const agent: Agent<WS> = {
       agentId,
       ws,
       topics: new Set(),
@@ -68,7 +65,6 @@ export class WSServer {
 
     console.log(`[ClawLink] Agent connected: ${agentId} (total: ${this.agents.size})`);
 
-    // Send welcome message
     this.send(ws, {
       type: 'welcome',
       agentId,
@@ -76,7 +72,6 @@ export class WSServer {
       topics: this.topics.getAllTopics().map(t => t.name),
     });
 
-    // Handle messages
     ws.on('message', (data: Buffer) => {
       try {
         const msg: InboundMessage = JSON.parse(data.toString());
@@ -86,12 +81,11 @@ export class WSServer {
       }
     });
 
-    // Handle disconnect
     ws.on('close', () => {
       this.handleDisconnect(agentId);
     });
 
-    ws.on('error', (err) => {
+    ws.on('error', (err: Error) => {
       console.error(`[ClawLink] WebSocket error for ${agentId}:`, err.message);
       this.handleDisconnect(agentId);
     });
@@ -173,7 +167,6 @@ export class WSServer {
       timestamp: Date.now(),
     };
 
-    // Save to database
     this.db.saveMessage({
       id: message.id,
       topic: message.topic,
@@ -182,18 +175,16 @@ export class WSServer {
       timestamp: message.timestamp,
     });
 
-    // Broadcast to all agents in topic (including sender for confirmation)
     const recipients = this.topics.broadcast(topic, message);
     for (const agentId of recipients) {
       const agent = this.agents.get(agentId);
-      if (agent && agent.ws.readyState === WebSocket.OPEN) {
+      if (agent && agent.ws.readyState === 1) {
         this.send(agent.ws, message);
       }
     }
 
-    // Also confirm to sender
     const sender = this.agents.get(fromAgent);
-    if (sender && sender.ws.readyState === WebSocket.OPEN) {
+    if (sender && sender.ws.readyState === 1) {
       this.send(sender.ws, { ...message, sent: true });
     }
   }
@@ -205,11 +196,9 @@ export class WSServer {
     this.topics.joinTopic(agentId, topic);
     agent.topics.add(topic);
 
-    // Get recent message history
     const history = this.db.getMessages(topic, 50);
-    history.reverse(); // Oldest first
+    history.reverse();
 
-    // Send history first
     this.send(agent.ws, {
       type: 'history',
       topic,
@@ -218,7 +207,6 @@ export class WSServer {
       timestamp: Date.now(),
     });
 
-    // Notify other agents in topic
     const notification: OutboundMessage = {
       type: 'join',
       topic,
@@ -229,7 +217,7 @@ export class WSServer {
     for (const otherAgentId of this.topics.getTopicAgents(topic)) {
       if (otherAgentId !== agentId) {
         const other = this.agents.get(otherAgentId);
-        if (other && other.ws.readyState === WebSocket.OPEN) {
+        if (other && other.ws.readyState === 1) {
           this.send(other.ws, notification);
         }
       }
@@ -245,7 +233,6 @@ export class WSServer {
     this.topics.leaveTopic(agentId, topic);
     agent.topics.delete(topic);
 
-    // Notify other agents
     const notification: OutboundMessage = {
       type: 'leave',
       topic,
@@ -255,7 +242,7 @@ export class WSServer {
 
     for (const otherAgentId of this.topics.getTopicAgents(topic)) {
       const other = this.agents.get(otherAgentId);
-      if (other && other.ws.readyState === WebSocket.OPEN) {
+      if (other && other.ws.readyState === 1) {
         this.send(other.ws, notification);
       }
     }
@@ -266,7 +253,6 @@ export class WSServer {
   private handleMemoryWrite(fromAgent: string, key: string, value: any): void {
     const mem = this.memory.write(key, value, fromAgent);
     
-    // Notify all agents about memory update
     const notification: OutboundMessage = {
       type: 'memory_update',
       key,
@@ -276,15 +262,14 @@ export class WSServer {
     };
     this.memory.notifySubscribers(notification);
 
-    // Also broadcast to all connected agents
     for (const [agentId, agent] of this.agents) {
-      if (agent.ws.readyState === WebSocket.OPEN) {
+      if (agent.ws.readyState === 1) {
         this.send(agent.ws, notification);
       }
     }
   }
 
-  private handleMemoryRead(ws: WebSocket, fromAgent: string, key: string): void {
+  private handleMemoryRead(ws: WS, fromAgent: string, key: string): void {
     const mem = this.memory.read(key);
     this.send(ws, {
       type: 'memory_value',
@@ -297,7 +282,7 @@ export class WSServer {
     });
   }
 
-  private handleTopicsList(ws: WebSocket): void {
+  private handleTopicsList(ws: WS): void {
     const topics = this.topics.getAllTopics().map(t => ({
       name: t.name,
       agents: t.agents.size,
@@ -305,7 +290,7 @@ export class WSServer {
     this.send(ws, { type: 'topics_list', topics, timestamp: Date.now() });
   }
 
-  private handleTopicMembers(ws: WebSocket, topic: string): void {
+  private handleTopicMembers(ws: WS, topic: string): void {
     const agents = this.topics.getTopicAgents(topic);
     this.send(ws, { type: 'topic_members', topic, agents, timestamp: Date.now() });
   }
@@ -314,10 +299,8 @@ export class WSServer {
     const agent = this.agents.get(agentId);
     if (!agent) return;
 
-    // Remove from all topics
     const leftTopics = this.topics.removeAgent(agentId);
 
-    // Notify other agents
     for (const topic of leftTopics) {
       const notification: OutboundMessage = {
         type: 'leave',
@@ -327,7 +310,7 @@ export class WSServer {
       };
 
       for (const [otherId, other] of this.agents) {
-        if (otherId !== agentId && other.ws.readyState === WebSocket.OPEN) {
+        if (otherId !== agentId && other.ws.readyState === 1) {
           this.send(other.ws, notification);
         }
       }
@@ -340,21 +323,21 @@ export class WSServer {
     console.log(`[ClawLink] Agent disconnected: ${agentId} (remaining: ${this.agents.size})`);
   }
 
-  private send(ws: WebSocket, msg: OutboundMessage): void {
-    if (ws.readyState === WebSocket.OPEN) {
+  private send(ws: WS, msg: OutboundMessage): void {
+    if (ws.readyState === 1) {
       ws.send(JSON.stringify(msg));
     }
   }
 
-  private sendError(ws: WebSocket, code: string, message: string): void {
+  private sendError(ws: WS, code: string, message: string): void {
     this.send(ws, { type: 'error', code, message, timestamp: Date.now() });
   }
 
   private pingAll(): void {
     for (const [agentId, agent] of this.agents) {
-      if (agent.ws.readyState === WebSocket.OPEN) {
+      if (agent.ws.readyState === 1) {
         try {
-          agent.ws.ping();
+          (agent.ws as any).ping();
         } catch (e) {
           console.error(`[ClawLink] Ping failed for ${agentId}`);
           this.handleDisconnect(agentId);

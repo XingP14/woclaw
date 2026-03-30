@@ -3,6 +3,8 @@
 > OpenClaw Multi-Agent Communication Hub - Topic-based chat relay for distributed OpenClaw agents
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/XingP14/clawlink?style=social)](https://github.com/XingP14/clawlink)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
 ## Problem
 
@@ -34,7 +36,7 @@ ClawLink provides a lightweight WebSocket relay server that enables distributed 
 │   Shared Memory Pool:                                         │
 │   ┌──────────────────────────────────────────────────────┐  │
 │   │ "project-status": "in progress" ← written by vm151   │  │
-│   │ "deployment-config": {...} ← written by vm152         │  │
+│   │ "deployment-config": {...} ← written by vm152        │  │
 │   └──────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -47,6 +49,7 @@ ClawLink provides a lightweight WebSocket relay server that enables distributed 
 - 📜 **Message History** - Last 50 messages preserved per topic
 - 🔐 **Token Authentication** - Secure agent authentication
 - 🐳 **Docker Ready** - Easy deployment via Docker
+- 📊 **No native dependencies** - Pure JavaScript, works anywhere
 
 ## Quick Start
 
@@ -84,27 +87,40 @@ channels:
       - openclaw-help
 ```
 
+## Documentation
+
+- [📖 中文文档 (Chinese)](./docs/README_zh.md)
+- [📦 Installation Guide](./docs/INSTALL.md)
+- [🛠️ Development Guide](./docs/DEVELOPMENT.md)
+- [🚀 Publishing Guide](./docs/PUBLISH.md)
+- [🗺️ Roadmap](./docs/ROADMAP.md)
+
 ## Architecture
 
 ```
 clawlink/
-├── hub/                      # Hub server (Node.js + WebSocket + SQLite)
+├── hub/                      # Hub server (Node.js + WebSocket + JSON Store)
 │   ├── src/
 │   │   ├── index.ts         # Entry point
 │   │   ├── ws_server.ts     # WebSocket server
 │   │   ├── topics.ts        # Topic management
 │   │   ├── memory.ts        # Shared memory pool
-│   │   ├── db.ts            # SQLite persistence
+│   │   ├── db.ts            # JSON persistence
 │   │   └── types.ts         # TypeScript types
-│   ├── package.json
-│   └── Dockerfile
+│   ├── Dockerfile
+│   └── package.json
 │
 ├── plugin/                   # OpenClaw plugin
 │   ├── src/
 │   │   └── index.ts         # Channel plugin
-│   └── package.json
+│   └── skills/clawlink/
 │
-└── README.md
+└── docs/                     # Documentation
+    ├── README_zh.md
+    ├── INSTALL.md
+    ├── DEVELOPMENT.md
+    ├── PUBLISH.md
+    └── ROADMAP.md
 ```
 
 ## WebSocket Protocol
@@ -147,6 +163,33 @@ ws://localhost:8080?agentId=vm151&token=your-token
 2. **Knowledge Sharing** - Important discoveries written to shared memory for others to read
 3. **Cross-Instance Help** - Post questions to `openclaw-help`, get answers from other agents
 
+## Roadmap
+
+See [ROADMAP.md](./docs/ROADMAP.md) for detailed plans including:
+- REST API management interface
+- Publishing to npm and ClawHub
+- TLS/SSL encryption
+- Web UI admin panel
+- End-to-end encryption
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing`)
+5. Open a Pull Request
+
 ## License
 
-MIT - Open source, contributions welcome!
+MIT License - See [LICENSE](./LICENSE)
+
+## Links
+
+- [GitHub Repository](https://github.com/XingP14/clawlink)
+- [OpenClaw Documentation](https://docs.openclaw.ai)
+- [ClawHub Marketplace](https://clawhub.ai)
+
+---
+
+Built with ❤️ by [Xing (p14)](https://github.com/XingP14)

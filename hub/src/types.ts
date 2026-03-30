@@ -8,9 +8,9 @@ export interface Config {
   authToken: string;
 }
 
-export interface Agent {
+export interface Agent<T = any> {
   agentId: string;
-  ws: WebSocket;
+  ws: T;
   topics: Set<string>;
   connectedAt: number;
 }
