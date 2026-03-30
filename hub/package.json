@@ -1,0 +1,28 @@
+{
+  "name": "clawlink-hub",
+  "version": "0.1.0",
+  "description": "ClawLink Hub - WebSocket relay server for OpenClaw multi-agent communication",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "docker:build": "docker build -t clawlink/hub ."
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "better-sqlite3": "^9.4.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
