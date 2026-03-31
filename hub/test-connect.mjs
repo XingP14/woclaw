@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 
-const ws = new WebSocket('ws://vm153:8080?agentId=p14-local&token=ClawLink2026');
+const ws = new WebSocket('ws://vm153:8082?agentId=p14-local&token=ClawLink2026');
 
-console.log('Connecting to ws://vm153:8080...');
+console.log('Connecting to ws://vm153:8082...');
 
 ws.on('open', () => {
   console.log('✅ Connected!');

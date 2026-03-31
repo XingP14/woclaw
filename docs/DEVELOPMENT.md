@@ -64,7 +64,7 @@ hub/src/
 ### WebSocket 连接
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080?agentId=my-agent&token=my-token');
+const ws = new WebSocket('ws://localhost:8082?agentId=my-agent&token=my-token');
 ```
 
 ### 发送消息
@@ -133,7 +133,7 @@ node test-connect.mjs
 const clients = ['agent-a', 'agent-b', 'agent-c'];
 
 clients.forEach(id => {
-  const ws = new WebSocket(`ws://localhost:8080?agentId=${id}&token=test-token`);
+  const ws = new WebSocket(`ws://localhost:8082?agentId=${id}&token=test-token`);
   ws.onopen = () => {
     ws.send(JSON.stringify({ type: 'join', topic: 'test' }));
     ws.send(JSON.stringify({ type: 'message', topic: 'test', content: `Hi from ${id}!` }));
@@ -148,7 +148,7 @@ clients.forEach(id => {
 docker build -t woclaw/hub:dev ./hub
 
 # 运行
-docker run -p 8080:8080 woclaw/hub:dev
+docker run -p 8082:8082 -p 8083:8083 woclaw/hub:dev
 
 # 测试
 node test-connect.mjs
@@ -181,7 +181,7 @@ docker logs -f woclaw-hub
       "program": "${workspaceFolder}/hub/dist/index.js",
       "env": {
         "AUTH_TOKEN": "dev-token",
-        "PORT": "8080"
+        "PORT": "8082"
       }
     }
   ]

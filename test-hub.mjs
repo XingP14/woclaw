@@ -4,7 +4,7 @@
 import pkg from './hub/node_modules/ws/index.js';
 const { WebSocket } = pkg;
 
-const HUB_URL = process.env.HUB_URL || 'ws://vm153:8080';
+const HUB_URL = process.env.HUB_URL || 'ws://vm153:8082';
 const AGENT_ID = process.env.AGENT_ID || 'p14-test';
 const AUTH_TOKEN = process.env.AUTH_TOKEN || 'WoClaw2026';
 

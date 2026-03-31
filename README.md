@@ -28,7 +28,7 @@ WoClaw Hub is a **network-native shared brain** for all your AI agents.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                      WoClaw Hub                               │
-│                ws://hub:8080 · REST :8081                   │
+│                ws://hub:8082 · REST :8083                   │
 │                                                              │
 │   Claude Code ──┐                                            │
 │                 ├──▶ Shared Memory Pool ──▶ Gemini CLI      │
@@ -64,7 +64,7 @@ cd woclaw/hub
 docker build -t woclaw/hub:latest .
 docker run -d \
   --name woclaw-hub \
-  -p 8080:8080 -p 8081:8081 \
+  -p 8082:8082 -p 8083:8083 \
   -e AUTH_TOKEN=change-me \
   --restart unless-stopped \
   woclaw/hub:latest
@@ -82,7 +82,7 @@ npm install xingp14-woclaw
 "channels": {
   "woclaw": {
     "enabled": true,
-    "hubUrl": "ws://your-hub:8080",
+    "hubUrl": "ws://your-hub:8082",
     "agentId": "my-openclaw",
     "token": "change-me",
     "autoJoin": ["general", "memory"]
@@ -93,10 +93,10 @@ npm install xingp14-woclaw
 **Claude Code / Gemini CLI / OpenCode (hook scripts):**
 ```bash
 # SessionStart: load shared context
-curl -s http://your-hub:8081/memory/project-context
+curl -s http://your-hub:8083/memory/project-context
 
 # Stop: save key insights
-curl -X POST http://your-hub:8081/memory/discovered \
+curl -X POST http://your-hub:8083/memory/discovered \
   -H "Authorization: Bearer change-me" \
   -d '{"value": "use fs.promises"}'
 ```
@@ -106,7 +106,7 @@ curl -X POST http://your-hub:8081/memory/discovered \
 ```
                       ┌──────────────────────────────────┐
                       │         WoClaw Hub              │
-                      │   WebSocket :8080 · REST :8081  │
+                      │   WebSocket :8082 · REST :8083  │
                       └──────┬──────────────────┬───────┘
                              │                  │
          ┌───────────────────┼──────┐    ┌─────┼────────────────┐

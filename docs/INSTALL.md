@@ -4,7 +4,7 @@
 
 - **Node.js**: 18.0 或更高
 - **Docker**: 20.10+ (可选，用于容器部署)
-- **网络**: Hub 端口 8080/8081 需要可达
+- **网络**: Hub 端口 8082/8083 需要可达
 
 ## 🐳 Docker 部署（推荐）
 
@@ -17,8 +17,8 @@ docker pull woclaw/hub:latest
 # 运行
 docker run -d \
   --name woclaw-hub \
-  -p 8080:8080 \
-  -p 8081:8081 \
+  -p 8082:8082 \
+  -p 8083:8083 \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
@@ -36,14 +36,14 @@ services:
     image: woclaw/hub:latest
     container_name: woclaw-hub
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "8082:8082"
+      - "8083:8083"
     volumes:
       - woclaw-data:/data
     environment:
       - AUTH_TOKEN=your-secure-token
-      - PORT=8080
-      - REST_PORT=8081
+      - PORT=8082
+      - REST_PORT=8083
     restart: unless-stopped
 
 volumes:
@@ -87,7 +87,7 @@ npm run build
 ```bash
 # 设置环境变量
 export AUTH_TOKEN=your-secure-token
-export PORT=8080
+export PORT=8082
 export DATA_DIR=/path/to/data
 
 # 运行
@@ -98,7 +98,7 @@ npm start
 
 ```bash
 # 检查进程
-curl -I http://localhost:8080
+curl -I http://localhost:8082
 # 应返回: HTTP/1.1 426 Upgrade Required
 
 # 查看日志
@@ -153,7 +153,7 @@ cd woclaw/hub
 docker build -t woclaw/hub .
 docker run -d \
   --name woclaw-hub \
-  -p 8080:8080 \
+  -p 8082:8082 \
   -e AUTH_TOKEN=your-token \
   --restart unless-stopped \
   woclaw/hub
@@ -170,7 +170,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:8082;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -200,12 +200,12 @@ spec:
       - name: woclaw-hub
         image: woclaw/hub:latest
         ports:
-        - containerPort: 8080
+        - containerPort: 8082
         env:
         - name: AUTH_TOKEN
           value: "your-secure-token"
         - name: PORT
-          value: "8080"
+          value: "8082"
         volumeMounts:
         - name: data
           mountPath: /data
@@ -222,7 +222,7 @@ spec:
   type: LoadBalancer
   ports:
   - port: 80
-    targetPort: 8080
+    targetPort: 8082
   selector:
     app: woclaw-hub
 ```
@@ -233,8 +233,8 @@ spec:
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `PORT` | 8080 | WebSocket 端口 |
-| `REST_PORT` | 8081 | REST API 端口 |
+| `PORT` | 8082 | WebSocket 端口 |
+| `REST_PORT` | 8083 | REST API 端口 |
 | `HOST` | 0.0.0.0 | 绑定地址 |
 | `DATA_DIR` | /data | 数据存储目录 |
 | `AUTH_TOKEN` | change-me | 认证 Token |
@@ -244,7 +244,7 @@ spec:
 ```bash
 # 生产环境
 export AUTH_TOKEN=$(openssl rand -hex 32)
-export PORT=8080
+export PORT=8082
 export DATA_DIR=/data/woclaw
 export HOST=0.0.0.0
 ```
@@ -262,10 +262,10 @@ export HOST=0.0.0.0
 ### Q: 端口被占用？
 ```bash
 # 检查端口占用
-lsof -i :8080
+lsof -i :8082
 
-# 更换端口
-export PORT=8081
+# 更换端口（尝试不同的 REST 端口）
+export REST_PORT=8084
 ```
 
 ### Q: 无法连接？
@@ -274,7 +274,7 @@ export PORT=8081
 ufw status
 
 # 开放端口
-ufw allow 8080/tcp
+ufw allow 8082/tcp
 ```
 
 ### Q: 数据丢失？

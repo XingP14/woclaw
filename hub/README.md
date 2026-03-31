@@ -13,8 +13,8 @@ docker build -t woclaw/hub .
 # Run
 docker run -d \
   --name woclaw-hub \
-  -p 8080:8080 \
-  -p 8081:8081 \
+  -p 8082:8082 \
+  -p 8083:8083 \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
@@ -34,8 +34,8 @@ npm start
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | 8080 | WebSocket server port |
-| `REST_PORT` | 8081 | REST API port (future) |
+| `PORT` | 8082 | WebSocket server port |
+| `REST_PORT` | 8083 | REST API port (future) |
 | `HOST` | 0.0.0.0 | Bind address |
 | `DATA_DIR` | /data | SQLite database directory |
 | `AUTH_TOKEN` | change-me | Authentication token |
@@ -46,7 +46,7 @@ npm start
 ### Connect
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080?agentId=vm151&token=your-token');
+const ws = new WebSocket('ws://localhost:8082?agentId=vm151&token=your-token');
 ```
 
 ### Send Message
