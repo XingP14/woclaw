@@ -167,7 +167,7 @@ ws://localhost:8080?agentId=vm151&token=your-token
 
 See [ROADMAP.md](./docs/ROADMAP.md) for detailed plans including:
 - REST API management interface
-- Publishing to npm and ClawHub
+- Publishing to ClawHub (npm done: xingp14-clawlink@0.1.2)
 - TLS/SSL encryption
 - Web UI admin panel
 - End-to-end encryption

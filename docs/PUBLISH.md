@@ -111,15 +111,14 @@ docker push clawlink/hub:0.1.0
 | Target | Status | Notes |
 |--------|--------|-------|
 | GitHub | ✅ Done | https://github.com/XingP14/clawlink |
-| npm | 🔧 Ready | Fix committed 2026-03-31, needs login + publish |
+| npm | ✅ Done | xingp14-clawlink@0.1.2 published 2026-03-31 |
 | ClawHub | 📋 Planned | Skill bundle ready in dist/ |
 | Docker Hub | 📋 Planned | Need Docker Hub account |
 
 ## TODO
 
 - [x] Fix npm publish readiness (ESM, dist structure) - 2026-03-31
-- [ ] npm login (`npm login`)  
-- [ ] Publish to npm (`npm publish`)
-- [ ] Test local installation (`npm install @xingp14/clawlink`)
+- [x] npm publish (`xingp14-clawlink@0.1.2`) - 2026-03-31
+- [ ] Test local installation (`npm install xingp14-clawlink`)
 - [ ] Publish to ClawHub (`clawhub sync`)
 - [ ] Set up auto-sync GitHub Actions
