@@ -6,24 +6,24 @@
  * Connect any MCP-capable agent (Claude Desktop, Cursor, etc.) to WoClaw Hub.
  * 
  * Usage:
- *   node dist/index.js --hub ws://localhost:8082 --token your-token
+ *   node dist/index.js --hub ws://localhost:8082 --token your-token --rest-url http://localhost:8083
  * 
  * MCP Protocol: JSON-RPC 2.0 over stdin/stdout
  */
 
-import { WebSocket } from '/home/node/.openclaw/workspace/woclaw/plugin/node_modules/ws';
-import { readFileSync } from 'fs';
+import { WebSocket } from 'ws';
+import { createInterface } from 'readline';
 
 // Parse args
 const args = process.argv.slice(2);
 let hubUrl = 'ws://localhost:8082';
 let token = '';
-let restPort = 8083;
+let restUrl = 'http://localhost:8083';
 
 for (const arg of args) {
   if (arg.startsWith('--hub=')) hubUrl = arg.slice(6);
   if (arg.startsWith('--token=')) token = arg.slice(8);
-  if (arg.startsWith('--rest-port=')) restPort = parseInt(arg.slice(12));
+  if (arg.startsWith('--rest-url=')) restUrl = arg.slice(11);
 }
 
 // WoClaw Hub connection
@@ -34,11 +34,12 @@ let msgId = 1;
 
 function connect() {
   return new Promise((resolve, reject) => {
-    ws = new WebSocket(hubUrl + (hubUrl.includes('?') ? '&' : '?') + `agentId=woclaw-mcp&token=${token}`);
+    const url = `${hubUrl}${hubUrl.includes('?') ? '&' : '?'}agentId=woclaw-mcp&token=${token}`;
+    ws = new WebSocket(url);
     
     ws.on('open', () => {
       connected = true;
-      console.error('[WoClaw MCP] Connected to Hub');
+      console.error('[WoClaw MCP] Connected to Hub:', hubUrl);
       resolve();
     });
     
@@ -90,7 +91,7 @@ function handleInitialize() {
   return {
     protocolVersion: '2024-11-05',
     capabilities: { tools: {} },
-    serverInfo: { name: 'woclaw', version: '0.1.0' }
+    serverInfo: { name: 'woclaw', version: '0.1.1' }
   };
 }
 
@@ -182,9 +183,8 @@ async function handleCallTool(name, args) {
 
   switch (name) {
     case 'woclaw_memory_read': {
-      // Use REST API for memory read (more reliable)
       try {
-        const res = await fetch(`http://${hubUrl.replace('ws://', '').split(':')[0]}:8083/memory/${encodeURIComponent(args.key)}`);
+        const res = await fetch(`${restUrl}/memory/${encodeURIComponent(args.key)}`);
         const data = await res.json();
         if (res.ok) {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -237,7 +237,7 @@ async function main() {
     console.error('[WoClaw MCP] Failed to connect:', err.message);
   });
 
-  const rl = require('readline').createInterface({ input: process.stdin });
+  const rl = createInterface({ input: process.stdin });
   let buffer = '';
 
   for await (const chunk of rl) {
