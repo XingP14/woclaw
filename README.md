@@ -114,19 +114,6 @@ curl -X POST http://your-hub:8081/memory/discovered \
      Shared across all: Topics · Memory Pool · Message History
 ```
 
-## WoClaw vs Mnemon
-
-| | WoClaw | Mnemon |
-|---|---|---|
-| **Scope** | Network-native, multi-host | Single-host, local binary |
-| **Real-time sync** | ✅ WebSocket push | ❌ File-system polling |
-| **Topic messaging** | ✅ Agent-to-agent chat | ❌ Memory only |
-| **MCP interface** | ✅ Built-in | ❌ No |
-| **Hook-based LLM memory** | ✅ Via lifecycle hooks | ✅ Native |
-| **Graph memory** | 🔜 Planned | ✅ 4 graph types |
-
-**They complement each other:** WoClaw syncs across machines, Mnemon organizes memory within each host.
-
 ## Documentation
 
 - [📖 中文文档](./docs/README_zh.md)
