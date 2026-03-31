@@ -2,123 +2,80 @@
 
 > ClawHub is the public skill registry for OpenClaw
 
-## Prerequisites
+## Published Packages
 
-1. Node.js 18+
-2. GitHub account connected to ClawHub
-3. Your skill/plugin ready for publishing
+| Package | Version | Status | Registry |
+|---------|---------|--------|----------|
+| `xingp14-woclaw` | 0.1.5 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
+| `woclaw-hub` | 0.1.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
+| WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-08) |
+| Docker Hub | — | 📋 Planned | Docker Hub |
 
-## Option 1: Publish as OpenClaw Skill
+## npm Publishing Guide
 
-### Prepare Your Skill
-
-```
-plugin/skills/woclaw/
-└── SKILL.md    # Required - skill definition
-```
-
-Your SKILL.md should look like:
-
-```markdown
----
-name: woclaw
-description: Connect to WoClaw hub for multi-agent communication
-tags:
-  - communication
-  - multi-agent
-  - collaboration
----
-
-# WoClaw Skill
-
-Connect your OpenClaw agent to WoClaw...
-
-## Commands
-
-### /woclaw join <topic>
-Join a topic/channel...
-
-## Configuration
-
-Set up in your openclaw.json...
-```
-
-### Publish via CLI
+### `xingp14-woclaw` (Plugin + Skill)
 
 ```bash
-# Install clawhub CLI
-npm i -g clawhub
+cd plugin
+HOME=/home/node/.openclaw/tmp npm publish
+```
 
-# Login with GitHub
+### `woclaw-hub` (Server)
+
+```bash
+cd hub
+HOME=/home/node/.openclaw/tmp npm publish
+```
+
+### npm Token
+
+Token stored in GitHub Actions secrets: `NPM_TOKEN`
+
+## ClawHub Publishing
+
+### Prerequisites
+- GitHub account connected to ClawHub
+- Account age ≥ 14 days
+
+**Estimated ready:** ~2026-04-08
+
+```bash
 clawhub login
-
-# Sync/publish your skill
 clawhub sync --all
 ```
 
-## Option 2: Publish as npm Package
+## Docker Hub Publishing
 
-### Prepare package.json
-
-```json
-{
-  "name": "@woclaw/hub",
-  "version": "0.1.0",
-  "description": "WoClaw Hub - WebSocket relay for OpenClaw",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
-  },
-  "keywords": ["openclaw", "multi-agent", "communication"],
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
-}
-```
-
-### Publish to npm
-
+### Build
 ```bash
-# Login to npm
-npm login
-
-# Publish
-npm publish
-```
-
-## Option 3: Docker Hub
-
-```bash
-# Build
-docker build -t woclaw/hub:latest ./hub
-
-# Tag
+cd hub
+docker build -t woclaw/hub:latest .
 docker tag woclaw/hub:latest woclaw/hub:0.1.0
+```
 
-# Login
+### Login
+```bash
 docker login
+```
 
-# Push
+### Push
+```bash
 docker push woclaw/hub:latest
 docker push woclaw/hub:0.1.0
 ```
 
+## GitHub Actions Auto-Sync
+
+**TODO:** Set up CI/CD workflow for:
+- Auto-publish to npm on tag
+- Auto-build and push Docker image
+- Auto-sync to ClawHub
+
 ## Current Status
 
-| Target | Status | Notes |
-|--------|--------|-------|
-| GitHub | ✅ Done | https://github.com/XingP14/woclaw |
-| npm | ✅ Done | xingp14-woclaw@0.1.5 published 2026-03-31 |
-| ClawHub | ⏳ Blocked | GitHub account must be ≥14 days old (est. 2026-04-08) |
-| Docker Hub | 📋 Planned | Need Docker Hub account + credentials |
-
-## TODO
-
 - [x] Fix npm publish readiness (ESM, dist structure) - 2026-03-31
-- [x] npm publish (`xingp14-woclaw@0.1.5`) - 2026-03-31
-- [ ] Publish to ClawHub (`clawhub sync`) — blocked until ~2026-04-08
+- [x] npm publish `xingp14-woclaw@0.1.5` - 2026-03-31
+- [x] npm publish `woclaw-hub@0.1.0` - 2026-03-31
 - [ ] Set up Docker Hub publish workflow
-- [ ] Set up auto-sync GitHub Actions
+- [ ] Set up GitHub Actions CI/CD
+- [ ] Publish to ClawHub (`clawhub sync`) — blocked until ~2026-04-08
