@@ -11,8 +11,8 @@
 ### 快速部署
 
 ```bash
-# 下载镜像（需要 Docker Hub 访问）
-docker pull woclaw/hub:latest
+# 下载镜像（Docker Hub）
+docker pull xingp14/woclaw-hub:latest
 
 # 运行
 docker run -d \
@@ -22,7 +22,7 @@ docker run -d \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
-  woclaw/hub:latest
+  xingp14/woclaw-hub:latest
 ```
 
 ### Docker Compose 部署
@@ -33,7 +33,7 @@ version: '3.8'
 
 services:
   woclaw-hub:
-    image: woclaw/hub:latest
+    image: xingp14/woclaw-hub:latest
     container_name: woclaw-hub
     ports:
       - "8082:8082"
@@ -150,13 +150,13 @@ curl -fsSL https://get.docker.com | sh
 # 3. 克隆并运行
 git clone https://github.com/XingP14/woclaw.git
 cd woclaw/hub
-docker build -t woclaw/hub .
+docker build -t xingp14/woclaw-hub:latest .
 docker run -d \
   --name woclaw-hub \
   -p 8082:8082 \
   -e AUTH_TOKEN=your-token \
   --restart unless-stopped \
-  woclaw/hub
+  xingp14/woclaw-hub:latest
 ```
 
 ### Nginx 反向代理（可选）
@@ -198,7 +198,7 @@ spec:
     spec:
       containers:
       - name: woclaw-hub
-        image: woclaw/hub:latest
+        image: xingp14/woclaw-hub:latest
         ports:
         - containerPort: 8082
         env:

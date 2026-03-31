@@ -9,7 +9,7 @@
 | `xingp14-woclaw` | 0.1.5 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
 | `woclaw-hub` | 0.1.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
 | WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-08) |
-| Docker Hub | — | 📋 Planned | Docker Hub |
+| Docker Hub | — | ✅ Workflow Ready | Docker Hub |
 
 ## npm Publishing Guide
 
@@ -49,8 +49,8 @@ clawhub sync --all
 ### Build
 ```bash
 cd hub
-docker build -t woclaw/hub:latest .
-docker tag woclaw/hub:latest woclaw/hub:0.1.0
+docker build -t xingp14/woclaw-hub:latest ./hub
+docker tag xingp14/woclaw-hub:latest xingp14/woclaw-hub:0.1.0
 ```
 
 ### Login
@@ -60,8 +60,8 @@ docker login
 
 ### Push
 ```bash
-docker push woclaw/hub:latest
-docker push woclaw/hub:0.1.0
+docker push xingp14/woclaw-hub:latest
+docker push xingp14/woclaw-hub:0.1.0
 ```
 
 ## GitHub Actions Auto-Sync
@@ -76,6 +76,6 @@ docker push woclaw/hub:0.1.0
 - [x] Fix npm publish readiness (ESM, dist structure) - 2026-03-31
 - [x] npm publish `xingp14-woclaw@0.1.5` - 2026-03-31
 - [x] npm publish `woclaw-hub@0.1.0` - 2026-03-31
-- [ ] Set up Docker Hub publish workflow
-- [ ] Set up GitHub Actions CI/CD
+- [x] Set up GitHub Actions CI/CD (publish.yml, hub-publish.yml, docker-publish.yml)
+- [ ] Trigger Docker Hub publish (push `hub/v*` tag) — needs Docker Hub credentials
 - [ ] Publish to ClawHub (`clawhub sync`) — blocked until ~2026-04-08

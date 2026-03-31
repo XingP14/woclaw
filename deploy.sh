@@ -36,7 +36,7 @@ fi
 
 # Build on remote
 echo "[2/5] Building Docker image on $SSH_HOST..."
-$TARGET "cd $REPO_DIR && docker build -t woclaw/hub:latest ./hub"
+$TARGET "cd $REPO_DIR && docker build -t xingp14/woclaw-hub:latest ./hub"
 
 # Stop existing container
 echo "[3/5] Stopping existing container..."
@@ -56,7 +56,7 @@ $TARGET "cd $REPO_DIR && docker run -d \
     -e REST_PORT=8083 \
     -e DATA_DIR=/data \
     --restart unless-stopped \
-    woclaw/hub:latest"
+    xingp14/woclaw-hub:latest"
 
 # Wait for container to start
 echo "[5/5] Waiting for container to start..."

@@ -55,7 +55,7 @@ docker run -d \
   -p 8080:8080 \
   -v ./data:/data \
   -e AUTH_TOKEN=your-secure-token \
-  woclaw/hub
+  xingp14/woclaw-hub
 ```
 
 **Node.js 直接运行：**

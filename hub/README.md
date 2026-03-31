@@ -7,8 +7,8 @@ WebSocket relay server for OpenClaw multi-agent communication.
 ### Using Docker
 
 ```bash
-# Build
-docker build -t woclaw/hub .
+# Pull pre-built image (published to Docker Hub)
+docker pull xingp14/woclaw-hub:latest
 
 # Run
 docker run -d \
@@ -18,7 +18,24 @@ docker run -d \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
-  woclaw/hub
+  xingp14/woclaw-hub:latest
+```
+
+Or build from source:
+
+```bash
+# Build locally
+docker build -t xingp14/woclaw-hub:latest ./hub
+
+# Run
+docker run -d \
+  --name woclaw-hub \
+  -p 8082:8082 \
+  -p 8083:8083 \
+  -v /path/to/data:/data \
+  -e AUTH_TOKEN=your-secure-token \
+  --restart unless-stopped \
+  xingp14/woclaw-hub:latest
 ```
 
 ### From Source

@@ -238,7 +238,7 @@ docker run -d \
   -p 8080:8080 \
   -p 8081:8081 \
   -v /data/woclaw:/data \
-  woclaw/hub:latest
+  xingp14/woclaw-hub:latest
 ```
 
 ### OpenClaw Configuration

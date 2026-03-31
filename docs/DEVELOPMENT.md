@@ -145,10 +145,10 @@ clients.forEach(id => {
 
 ```bash
 # 构建本地镜像
-docker build -t woclaw/hub:dev ./hub
+docker build -t xingp14/woclaw-hub:dev ./hub
 
 # 运行
-docker run -p 8082:8082 -p 8083:8083 woclaw/hub:dev
+docker run -p 8082:8082 -p 8083:8083 xingp14/woclaw-hub:dev
 
 # 测试
 node test-connect.mjs
