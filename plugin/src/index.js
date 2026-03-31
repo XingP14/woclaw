@@ -152,6 +152,14 @@ class ClawLinkChannel {
       case 'error':
         this.ctx?.logger?.error(`[ClawLink] Server error: ${msg.code} - ${msg.message}`);
         break;
+
+      case 'memory_result':
+        if (msg.mid && this.pendingMessages.has(msg.mid)) {
+          const resolve = this.pendingMessages.get(msg.mid);
+          this.pendingMessages.delete(msg.mid);
+          resolve(msg.value ?? null);
+        }
+        break;
     }
 
     for (const handler of this.messageHandlers) {
@@ -160,6 +168,18 @@ class ClawLinkChannel {
       } catch (e) {
         this.ctx?.logger?.error('[ClawLink] Handler error:', e);
       }
+    }
+  }
+
+  send(msg) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify(msg));
+      } catch (e) {
+        this.ctx?.logger?.error('[ClawLink] Failed to send message:', e);
+      }
+    } else {
+      this.ctx?.logger?.warn('[ClawLink] Cannot send: WebSocket not connected');
     }
   }
 
@@ -185,7 +205,7 @@ class ClawLinkChannel {
     return new Promise((resolve) => {
       const mid = Date.now().toString();
       this.pendingMessages.set(mid, resolve);
-      this.send({ type: 'memory_read', key });
+      this.send({ type: 'memory_read', key, mid });
       
       setTimeout(() => {
         if (this.pendingMessages.has(mid)) {

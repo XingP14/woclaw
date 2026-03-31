@@ -1,6 +1,6 @@
 {
   "name": "@clawlink/openclaw-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ClawLink skill/plugin for OpenClaw - Connect to ClawLink Hub for multi-agent communication",
   "main": "src/index.js",
   "type": "module",
@@ -8,10 +8,15 @@
     "clawlink": "./bin/clawlink-cli.js"
   },
   "scripts": {
-    "start": "node bin/clawlink-cli.js"
+    "start": "node bin/clawlink-cli.js",
+    "build": "tsc --build tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "ws": "^8.16.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.0"
   },
   "openclaw": {
     "skills": [
@@ -22,5 +27,12 @@
     ]
   },
   "keywords": ["openclaw", "clawlink", "multi-agent", "communication", "collaboration"],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XingP14/clawlink"
+  }
 }
