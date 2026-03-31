@@ -2,62 +2,103 @@
 
 > 规划 WoClaw 的发展方向，持续迭代
 
-## 📌 项目愿景
+## 🎯 项目定位
 
-**WoClaw** 致力于成为 OpenClaw 生态中多智能体协作的标准通信层，让分布式部署的 OpenClaw 实例能够像人类在群聊中一样自然地协作。
+**WoClaw = Shared Memory + Messaging Hub for AI Agents**
 
-## 🔥 短期目标 (v0.2 - v0.3)
+让 OpenClaw、Claude Code、Gemini CLI、OpenCode 等多个 AI 框架共享项目上下文、记忆和决策。解决"每个 AI 都从零开始"的问题。
 
-### 文档完善
-- [x] **中文文档** - README 完整中文化 ✅
-- [x] **安装指南** - 详细的多平台安装步骤 ✅
-- [x] **开发指南** - 本地开发、调试指南 ✅
-- [x] **API 文档** - 完整的 WebSocket/REST API 文档 ✅
+**参考项目：** [Mnemon](https://github.com/mnemon-dev/mnemon) — LLM-supervised memory，WoClaw 将其扩展为网络原生、多框架共享。
 
-### 核心功能
-- [x] **REST API** - 管理接口（查看连接、主题、内存）✅ v0.2
-- [x] **npm 包发布** - xingp14-woclaw@0.1.2 ✅
-- [x] **健康检查** - `/health` 端点 ✅ v0.2
-- [x] **指标统计** - 连接数、主题数 ✅ v0.2
+## 🚀 v0.2 — P0 功能（当前）
 
-### 部署
-- [ ] **Docker Hub 发布** - 自动构建推送到 Docker Hub
-- [x] **systemd 模板** - 完整的 systemd 服务配置 ✅
-- [x] **一键部署脚本** - deploy.sh ✅
+### 核心已上线
+- [x] WebSocket Hub (ws://vm153:8080) ✅
+- [x] REST API (vm153:8081) ✅
+- [x] Topic Pub/Sub ✅
+- [x] Shared Memory Pool ✅
+- [x] Message History (last 50) ✅
+- [x] Token Authentication ✅
+- [x] npm 包发布 (woclaw-hub@0.1.0, xingp14-woclaw@0.1.5) ✅
 
-## 🎯 中期目标 (v0.4 - v0.6)
+### P0 - 跨框架 Hook 集成
+- [ ] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory
+- [ ] Gemini CLI MCP Bridge — WoClaw MCP server interface
+- [ ] OpenCode Hook Scripts — 同 Claude Code
+
+### P0 - OpenClaw Plugin 完善
+- [ ] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）
+- [ ] Plugin 在 vm153 上安装验证
+- [ ] Plugin 在 VPS4 (本地) 安装验证
+
+## 🔥 v0.3 — MCP + Hook 系统
+
+### 发布
+- [ ] Docker Hub 自动构建 (docker push on git tag)
+- [ ] ClawHub Skill 发布（@XingP14 账号 2026-04-14 满14天后）
+
+### MCP Bridge
+- [ ] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具
+- [ ] MCP CLI 命令：`openclaw mcp serve` 暴露 WoClaw Hub
+
+### Hook 系统
+- [ ] Hook Scripts 模板 — Claude Code/Gemini CLI/OpenCode 一键安装
+- [ ] `woclaw hook install --framework claude-code` 命令
+- [ ] PreCompact hook — 自动将关键上下文写入 memory
+
+## 🎯 v0.4 — 多框架共享记忆
+
+### Shared Memory 增强
+- [ ] Memory TTL — 支持设置过期时间
+- [ ] Memory Tags — 支持分类标签（project/fact/decision/config）
+- [ ] Memory Versioning — 保留历史版本
+
+### Multi-Agent Orchestration
+- [ ] Agent 发现 — 自动发现同 Hub 上其他 agent
+- [ ] 委托任务 — agent 可以委托任务给其他 agent
+- [ ] 任务状态追踪 — 跨 agent 任务状态同步
+
+## 📦 v0.5 — 生态集成
 
 ### 发布到生态
-- [x] **npm 包发布** - xingp14-woclaw@0.1.5 ✅ (npm: npmjs.com/package/xingp14-woclaw)
-- [ ] **ClawHub 发布** - 发布为 OpenClaw Skill/Plugin (⚠️ GitHub 账号需满14天，@XingP14 账号创建于 2026-03，需等待)
-- [x] **GitHub Actions** - 完善 CI/CD 流程 ✅
+- [ ] ClawHub Skill 发布
+- [ ] GitHub Actions CI/CD 完善
+- [ ] VS Code / Cursor 插件（可选）
 
-### 安全性
-- [ ] **TLS/SSL** - 支持 wss:// 加密连接
-- [ ] **Token 轮换** - 支持动态更新 Token
-- [ ] **连接限流** - 防止滥用
+### 文档
+- [ ] Hook 集成指南（针对每个框架）
+- [ ] MCP Server 使用文档
+- [ ] 视频演示
 
-### 高级功能
-- [ ] **私有 Topic** - 需要邀请才能加入的私密主题
-- [ ] **消息线程** - 支持回复和引用
-- [ ] **@提及** - 支持 @智能体 通知
+## 🔮 v1.0+ — 高级特性
 
-## 🚀 长期目标 (v1.0+)
+### 记忆增强
+- [ ] Graph Memory — 图数据库后端（参考 Mnemon 的 temporal/entity/causal/semantic edges）
+- [ ] Semantic Recall — 意图感知检索（intent-aware recall）
+- [ ] Deduplication — 自动去重和冲突检测
 
-### 用户体验
-- [ ] **Web UI 管理面板** - 可视化管理连接和消息
-- [ ] **消息搜索** - 全局搜索历史消息
-- [ ] **消息预览** - 在 UI 中预览未读消息
+### 安全与扩展
+- [ ] TLS/SSL (wss://)
+- [ ] Token 轮换
+- [ ] 连接限流
+- [ ] 私有 Topic（邀请制）
 
-### 高级特性
-- [ ] **端到端加密** - 消息内容加密
-- [ ] **插件系统** - 支持自定义消息处理器
-- [ ] **Webhook** - 支持外部系统集成
-- [ ] **消息分发** - 支持广播到多个 Topic
+### 联邦
+- [ ] Multi-Hub Federation — Hub 之间互联
+- [ ] 官方托管服务
 
-### 生态系统
-- [ ] **多 Hub 联邦** - Hub 之间可互联
-- [ ] **官方托管服务** - 提供云端 WoClaw Hub
+---
+
+## 进度追踪 / Progress
+
+| 版本 | 日期 | 里程碑 |
+|------|------|--------|
+| v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
+| v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
+| v0.3 | 待定 | MCP Bridge、Hook 系统 |
+| v0.4 | 待定 | 多框架共享记忆 |
+| v0.5 | 待定 | 生态集成、ClawHub |
+| v1.0 | 待定 | Graph Memory、Federation |
 
 ---
 
