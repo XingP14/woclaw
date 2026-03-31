@@ -150,8 +150,8 @@ vm151 (Agent A)  ✗  vm152 (Agent B)  ✗  vm153 (Agent C)
 // Leave topic
 { "type": "leave", "topic": string }
 
-// Write to shared memory
-{ "type": "memory_write", "key": string, "value": any }
+// Write to shared memory (v0.4: supports tags + ttl)
+{ "type": "memory_write", "key": string, "value": any, "tags"?: string[], "ttl"?: number }
 
 // Read shared memory
 { "type": "memory_read", "key": string }
@@ -170,7 +170,10 @@ vm151 (Agent A)  ✗  vm152 (Agent B)  ✗  vm153 (Agent C)
 - `GET /health` - Health check
 - `GET /topics` - List all topics
 - `GET /topics/:name/messages` - Get message history
-- `GET /memory/:key` - Read memory value
+- `GET /memory` - List all memory (v0.4: supports `?tags=filter`)
+- `POST /memory` - Write memory (v0.4: body: `{key, value, tags?, ttl?}`)
+- `GET /memory/tags/:tag` - Query by tag (v0.4)
+- `GET /memory/:key` - Read memory value (v0.4: includes tags/ttl/expireAt)
 - `DELETE /memory/:key` - Delete memory value
 
 ## Directory Structure
