@@ -9,7 +9,7 @@ export class ClawDB {
   private dbPath: string;
   private data: {
     messages: DBMessage[];
-    memory: { key: string; value: string; updatedAt: number; updatedBy: string }[];
+    memory: { key: string; value: string; tags: string[]; ttl: number; expireAt: number; updatedAt: number; updatedBy: string }[];
     topics: { name: string; createdAt: number; messageCount: number }[];
   };
 
@@ -24,7 +24,16 @@ export class ClawDB {
   private load() {
     if (existsSync(this.dbPath)) {
       try {
-        return JSON.parse(readFileSync(this.dbPath, 'utf-8'));
+        const data = JSON.parse(readFileSync(this.dbPath, 'utf-8'));
+        // v0.4 migration: add tags/ttl/expireAt to legacy memory entries
+        if (data.memory && Array.isArray(data.memory)) {
+          for (const m of data.memory) {
+            if (m.tags === undefined) m.tags = [];
+            if (m.ttl === undefined) m.ttl = 0;
+            if (m.expireAt === undefined) m.expireAt = 0;
+          }
+        }
+        return data;
       } catch (e) {
         console.error('[ClawDB] Failed to load DB, starting fresh');
       }
@@ -71,14 +80,19 @@ export class ClawDB {
   }
 
   // Memory
-  setMemory(key: string, value: string, updatedBy: string): void {
+  setMemory(key: string, value: string, updatedBy: string, tags: string[] = [], ttl: number = 0): void {
+    const now = Date.now();
+    const expireAt = ttl > 0 ? now + ttl * 1000 : 0;
     const existing = this.data.memory.find(m => m.key === key);
     if (existing) {
       existing.value = value;
-      existing.updatedAt = Date.now();
+      existing.tags = tags;
+      existing.ttl = ttl;
+      existing.expireAt = expireAt;
+      existing.updatedAt = now;
       existing.updatedBy = updatedBy;
     } else {
-      this.data.memory.push({ key, value, updatedAt: Date.now(), updatedBy });
+      this.data.memory.push({ key, value, tags, ttl, expireAt, updatedAt: now, updatedBy });
     }
     this.save();
   }
@@ -86,9 +100,18 @@ export class ClawDB {
   getMemory(key: string): DBMemory | undefined {
     const m = this.data.memory.find(mem => mem.key === key);
     if (!m) return undefined;
+    const now = Date.now();
+    if (m.expireAt > 0 && m.expireAt < now) {
+      // Expired — remove it
+      this.deleteMemory(key);
+      return undefined;
+    }
     return {
       key: m.key,
       value: m.value,
+      tags: m.tags,
+      ttl: m.ttl,
+      expireAt: m.expireAt,
       updatedAt: m.updatedAt,
       updatedBy: m.updatedBy,
     };
@@ -105,12 +128,39 @@ export class ClawDB {
   }
 
   getAllMemory(): DBMemory[] {
-    return this.data.memory.map(m => ({
-      key: m.key,
-      value: m.value,
-      updatedAt: m.updatedAt,
-      updatedBy: m.updatedBy,
-    }));
+    const now = Date.now();
+    const valid: DBMemory[] = [];
+    const expired: string[] = [];
+    for (const m of this.data.memory) {
+      if (m.expireAt > 0 && m.expireAt < now) {
+        expired.push(m.key);
+      } else {
+        valid.push({
+          key: m.key,
+          value: m.value,
+          tags: m.tags,
+          ttl: m.ttl,
+          expireAt: m.expireAt,
+          updatedAt: m.updatedAt,
+          updatedBy: m.updatedBy,
+        });
+      }
+    }
+    // Remove expired silently
+    if (expired.length > 0) {
+      this.data.memory = this.data.memory.filter(m => !expired.includes(m.key));
+      this.save();
+    }
+    return valid;
+  }
+
+  cleanupExpired(): number {
+    const now = Date.now();
+    const before = this.data.memory.length;
+    this.data.memory = this.data.memory.filter(m => m.expireAt === 0 || m.expireAt >= now);
+    const removed = before - this.data.memory.length;
+    if (removed > 0) this.save();
+    return removed;
   }
 
   // Topics

@@ -9,9 +9,9 @@ export class MemoryPool {
     this.db = db;
   }
 
-  write(key: string, value: any, updatedBy: string): DBMemory {
+  write(key: string, value: any, updatedBy: string, tags: string[] = [], ttl: number = 0): DBMemory {
     const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-    this.db.setMemory(key, serialized, updatedBy);
+    this.db.setMemory(key, serialized, updatedBy, tags, ttl);
     return this.db.getMemory(key)!;
   }
 
@@ -25,6 +25,15 @@ export class MemoryPool {
 
   getAll(): DBMemory[] {
     return this.db.getAllMemory();
+  }
+
+  // v0.4: query memory by tag
+  queryByTag(tag: string): DBMemory[] {
+    return this.getAll().filter(m => m.tags.includes(tag));
+  }
+
+  cleanupExpired(): number {
+    return this.db.cleanupExpired();
   }
 
   // For agents that want to subscribe to memory changes

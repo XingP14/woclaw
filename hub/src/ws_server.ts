@@ -125,7 +125,7 @@ export class WSServer {
           this.sendError(agent.ws, 'missing_fields', 'key required');
           return;
         }
-        this.handleMemoryWrite(agentId, msg.key, msg.value);
+        this.handleMemoryWrite(agentId, msg.key, msg.value, msg.tags, msg.ttl);
         break;
 
       case 'memory_read':
@@ -250,13 +250,16 @@ export class WSServer {
     console.log(`[WoClaw] ${agentId} left topic: ${topic}`);
   }
 
-  private handleMemoryWrite(fromAgent: string, key: string, value: any): void {
-    const mem = this.memory.write(key, value, fromAgent);
+  private handleMemoryWrite(fromAgent: string, key: string, value: any, tags?: string[], ttl?: number): void {
+    const mem = this.memory.write(key, value, fromAgent, tags ?? [], ttl ?? 0);
     
     const notification: OutboundMessage = {
       type: 'memory_update',
       key,
       value: mem.value,
+      tags: mem.tags,
+      ttl: mem.ttl,
+      expireAt: mem.expireAt,
       from: fromAgent,
       timestamp: mem.updatedAt,
     };
@@ -275,6 +278,9 @@ export class WSServer {
       type: 'memory_value',
       key,
       value: mem?.value ?? null,
+      tags: mem?.tags ?? [],
+      ttl: mem?.ttl ?? 0,
+      expireAt: mem?.expireAt ?? 0,
       exists: !!mem,
       updatedAt: mem?.updatedAt ?? null,
       updatedBy: mem?.updatedBy ?? null,

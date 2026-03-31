@@ -34,6 +34,8 @@ export interface InboundMessage {
   content?: string;
   key?: string;
   value?: any;
+  tags?: string[];  // v0.4: optional tags for memory entries
+  ttl?: number;    // v0.4: optional TTL in seconds (0 = no expiry)
 }
 
 // Outbound messages to clients
@@ -60,6 +62,9 @@ export interface DBMessage {
 export interface DBMemory {
   key: string;
   value: string;
+  tags: string[];
+  ttl: number;        // TTL in seconds, 0 = no expiry
+  expireAt: number;   // Unix timestamp when this entry expires, 0 = no expiry
   updatedAt: number;
   updatedBy: string;
 }

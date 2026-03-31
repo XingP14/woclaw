@@ -64,7 +64,17 @@ export class RestServer {
         }
       } else if (path === '/memory') {
         if (method === 'GET') {
-          this.handleMemoryList(res);
+          this.handleMemoryList(res, url.searchParams.get('tags'));
+        } else if (method === 'POST') {
+          this.handleMemoryWrite(req, res);
+        } else {
+          res.writeHead(405);
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+        }
+      } else if (path.startsWith('/memory/tags/')) {
+        const tag = decodeURIComponent(path.slice(14));
+        if (method === 'GET') {
+          this.handleMemoryByTag(res, tag);
         } else {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
@@ -121,16 +131,54 @@ export class RestServer {
     }));
   }
 
-  private handleMemoryList(res: http.ServerResponse): void {
-    const allMemory = this.memory.getAll();
+  private handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null): void {
+    let allMemory = this.memory.getAll();
+    // v0.4: filter by tag (comma-separated for multiple)
+    if (tagsFilter) {
+      const tags = tagsFilter.split(',').map(t => t.trim());
+      allMemory = allMemory.filter(m => tags.some(t => m.tags.includes(t)));
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       memory: allMemory.map(m => ({
         key: m.key,
+        value: m.value,
+        tags: m.tags,
+        ttl: m.ttl,
+        expireAt: m.expireAt,
         updatedAt: m.updatedAt,
         updatedBy: m.updatedBy,
       }))
     }));
+  }
+
+  private handleMemoryWrite(req: http.IncomingMessage, res: http.ServerResponse): void {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { key, value, tags, ttl } = JSON.parse(body);
+        if (!key) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'key required' }));
+          return;
+        }
+        const mem = this.memory.write(key, value ?? '', 'rest-api', tags ?? [], ttl ?? 0);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          key: mem.key,
+          value: mem.value,
+          tags: mem.tags,
+          ttl: mem.ttl,
+          expireAt: mem.expireAt,
+          updatedAt: mem.updatedAt,
+          updatedBy: mem.updatedBy,
+        }));
+      } catch (e: any) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
   }
 
   private handleMemoryGet(res: http.ServerResponse, key: string): void {
@@ -144,6 +192,9 @@ export class RestServer {
     res.end(JSON.stringify({
       key: mem.key,
       value: mem.value,
+      tags: mem.tags,
+      ttl: mem.ttl,
+      expireAt: mem.expireAt,
       updatedAt: mem.updatedAt,
       updatedBy: mem.updatedBy,
     }));
@@ -158,6 +209,24 @@ export class RestServer {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, key }));
+  }
+
+  private handleMemoryByTag(res: http.ServerResponse, tag: string): void {
+    const results = this.memory.queryByTag(tag);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      tag,
+      count: results.length,
+      memory: results.map(m => ({
+        key: m.key,
+        value: m.value,
+        tags: m.tags,
+        ttl: m.ttl,
+        expireAt: m.expireAt,
+        updatedAt: m.updatedAt,
+        updatedBy: m.updatedBy,
+      }))
+    }));
   }
 
   private handleTopicMessages(res: http.ServerResponse, topic: string, limit?: string | null): void {
