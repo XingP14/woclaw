@@ -28,8 +28,8 @@
 ## 🎯 中期目标 (v0.4 - v0.6)
 
 ### 发布到生态
-- [ ] **npm 包发布** - `@clawlink/hub` npm 包
-- [ ] **ClawHub 发布** - 发布为 OpenClaw Skill/Plugin
+- [x] **npm 包发布** - `@clawlink/hub` npm 包 (xingp14-clawlink@0.1.2)
+- [ ] **ClawHub 发布** - 发布为 OpenClaw Skill/Plugin (CLI 不兼容 Node 18，需修复)
 - [ ] **GitHub Actions** - 完善 CI/CD 流程
 
 ### 安全性
@@ -68,8 +68,8 @@
 | TLS 支持 | P1 | 📋 计划 | wss:// 加密 |
 | 私有 Topic | P1 | 📋 计划 | 邀请制 |
 | Web UI | P2 | 📋 计划 | 管理面板 |
-| npm 发布 | P1 | 📋 计划 | @clawlink/hub |
-| ClawHub | P1 | 📋 计划 | Skill 发布 |
+| npm 发布 | P1 | ✅ Done (v0.1.2)| | @clawlink/hub |
+| ClawHub | P1 | ⚠️ CLI 不兼容 Node 18| | Skill 发布 |
 | 消息搜索 | P2 | 📋 计划 | 全局搜索 |
 
 ## 🐛 问题追踪
@@ -111,4 +111,4 @@
 
 ---
 
-_Last updated: 2026-03-30_
+_Last updated: 2026-03-31_
