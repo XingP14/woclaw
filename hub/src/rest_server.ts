@@ -122,13 +122,18 @@ export class RestServer {
 
   private handleTopicsList(res: http.ServerResponse): void {
     const stats = this.topics.getStats();
+    // Merge in-memory topics with persisted topics from ClawDB
+    const persistedTopics = this.db.getTopicStats();
+    const allTopicNames = new Set([
+      ...stats.topicDetails.map(t => t.name),
+      ...persistedTopics.map(t => t.name),
+    ]);
+    const merged = Array.from(allTopicNames).map(name => {
+      const live = stats.topicDetails.find(t => t.name === name);
+      return { name, agents: live ? live.agents : 0 };
+    });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      topics: stats.topicDetails.map(t => ({
-        name: t.name,
-        agents: t.agents,
-      }))
-    }));
+    res.end(JSON.stringify({ topics: merged }));
   }
 
   private handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null): void {
