@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoClaw Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0f; color: #f0f0f5; min-height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; color: #a78bfa; }
+    .card { background: #1a1a25; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .card h2 { font-size: 0.85rem; text-transform: uppercase; color: #8888a0; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .stat { background: #12121a; border-radius: 8px; padding: 16px; }
+    .stat-value { font-size: 2rem; font-weight: 700; color: #a78bfa; }
+    .stat-label { font-size: 0.75rem; color: #555566; margin-top: 4px; }
+    .status-ok { color: #10b981; }
+    .status-error { color: #ef4444; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.875rem; }
+    th { color: #8888a0; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
+    .refresh-btn { background: #7c3aed; color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.875rem; }
+    .refresh-btn:hover { background: #6d28d9; }
+    .error-msg { color: #ef4444; padding: 20px; text-align: center; }
+    .loading { color: #8888a0; padding: 20px; text-align: center; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .hub-url { font-size: 0.75rem; color: #555566; margin-top: 4px; }
+    .badge { display: inline-block; background: rgba(16,185,129,0.15); color: #10b981; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }
+    .badge-warn { background: rgba(239,68,68,0.15); color: #ef4444; }
+    #memoryTable td { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>🦞 WoClaw Dashboard</h1>
+        <div class="hub-url" id="hubUrl">—</div>
+      </div>
+      <button class="refresh-btn" onclick="refresh()">↻ Refresh</button>
+    </div>
+
+    <div class="card">
+      <h2>System Health</h2>
+      <div class="stats" id="healthStats">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Topics</h2>
+      <div id="topicsArea"><div class="loading">Loading...</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Shared Memory</h2>
+      <div id="memoryArea"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+<script>
+const HUB_API = 'http://vm153:8083';
+
+function fmtAge(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+async function refresh() {
+  await Promise.all([loadHealth(), loadTopics(), loadMemory()]);
+}
+
+async function api(path) {
+  const r = await fetch(HUB_API + path);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function loadHealth() {
+  try {
+    const d = await api('/health');
+    const uptimeDays = (d.uptime / 86400).toFixed(1);
+    document.getElementById('hubUrl').textContent = HUB_API;
+    document.getElementById('healthStats').innerHTML = `
+      <div class="stat">
+        <div class="stat-value ${d.status === 'ok' ? 'status-ok' : 'status-error'}">${d.status}</div>
+        <div class="stat-label">Status</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${d.agents}</div>
+        <div class="stat-label">Connected Agents</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${d.topics}</div>
+        <div class="stat-label">Topics</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">${uptimeDays}d</div>
+        <div class="stat-label">Uptime</div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('healthStats').innerHTML = `<div class="error-msg">⚠ Cannot reach Hub: ${e.message}</div>`;
+  }
+}
+
+async function loadTopics() {
+  try {
+    const d = await api('/topics');
+    if (!d.topics || d.topics.length === 0) {
+      document.getElementById('topicsArea').innerHTML = '<div class="loading">No topics yet</div>';
+      return;
+    }
+    let html = '<table><thead><tr><th>Topic Name</th><th>Agents</th><th>Messages</th></tr></thead><tbody>';
+    for (const t of d.topics) {
+      let msgCount = '—';
+      try {
+        const md = await api('/topics/' + encodeURIComponent(t.name) + '?limit=1');
+        msgCount = md.count;
+      } catch(e) {}
+      html += `<tr><td><strong>${t.name}</strong></td><td>${t.agents}</td><td>${msgCount}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('topicsArea').innerHTML = html;
+  } catch (e) {
+    document.getElementById('topicsArea').innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+async function loadMemory() {
+  try {
+    const d = await api('/memory');
+    if (!d.memory || d.memory.length === 0) {
+      document.getElementById('memoryArea').innerHTML = '<div class="loading">No memory entries</div>';
+      return;
+    }
+    let html = '<table><thead><tr><th>Key</th><th>Value</th><th>Tags</th><th>Updated</th></tr></thead><tbody>';
+    for (const m of d.memory.slice(0, 50)) {
+      const age = m.updatedAt ? fmtAge(Date.now() - m.updatedAt) : '—';
+      const tags = (m.tags || []).map(t => `<span class="badge">${t}</span>`).join(' ');
+      html += `<tr id="memoryTable"><td><strong>${m.key}</strong></td><td>${m.value}</td><td>${tags}</td><td>${age}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('memoryArea').innerHTML = html;
+  } catch (e) {
+    document.getElementById('memoryArea').innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>

@@ -35,7 +35,7 @@
 
 ### 发布
 - [ ] Docker Hub 自动构建 (docker push on git tag)
-- [ ] ClawHub Skill 发布（@XingP14 账号 2026-04-14 满14天后）
+- [ ] ClawHub Skill 发布（@XingP14 账号 2026-04-13 满14天后；GitHub 创建于 2026-03-30）
 
 ### MCP Bridge
 - [x] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具 ✅ (0.1.0 published)

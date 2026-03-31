@@ -6,13 +6,19 @@
 - **Docker**: 20.10+ (可选，用于容器部署)
 - **网络**: Hub 端口 8082/8083 需要可达
 
-## 🐳 Docker 部署（推荐）
+## 🐳 Docker 部署
 
-### 快速部署
+### 从源码构建（当前唯一方式）
+
+> ⚠️ **注意**: Docker Hub 镜像正在配置中，暂不可用。请从源码构建：
 
 ```bash
-# 下载镜像（Docker Hub）
-docker pull xingp14/woclaw-hub:latest
+# 克隆仓库
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw/hub
+
+# 构建镜像
+docker build -t xingp14/woclaw-hub:latest .
 
 # 运行
 docker run -d \
@@ -23,6 +29,15 @@ docker run -d \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
   xingp14/woclaw-hub:latest
+```
+
+### Docker Hub 镜像（即将上线）
+
+Docker Hub 自动构建正在配置中，完成后可使用：
+
+```bash
+# 即将可用
+docker pull xingp14/woclaw-hub:latest
 ```
 
 ### Docker Compose 部署
