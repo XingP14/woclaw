@@ -111,14 +111,14 @@ docker push woclaw/hub:0.1.0
 | Target | Status | Notes |
 |--------|--------|-------|
 | GitHub | ✅ Done | https://github.com/XingP14/woclaw |
-| npm | ✅ Done | xingp14-woclaw@0.1.2 published 2026-03-31 |
-| ClawHub | 📋 Planned | Skill bundle ready in dist/ |
-| Docker Hub | 📋 Planned | Need Docker Hub account |
+| npm | ✅ Done | xingp14-woclaw@0.1.5 published 2026-03-31 |
+| ClawHub | ⏳ Blocked | GitHub account must be ≥14 days old (est. 2026-04-08) |
+| Docker Hub | 📋 Planned | Need Docker Hub account + credentials |
 
 ## TODO
 
 - [x] Fix npm publish readiness (ESM, dist structure) - 2026-03-31
-- [x] npm publish (`xingp14-woclaw@0.1.2`) - 2026-03-31
-- [ ] Test local installation (`npm install xingp14-woclaw`)
-- [ ] Publish to ClawHub (`clawhub sync`)
+- [x] npm publish (`xingp14-woclaw@0.1.5`) - 2026-03-31
+- [ ] Publish to ClawHub (`clawhub sync`) — blocked until ~2026-04-08
+- [ ] Set up Docker Hub publish workflow
 - [ ] Set up auto-sync GitHub Actions
