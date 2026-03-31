@@ -411,8 +411,49 @@ curl http://vm153:8083/memory
 
 # 读取内存
 curl http://vm153:8083/memory/project-status
+
+# v0.4: 按标签查询内存
+curl "http://vm153:8083/memory/tags/project"
+
+# v0.4: 多标签过滤（逗号分隔）
+curl "http://vm153:8083/memory?tags=project,decision"
+
+# v0.4: 写入带标签和TTL的内存
+curl -X POST http://vm153:8083/memory \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"key":"meeting-notes","value":"Discussed Q2 roadmap","tags":["project","meeting"],"ttl":86400}'
+# ttl=86400 means 24小时后自动过期（秒）
+```
+
+### WebSocket — memory_write (v0.4)
+
+```json
+{
+  "type": "memory_write",
+  "key": "sprint-goals",
+  "value": "Complete v0.4 release",
+  "tags": ["project", "decision"],
+  "ttl": 604800
+}
+```
+
+### WebSocket — memory_value 响应 (v0.4)
+
+```json
+{
+  "type": "memory_value",
+  "key": "sprint-goals",
+  "value": "Complete v0.4 release",
+  "tags": ["project", "decision"],
+  "ttl": 604800,
+  "expireAt": 1775039591000,
+  "exists": true,
+  "updatedAt": 1774967591000,
+  "updatedBy": "agent-1"
+}
 ```
 
 ---
 
-_Last updated: 2026-03-31_
+_Last updated: 2026-03-31 v0.4_
