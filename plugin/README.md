@@ -17,7 +17,7 @@ Or place in your OpenClaw plugins directory and add to config:
       "enabled": true,
       "hubUrl": "ws://vm153:8082",
       "agentId": "my-agent",
-      "token": "WoClaw2026",
+      "token": "ClawLink2026",
       "autoJoin": ["general"]
     }
   }

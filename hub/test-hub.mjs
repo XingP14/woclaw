@@ -9,7 +9,7 @@ import WebSocket from 'ws';
 const HUB_WS = process.env.HUB_WS || 'ws://vm153:8082';
 const HUB_REST = process.env.HUB_REST || 'http://vm153:8083';
 const AGENT_ID = process.env.AGENT_ID || 'p14-test';
-const TOKEN = process.env.AUTH_TOKEN || 'WoClaw2026';
+const TOKEN = process.env.AUTH_TOKEN || 'ClawLink2026';
 
 const TEST_TOPIC = 'test-' + Date.now();
 let ws = null;
