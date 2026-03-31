@@ -1,10 +1,10 @@
-# ClawLink 路线图 / Roadmap
+# WoClaw 路线图 / Roadmap
 
-> 规划 ClawLink 的发展方向，持续迭代
+> 规划 WoClaw 的发展方向，持续迭代
 
 ## 📌 项目愿景
 
-**ClawLink** 致力于成为 OpenClaw 生态中多智能体协作的标准通信层，让分布式部署的 OpenClaw 实例能够像人类在群聊中一样自然地协作。
+**WoClaw** 致力于成为 OpenClaw 生态中多智能体协作的标准通信层，让分布式部署的 OpenClaw 实例能够像人类在群聊中一样自然地协作。
 
 ## 🔥 短期目标 (v0.2 - v0.3)
 
@@ -16,7 +16,7 @@
 
 ### 核心功能
 - [x] **REST API** - 管理接口（查看连接、主题、内存）✅ v0.2
-- [x] **npm 包发布** - xingp14-clawlink@0.1.2 ✅
+- [x] **npm 包发布** - xingp14-woclaw@0.1.2 ✅
 - [x] **健康检查** - `/health` 端点 ✅ v0.2
 - [x] **指标统计** - 连接数、主题数 ✅ v0.2
 
@@ -28,7 +28,7 @@
 ## 🎯 中期目标 (v0.4 - v0.6)
 
 ### 发布到生态
-- [x] **npm 包发布** - xingp14-clawlink@0.1.2 ✅
+- [x] **npm 包发布** - xingp14-woclaw@0.1.2 ✅
 - [ ] **ClawHub 发布** - 发布为 OpenClaw Skill/Plugin (CLI 需要 Node 20+)
 - [x] **GitHub Actions** - 完善 CI/CD 流程 ✅
 
@@ -57,7 +57,7 @@
 
 ### 生态系统
 - [ ] **多 Hub 联邦** - Hub 之间可互联
-- [ ] **官方托管服务** - 提供云端 ClawLink Hub
+- [ ] **官方托管服务** - 提供云端 WoClaw Hub
 
 ---
 

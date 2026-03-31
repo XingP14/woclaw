@@ -34,7 +34,7 @@ export class WSServer {
       this.pingAll();
     }, 30000);
 
-    console.log(`[ClawLink] WebSocket server running on ws://${config.host}:${config.port}`);
+    console.log(`[WoClaw] WebSocket server running on ws://${config.host}:${config.port}`);
   }
 
   private handleConnection(ws: WS, req: any): void {
@@ -63,7 +63,7 @@ export class WSServer {
     this.agents.set(agentId, agent);
     this.agentByWs.set(ws, agentId);
 
-    console.log(`[ClawLink] Agent connected: ${agentId} (total: ${this.agents.size})`);
+    console.log(`[WoClaw] Agent connected: ${agentId} (total: ${this.agents.size})`);
 
     this.send(ws, {
       type: 'welcome',
@@ -86,7 +86,7 @@ export class WSServer {
     });
 
     ws.on('error', (err: Error) => {
-      console.error(`[ClawLink] WebSocket error for ${agentId}:`, err.message);
+      console.error(`[WoClaw] WebSocket error for ${agentId}:`, err.message);
       this.handleDisconnect(agentId);
     });
   }
@@ -223,7 +223,7 @@ export class WSServer {
       }
     }
 
-    console.log(`[ClawLink] ${agentId} joined topic: ${topic}`);
+    console.log(`[WoClaw] ${agentId} joined topic: ${topic}`);
   }
 
   private handleLeave(agentId: string, topic: string): void {
@@ -247,7 +247,7 @@ export class WSServer {
       }
     }
 
-    console.log(`[ClawLink] ${agentId} left topic: ${topic}`);
+    console.log(`[WoClaw] ${agentId} left topic: ${topic}`);
   }
 
   private handleMemoryWrite(fromAgent: string, key: string, value: any): void {
@@ -320,7 +320,7 @@ export class WSServer {
     this.agentByWs.delete(agent.ws);
     this.memory.unsubscribe(agentId);
 
-    console.log(`[ClawLink] Agent disconnected: ${agentId} (remaining: ${this.agents.size})`);
+    console.log(`[WoClaw] Agent disconnected: ${agentId} (remaining: ${this.agents.size})`);
   }
 
   private send(ws: WS, msg: OutboundMessage): void {
@@ -339,7 +339,7 @@ export class WSServer {
         try {
           (agent.ws as any).ping();
         } catch (e) {
-          console.error(`[ClawLink] Ping failed for ${agentId}`);
+          console.error(`[WoClaw] Ping failed for ${agentId}`);
           this.handleDisconnect(agentId);
         }
       }
@@ -371,6 +371,6 @@ export class WSServer {
     }
     this.wss.close();
     this.db.close();
-    console.log('[ClawLink] Server closed');
+    console.log('[WoClaw] Server closed');
   }
 }

@@ -1,10 +1,10 @@
 {
-  "id": "clawlink",
-  "name": "ClawLink",
-  "description": "Connect to ClawLink Hub for topic-based multi-agent communication and shared memory",
+  "id": "woclaw",
+  "name": "WoClaw",
+  "description": "Connect to WoClaw Hub for topic-based multi-agent communication and shared memory",
   "version": "0.1.0",
-  "channels": ["clawlink"],
-  "skills": ["./skills/clawlink"],
+  "channels": ["woclaw"],
+  "skills": ["./skills/woclaw"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -12,11 +12,11 @@
       "enabled": {
         "type": "boolean",
         "default": true,
-        "description": "Enable the ClawLink channel"
+        "description": "Enable the WoClaw channel"
       },
       "hubUrl": {
         "type": "string",
-        "description": "WebSocket URL of the ClawLink Hub (e.g., ws://vm153:8080)",
+        "description": "WebSocket URL of the WoClaw Hub (e.g., ws://vm153:8080)",
         "default": "ws://localhost:8080"
       },
       "agentId": {
@@ -25,7 +25,7 @@
       },
       "token": {
         "type": "string",
-        "description": "Authentication token for the ClawLink Hub"
+        "description": "Authentication token for the WoClaw Hub"
       },
       "autoJoin": {
         "type": "array",
@@ -44,7 +44,7 @@
     "hubUrl": {
       "label": "Hub URL",
       "placeholder": "ws://vm153:8080",
-      "help": "WebSocket endpoint of your ClawLink Hub"
+      "help": "WebSocket endpoint of your WoClaw Hub"
     },
     "agentId": {
       "label": "Agent ID",
@@ -53,7 +53,7 @@
     },
     "token": {
       "label": "Hub Token",
-      "placeholder": "ClawLink2026",
+      "placeholder": "WoClaw2026",
       "sensitive": true,
       "help": "Authentication token (get from Hub administrator)"
     }

@@ -1,4 +1,4 @@
-# ClawLink 安装指南
+# WoClaw 安装指南
 
 ## 环境要求
 
@@ -12,17 +12,17 @@
 
 ```bash
 # 下载镜像（需要 Docker Hub 访问）
-docker pull clawlink/hub:latest
+docker pull woclaw/hub:latest
 
 # 运行
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -p 8081:8081 \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
-  clawlink/hub:latest
+  woclaw/hub:latest
 ```
 
 ### Docker Compose 部署
@@ -32,14 +32,14 @@ docker run -d \
 version: '3.8'
 
 services:
-  clawlink-hub:
-    image: clawlink/hub:latest
-    container_name: clawlink-hub
+  woclaw-hub:
+    image: woclaw/hub:latest
+    container_name: woclaw-hub
     ports:
       - "8080:8080"
       - "8081:8081"
     volumes:
-      - clawlink-data:/data
+      - woclaw-data:/data
     environment:
       - AUTH_TOKEN=your-secure-token
       - PORT=8080
@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  clawlink-data:
+  woclaw-data:
 ```
 
 ```bash
@@ -66,8 +66,8 @@ docker-compose down
 ### 1. 克隆代码
 
 ```bash
-git clone https://github.com/XingP14/clawlink.git
-cd clawlink/hub
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw/hub
 ```
 
 ### 2. 安装依赖
@@ -102,7 +102,7 @@ curl -I http://localhost:8080
 # 应返回: HTTP/1.1 426 Upgrade Required
 
 # 查看日志
-tail -f /var/log/clawlink.log
+tail -f /var/log/woclaw.log
 ```
 
 ## 🔧 systemd 服务（Linux）
@@ -111,29 +111,29 @@ tail -f /var/log/clawlink.log
 
 ```bash
 # 以 root 身份执行
-cp clawlink-hub.service /etc/systemd/system/
+cp woclaw-hub.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable clawlink-hub
-systemctl start clawlink-hub
+systemctl enable woclaw-hub
+systemctl start woclaw-hub
 ```
 
 ### 服务管理
 
 ```bash
 # 启动
-systemctl start clawlink-hub
+systemctl start woclaw-hub
 
 # 停止
-systemctl stop clawlink-hub
+systemctl stop woclaw-hub
 
 # 重启
-systemctl restart clawlink-hub
+systemctl restart woclaw-hub
 
 # 查看状态
-systemctl status clawlink-hub
+systemctl status woclaw-hub
 
 # 查看日志
-journalctl -u clawlink-hub -f
+journalctl -u woclaw-hub -f
 ```
 
 ## 🌐 部署到云服务器
@@ -148,15 +148,15 @@ ssh root@your-server
 curl -fsSL https://get.docker.com | sh
 
 # 3. 克隆并运行
-git clone https://github.com/XingP14/clawlink.git
-cd clawlink/hub
-docker build -t clawlink/hub .
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw/hub
+docker build -t woclaw/hub .
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -e AUTH_TOKEN=your-token \
   --restart unless-stopped \
-  clawlink/hub
+  woclaw/hub
 ```
 
 ### Nginx 反向代理（可选）
@@ -185,20 +185,20 @@ server {
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: clawlink-hub
+  name: woclaw-hub
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: clawlink-hub
+      app: woclaw-hub
   template:
     metadata:
       labels:
-        app: clawlink-hub
+        app: woclaw-hub
     spec:
       containers:
-      - name: clawlink-hub
-        image: clawlink/hub:latest
+      - name: woclaw-hub
+        image: woclaw/hub:latest
         ports:
         - containerPort: 8080
         env:
@@ -212,19 +212,19 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: clawlink-data
+          claimName: woclaw-data
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: clawlink-hub
+  name: woclaw-hub
 spec:
   type: LoadBalancer
   ports:
   - port: 80
     targetPort: 8080
   selector:
-    app: clawlink-hub
+    app: woclaw-hub
 ```
 
 ## ⚙️ 配置
@@ -245,7 +245,7 @@ spec:
 # 生产环境
 export AUTH_TOKEN=$(openssl rand -hex 32)
 export PORT=8080
-export DATA_DIR=/data/clawlink
+export DATA_DIR=/data/woclaw
 export HOST=0.0.0.0
 ```
 
@@ -284,5 +284,5 @@ ufw allow 8080/tcp
 
 ## 📞 获取帮助
 
-- GitHub Issues: https://github.com/XingP14/clawlink/issues
-- 文档: https://github.com/XingP14/clawlink#readme
+- GitHub Issues: https://github.com/XingP14/woclaw/issues
+- 文档: https://github.com/XingP14/woclaw#readme

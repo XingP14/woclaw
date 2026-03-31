@@ -1,4 +1,4 @@
-// ClawLink Hub - Simple Test Script
+// WoClaw Hub - Simple Test Script
 // Run: node --loader ts-node/esm test.ts
 
 import { WebSocket } from 'ws';
@@ -29,7 +29,7 @@ async function sleep(ms: number) {
 }
 
 async function runTests() {
-  console.log(`\n🧪 Starting ClawLink tests...`);
+  console.log(`\n🧪 Starting WoClaw tests...`);
   console.log(`   Hub: ${HUB_URL}`);
   console.log(`   Agent: ${AGENT_ID}`);
   console.log('');

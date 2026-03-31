@@ -1,9 +1,9 @@
-// ClawLink Plugin for OpenClaw
-// Enables OpenClaw agents to connect to ClawLink hub
+// WoClaw Plugin for OpenClaw
+// Enables OpenClaw agents to connect to WoClaw hub
 
 import type { ChannelPlugin, ChannelPluginContext } from '@openclaw/sdk';
 
-export interface ClawLinkConfig {
+export interface WoClawConfig {
   hubUrl: string;
   agentId: string;
   token: string;
@@ -19,10 +19,10 @@ interface OutboundMessage {
   value?: any;
 }
 
-export class ClawLinkChannel implements ChannelPlugin {
-  name = 'clawlink';
+export class WoClawChannel implements ChannelPlugin {
+  name = 'woclaw';
   private ws: WebSocket | null = null;
-  private config: ClawLinkConfig | null = null;
+  private config: WoClawConfig | null = null;
   private ctx: ChannelPluginContext | null = null;
   private reconnectTimer: number | null = null;
   private pingTimer: number | null = null;
@@ -33,7 +33,7 @@ export class ClawLinkChannel implements ChannelPlugin {
 
   async initialize(ctx: ChannelPluginContext): Promise<void> {
     this.ctx = ctx;
-    const config = ctx.config as ClawLinkConfig;
+    const config = ctx.config as WoClawConfig;
     this.config = config;
     this.agentId = config.agentId;
     
@@ -60,7 +60,7 @@ export class ClawLinkChannel implements ChannelPlugin {
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
-        this.ctx?.logger.info(`[ClawLink] Connected to hub: ${this.config?.hubUrl}`);
+        this.ctx?.logger.info(`[WoClaw] Connected to hub: ${this.config?.hubUrl}`);
         
         // Auto-join topics
         for (const topic of this.topics) {
@@ -80,20 +80,20 @@ export class ClawLinkChannel implements ChannelPlugin {
           const msg = JSON.parse(event.data);
           this.handleMessage(msg);
         } catch (e) {
-          this.ctx?.logger.error('[ClawLink] Failed to parse message:', e);
+          this.ctx?.logger.error('[WoClaw] Failed to parse message:', e);
         }
       };
 
       this.ws.onclose = (event) => {
-        this.ctx?.logger.warn(`[ClawLink] Disconnected (code: ${event.code})`);
+        this.ctx?.logger.warn(`[WoClaw] Disconnected (code: ${event.code})`);
         this.scheduleReconnect();
       };
 
       this.ws.onerror = (error) => {
-        this.ctx?.logger.error('[ClawLink] WebSocket error:', error);
+        this.ctx?.logger.error('[WoClaw] WebSocket error:', error);
       };
     } catch (e) {
-      this.ctx?.logger.error('[ClawLink] Failed to connect:', e);
+      this.ctx?.logger.error('[WoClaw] Failed to connect:', e);
       this.scheduleReconnect();
     }
   }
@@ -103,7 +103,7 @@ export class ClawLinkChannel implements ChannelPlugin {
     
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.ctx?.logger.info('[ClawLink] Attempting to reconnect...');
+      this.ctx?.logger.info('[WoClaw] Attempting to reconnect...');
       this.connect();
     }, 5000);
   }
@@ -117,14 +117,14 @@ export class ClawLinkChannel implements ChannelPlugin {
   private handleMessage(msg: any): void {
     switch (msg.type) {
       case 'welcome':
-        this.ctx?.logger.info(`[ClawLink] Authenticated as ${msg.agentId}`);
+        this.ctx?.logger.info(`[WoClaw] Authenticated as ${msg.agentId}`);
         break;
 
       case 'message':
         // Handle incoming message - dispatch to OpenClaw
         if (msg.from !== this.agentId) {
           const message = {
-            channel: 'clawlink',
+            channel: 'woclaw',
             id: msg.id,
             from: msg.from,
             text: msg.content,
@@ -138,20 +138,20 @@ export class ClawLinkChannel implements ChannelPlugin {
         break;
 
       case 'join':
-        this.ctx?.logger.debug(`[ClawLink] Agent ${msg.agent} joined ${msg.topic}`);
+        this.ctx?.logger.debug(`[WoClaw] Agent ${msg.agent} joined ${msg.topic}`);
         break;
 
       case 'leave':
-        this.ctx?.logger.debug(`[ClawLink] Agent ${msg.agent} left ${msg.topic}`);
+        this.ctx?.logger.debug(`[WoClaw] Agent ${msg.agent} left ${msg.topic}`);
         break;
 
       case 'history':
-        this.ctx?.logger.debug(`[ClawLink] Received ${msg.messages.length} historical messages for ${msg.topic}`);
+        this.ctx?.logger.debug(`[WoClaw] Received ${msg.messages.length} historical messages for ${msg.topic}`);
         // Process history if needed
         for (const historicalMsg of msg.messages) {
           if (historicalMsg.from !== this.agentId) {
             this.ctx?.dispatch({
-              channel: 'clawlink',
+              channel: 'woclaw',
               id: historicalMsg.id,
               from: historicalMsg.from,
               text: historicalMsg.content,
@@ -168,7 +168,7 @@ export class ClawLinkChannel implements ChannelPlugin {
         break;
 
       case 'memory_update':
-        this.ctx?.logger.debug(`[ClawLink] Memory updated: ${msg.key} by ${msg.from}`);
+        this.ctx?.logger.debug(`[WoClaw] Memory updated: ${msg.key} by ${msg.from}`);
         // Could trigger a context update here
         break;
 
@@ -182,7 +182,7 @@ export class ClawLinkChannel implements ChannelPlugin {
         break;
 
       case 'error':
-        this.ctx?.logger.error(`[ClawLink] Server error: ${msg.code} - ${msg.message}`);
+        this.ctx?.logger.error(`[WoClaw] Server error: ${msg.code} - ${msg.message}`);
         break;
     }
 
@@ -191,7 +191,7 @@ export class ClawLinkChannel implements ChannelPlugin {
       try {
         handler(msg);
       } catch (e) {
-        this.ctx?.logger.error('[ClawLink] Handler error:', e);
+        this.ctx?.logger.error('[WoClaw] Handler error:', e);
       }
     }
   }
@@ -250,4 +250,4 @@ export class ClawLinkChannel implements ChannelPlugin {
   }
 }
 
-export default new ClawLinkChannel();
+export default new WoClawChannel();

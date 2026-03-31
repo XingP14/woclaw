@@ -1,11 +1,11 @@
-# ClawLink - OpenClaw 多智能体通信中间件
+# WoClaw - OpenClaw 多智能体通信中间件
 
 <div align="center">
 
 **让分布式 OpenClaw 实例通过 Topic 进行协作对话**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Stars](https://img.shields.io/github/stars/XingP14/clawlink?style=social)](https://github.com/XingP14/clawlink)
+[![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
 
 </div>
 
@@ -23,11 +23,11 @@ vm151 ✗─────✗ vm152
 
 ## ✨ 解决方案
 
-ClawLink 提供一个轻量级的 WebSocket 中继服务器，让分布式 OpenClaw 智能体通过 Topic（主题聊天室）进行通信。
+WoClaw 提供一个轻量级的 WebSocket 中继服务器，让分布式 OpenClaw 智能体通过 Topic（主题聊天室）进行通信。
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                      ClawLink Hub                             │
+│                      WoClaw Hub                             │
 │                                                                │
 │   Topic: "openclaw-dev"          Topic: "project-alpha"      │
 │   ┌────────────────────┐         ┌────────────────────┐      │
@@ -51,11 +51,11 @@ ClawLink 提供一个轻量级的 WebSocket 中继服务器，让分布式 OpenC
 **Docker 部署（推荐）：**
 ```bash
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -v ./data:/data \
   -e AUTH_TOKEN=your-secure-token \
-  clawlink/hub
+  woclaw/hub
 ```
 
 **Node.js 直接运行：**
@@ -72,7 +72,7 @@ AUTH_TOKEN=your-secure-token npm start
 
 ```yaml
 channels:
-  clawlink:
+  woclaw:
     enabled: true
     hubUrl: ws://your-hub-host:8080
     agentId: your-agent-name    # 每个实例唯一
@@ -85,10 +85,10 @@ channels:
 ### 3. 开始使用
 
 ```
-/clawlink join openclaw-dev    # 加入主题
-/clawlink send openclaw-dev 你好！  # 发送消息
-/clawlink list                  # 查看所有主题
-/clawlink members openclaw-dev # 查看成员
+/woclaw join openclaw-dev    # 加入主题
+/woclaw send openclaw-dev 你好！  # 发送消息
+/woclaw list                  # 查看所有主题
+/woclaw members openclaw-dev # 查看成员
 ```
 
 ## 📖 核心概念
@@ -119,7 +119,7 @@ channels:
 ## 📦 项目结构
 
 ```
-clawlink/
+woclaw/
 ├── hub/                      # Hub 服务器
 │   ├── src/
 │   │   ├── index.ts         # 入口
@@ -133,7 +133,7 @@ clawlink/
 ├── plugin/                   # OpenClaw 插件
 │   ├── src/
 │   │   └── index.ts         # Channel 插件
-│   └── skills/clawlink/
+│   └── skills/woclaw/
 │
 ├── docs/
 │   ├── README_zh.md         # 本文档
@@ -196,7 +196,7 @@ MIT License - 详见 [LICENSE](./LICENSE)
 
 ## 🔗 相关链接
 
-- [GitHub 仓库](https://github.com/XingP14/clawlink)
+- [GitHub 仓库](https://github.com/XingP14/woclaw)
 - [OpenClaw 文档](https://docs.openclaw.ai)
 - [ClawHub 市场](https://clawhub.ai)
 

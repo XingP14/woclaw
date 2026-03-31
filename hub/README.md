@@ -1,4 +1,4 @@
-# ClawLink Hub
+# WoClaw Hub
 
 WebSocket relay server for OpenClaw multi-agent communication.
 
@@ -8,17 +8,17 @@ WebSocket relay server for OpenClaw multi-agent communication.
 
 ```bash
 # Build
-docker build -t clawlink/hub .
+docker build -t woclaw/hub .
 
 # Run
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -p 8081:8081 \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
-  clawlink/hub
+  woclaw/hub
 ```
 
 ### From Source
@@ -148,7 +148,7 @@ ws.send(JSON.stringify({
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      ClawLink Hub                            │
+│                      WoClaw Hub                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
 │  │  Topics Mgr │  │ Memory Pool │  │    SQLite   │        │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘        │

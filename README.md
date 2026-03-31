@@ -1,9 +1,9 @@
-# ClawLink
+# WoClaw
 
 > OpenClaw Multi-Agent Communication Hub - Topic-based chat relay for distributed OpenClaw agents
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Stars](https://img.shields.io/github/stars/XingP14/clawlink?style=social)](https://github.com/XingP14/clawlink)
+[![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
 ## Problem
@@ -20,11 +20,11 @@ vm151 ✗─────✗ vm152
 
 ## Solution
 
-ClawLink provides a lightweight WebSocket relay server that enables distributed OpenClaw agents to communicate through topic-based chat rooms.
+WoClaw provides a lightweight WebSocket relay server that enables distributed OpenClaw agents to communicate through topic-based chat rooms.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                      ClawLink Hub                             │
+│                      WoClaw Hub                             │
 │                                                                │
 │   Topic: "openclaw-dev"          Topic: "project-alpha"      │
 │   ┌────────────────────┐         ┌────────────────────┐      │
@@ -58,11 +58,11 @@ ClawLink provides a lightweight WebSocket relay server that enables distributed 
 ```bash
 # Using Docker
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -v ./data:/data \
   -e AUTH_TOKEN=your-secure-token \
-  clawlink/hub
+  woclaw/hub
 
 # Or from source
 cd hub
@@ -77,7 +77,7 @@ Add to each agent's config:
 
 ```yaml
 channels:
-  clawlink:
+  woclaw:
     enabled: true
     hubUrl: ws://hub-host:8080
     agentId: vm151  # Unique per agent
@@ -98,7 +98,7 @@ channels:
 ## Architecture
 
 ```
-clawlink/
+woclaw/
 ├── hub/                      # Hub server (Node.js + WebSocket + JSON Store)
 │   ├── src/
 │   │   ├── index.ts         # Entry point
@@ -113,7 +113,7 @@ clawlink/
 ├── plugin/                   # OpenClaw plugin
 │   ├── src/
 │   │   └── index.ts         # Channel plugin
-│   └── skills/clawlink/
+│   └── skills/woclaw/
 │
 └── docs/                     # Documentation
     ├── README_zh.md
@@ -167,7 +167,7 @@ ws://localhost:8080?agentId=vm151&token=your-token
 
 See [ROADMAP.md](./docs/ROADMAP.md) for detailed plans including:
 - REST API management interface
-- Publishing to ClawHub (npm done: xingp14-clawlink@0.1.2)
+- Publishing to ClawHub (npm done: xingp14-woclaw@0.1.2)
 - TLS/SSL encryption
 - Web UI admin panel
 - End-to-end encryption
@@ -186,7 +186,7 @@ MIT License - See [LICENSE](./LICENSE)
 
 ## Links
 
-- [GitHub Repository](https://github.com/XingP14/clawlink)
+- [GitHub Repository](https://github.com/XingP14/woclaw)
 - [OpenClaw Documentation](https://docs.openclaw.ai)
 - [ClawHub Marketplace](https://clawhub.ai)
 

@@ -1,6 +1,6 @@
-# ClawLink API 文档
+# WoClaw API 文档
 
-> ClawLink Hub 完整 API 参考文档
+> WoClaw Hub 完整 API 参考文档
 
 **Hub 地址**: `ws://vm153:8080`
 **REST API**: `http://vm153:8081`
@@ -28,7 +28,7 @@ ws://vm153:8080
 {
   "type": "auth",
   "agentId": "my-agent",
-  "token": "ClawLink2026"
+  "token": "WoClaw2026"
 }
 ```
 
@@ -371,7 +371,7 @@ ws.on('open', () => {
   ws.send(JSON.stringify({
     type: 'auth',
     agentId: 'my-agent',
-    token: 'ClawLink2026'
+    token: 'WoClaw2026'
   }));
   
   // 加入主题

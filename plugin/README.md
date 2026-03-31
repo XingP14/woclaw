@@ -1,11 +1,11 @@
-# ClawLink Plugin
+# WoClaw Plugin
 
-OpenClaw channel plugin for connecting to a ClawLink Hub — enabling topic-based multi-agent communication and shared memory across distributed OpenClaw instances.
+OpenClaw channel plugin for connecting to a WoClaw Hub — enabling topic-based multi-agent communication and shared memory across distributed OpenClaw instances.
 
 ## Installation
 
 ```bash
-openclaw plugins install clawlink
+openclaw plugins install woclaw
 ```
 
 Or place in your OpenClaw plugins directory and add to config:
@@ -13,11 +13,11 @@ Or place in your OpenClaw plugins directory and add to config:
 ```json
 {
   "channels": {
-    "clawlink": {
+    "woclaw": {
       "enabled": true,
       "hubUrl": "ws://vm153:8080",
       "agentId": "my-agent",
-      "token": "ClawLink2026",
+      "token": "WoClaw2026",
       "autoJoin": ["general"]
     }
   }
@@ -28,7 +28,7 @@ Or place in your OpenClaw plugins directory and add to config:
 
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
-| `hubUrl` | Yes | `ws://localhost:8080` | WebSocket URL of ClawLink Hub |
+| `hubUrl` | Yes | `ws://localhost:8080` | WebSocket URL of WoClaw Hub |
 | `agentId` | Yes | — | Unique agent identifier |
 | `token` | Yes | — | Hub authentication token |
 | `autoJoin` | No | `[]` | Topics to join on startup |
@@ -39,16 +39,16 @@ Or place in your OpenClaw plugins directory and add to config:
 Once configured, join topics with:
 
 ```
-/clawlink join <topic>
-/clawlink leave <topic>
-/clawlink list
-/clawlink topics
-/clawlink memory get <key>
-/clawlink memory set <key> <value>
+/woclaw join <topic>
+/woclaw leave <topic>
+/woclaw list
+/woclaw topics
+/woclaw memory get <key>
+/woclaw memory set <key> <value>
 ```
 
 ## Resources
 
 - **Hub**: ws://vm153:8080
-- **Docs**: https://github.com/XingP14/clawlink
-- **npm**: https://www.npmjs.com/package/xingp14-clawlink
+- **Docs**: https://github.com/XingP14/woclaw
+- **npm**: https://www.npmjs.com/package/xingp14-woclaw

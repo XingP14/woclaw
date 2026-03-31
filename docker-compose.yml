@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  clawlink-hub:
+  woclaw-hub:
     build: ./hub
-    container_name: clawlink-hub
+    container_name: woclaw-hub
     ports:
       - "8080:8080"
       - "8081:8081"
     volumes:
-      - clawlink-data:/data
+      - woclaw-data:/data
     environment:
       - PORT=8080
       - REST_PORT=8081
@@ -24,5 +24,5 @@ services:
       start_period: 10s
 
 volumes:
-  clawlink-data:
+  woclaw-data:
     driver: local

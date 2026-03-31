@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ClawLink CLI - Connect to ClawLink Hub from any environment
+// WoClaw CLI - Connect to WoClaw Hub from any environment
 
 import WebSocket from 'ws';
 
@@ -12,7 +12,7 @@ const AUTH_TOKEN = process.env.CLAWLINK_TOKEN || 'change-me';
 const AUTO_JOIN = (process.env.CLAWLINK_AUTO_JOIN || '').split(',').filter(Boolean);
 
 function log(msg) {
-  console.log(`[ClawLink] ${msg}`);
+  console.log(`[WoClaw] ${msg}`);
 }
 
 function send(ws, msg) {
@@ -38,7 +38,7 @@ async function main() {
       if (command === 'join') {
         const topic = args[1];
         if (!topic) {
-          log('Usage: clawlink join <topic>');
+          log('Usage: woclaw join <topic>');
           ws.close();
           resolve();
           return;
@@ -50,7 +50,7 @@ async function main() {
       else if (command === 'leave') {
         const topic = args[1];
         if (!topic) {
-          log('Usage: clawlink leave <topic>');
+          log('Usage: woclaw leave <topic>');
           ws.close();
           resolve();
           return;
@@ -63,7 +63,7 @@ async function main() {
         const topic = args[1];
         const content = args.slice(2).join(' ');
         if (!topic || !content) {
-          log('Usage: clawlink send <topic> <message>');
+          log('Usage: woclaw send <topic> <message>');
           ws.close();
           resolve();
           return;
@@ -80,7 +80,7 @@ async function main() {
         const key = args[1];
         const value = args.slice(2).join(' ');
         if (!key || !value) {
-          log('Usage: clawlink memory-write <key> <value>');
+          log('Usage: woclaw memory-write <key> <value>');
           ws.close();
           resolve();
           return;
@@ -92,7 +92,7 @@ async function main() {
       else if (command === 'memory-read') {
         const key = args[1];
         if (!key) {
-          log('Usage: clawlink memory-read <key>');
+          log('Usage: woclaw memory-read <key>');
           ws.close();
           resolve();
           return;

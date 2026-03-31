@@ -1,16 +1,16 @@
 #!/bin/bash
-# ClawLink Deployment Script for vm153
+# WoClaw Deployment Script for vm153
 # Usage: ./deploy.sh <ssh-host>
 
 set -e
 
 SSH_HOST="${1:-root@vm153}"
 AUTH_TOKEN="${AUTH_TOKEN:-change-me-in-production}"
-REPO_DIR="/opt/clawlink"
-CONTAINER_NAME="clawlink-hub"
+REPO_DIR="/opt/woclaw"
+CONTAINER_NAME="woclaw-hub"
 
 echo "=========================================="
-echo "  ClawLink Deployment to $SSH_HOST"
+echo "  WoClaw Deployment to $SSH_HOST"
 echo "=========================================="
 
 # Check if running locally (not SSH)
@@ -36,7 +36,7 @@ fi
 
 # Build on remote
 echo "[2/5] Building Docker image on $SSH_HOST..."
-$TARGET "cd $REPO_DIR && docker build -t clawlink/hub:latest ./hub"
+$TARGET "cd $REPO_DIR && docker build -t woclaw/hub:latest ./hub"
 
 # Stop existing container
 echo "[3/5] Stopping existing container..."
@@ -56,7 +56,7 @@ $TARGET "cd $REPO_DIR && docker run -d \
     -e REST_PORT=8081 \
     -e DATA_DIR=/data \
     --restart unless-stopped \
-    clawlink/hub:latest"
+    woclaw/hub:latest"
 
 # Wait for container to start
 echo "[5/5] Waiting for container to start..."

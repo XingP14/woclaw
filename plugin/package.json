@@ -1,14 +1,14 @@
 {
-  "name": "xingp14-clawlink",
+  "name": "xingp14-woclaw",
   "version": "0.1.2",
-  "description": "ClawLink skill/plugin for OpenClaw - Connect to ClawLink Hub for multi-agent communication",
+  "description": "WoClaw skill/plugin for OpenClaw - Connect to WoClaw Hub for multi-agent communication",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "clawlink": "./bin/clawlink-cli.js"
+    "woclaw": "./bin/woclaw-cli.js"
   },
   "scripts": {
-    "start": "node bin/clawlink-cli.js",
+    "start": "node bin/woclaw-cli.js",
     "build": "mkdir -p dist && cp src/index.js dist/index.js && cp -r skills openclaw.plugin.json bin dist/ && rm -f dist/index.d.ts dist/index.js.map",
     "prepublishOnly": "npm run build"
   },
@@ -21,18 +21,18 @@
   "openclaw": {
     "skills": [
       {
-        "name": "clawlink",
-        "path": "./skills/clawlink"
+        "name": "woclaw",
+        "path": "./skills/woclaw"
       }
     ]
   },
-  "keywords": ["openclaw", "clawlink", "multi-agent", "communication", "collaboration"],
+  "keywords": ["openclaw", "woclaw", "multi-agent", "communication", "collaboration"],
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/XingP14/clawlink"
+    "url": "https://github.com/XingP14/woclaw"
   }
 }

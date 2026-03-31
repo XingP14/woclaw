@@ -1,4 +1,4 @@
-// ClawLink Database - Simple JSON File Store
+// WoClaw Database - Simple JSON File Store
 // No native compilation required!
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
@@ -17,7 +17,7 @@ export class ClawDB {
     if (!existsSync(dataDir)) {
       mkdirSync(dataDir, { recursive: true });
     }
-    this.dbPath = `${dataDir}/clawlink.json`;
+    this.dbPath = `${dataDir}/woclaw.json`;
     this.data = this.load();
   }
 

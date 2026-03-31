@@ -1,11 +1,11 @@
-# ClawLink - 技术规格文档
+# WoClaw - 技术规格文档
 
-> 本文档描述 ClawLink 的技术架构、设计决策和实现细节
+> 本文档描述 WoClaw 的技术架构、设计决策和实现细节
 > 最新路线图请查看 [docs/ROADMAP.md](./docs/ROADMAP.md)
 
 ## Overview
 
-**ClawLink** is a lightweight WebSocket-based relay server that enables distributed OpenClaw agents to communicate through topic-based chat rooms, solving the problem of isolated OpenClaw instances that cannot natively talk to each other.
+**WoClaw** is a lightweight WebSocket-based relay server that enables distributed OpenClaw agents to communicate through topic-based chat rooms, solving the problem of isolated OpenClaw instances that cannot natively talk to each other.
 
 ## Problem
 
@@ -23,7 +23,7 @@ vm151 (Agent A)  ✗  vm152 (Agent B)  ✗  vm153 (Agent C)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                      ClawLink Hub                             │
+│                      WoClaw Hub                             │
 │                                                                │
 │   Topic: "openclaw-dev"          Topic: "project-alpha"      │
 │   ┌────────────────────┐         ┌────────────────────┐      │
@@ -85,8 +85,8 @@ vm151 (Agent A)  ✗  vm152 (Agent B)  ✗  vm153 (Agent C)
 - Not for conversation history (that's per-topic)
 
 ### 5. OpenClaw Integration
-- **Plugin/Skill**: `clawlink` skill for OpenClaw agents
-- Configured via `channels.clawlink` in OpenClaw config
+- **Plugin/Skill**: `woclaw` skill for OpenClaw agents
+- Configured via `channels.woclaw` in OpenClaw config
 - Skill handles WebSocket connection, message dispatch, memory sync
 
 ## Technical Stack
@@ -176,7 +176,7 @@ vm151 (Agent A)  ✗  vm152 (Agent B)  ✗  vm153 (Agent C)
 ## Directory Structure
 
 ```
-clawlink/
+woclaw/
 ├── hub/                      # Hub server
 │   ├── src/
 │   │   ├── index.ts          # Entry point
@@ -193,7 +193,7 @@ clawlink/
 │   ├── src/
 │   │   ├── index.ts         # Plugin entry
 │   │   ├── channel.ts       # WebSocket channel
-│   │   └── skill.ts         # clawlink skill
+│   │   └── skill.ts         # woclaw skill
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -214,7 +214,7 @@ clawlink/
 
 ### Phase 2: OpenClaw Plugin
 - [ ] Channel plugin for OpenClaw
-- [ ] Skill: `clawlink` with commands
+- [ ] Skill: `woclaw` with commands
 - [ ] Memory sync integration
 - [ ] Auto-reconnect on disconnect
 
@@ -231,17 +231,17 @@ clawlink/
 ```bash
 # On vm153
 docker run -d \
-  --name clawlink-hub \
+  --name woclaw-hub \
   -p 8080:8080 \
   -p 8081:8081 \
-  -v /data/clawlink:/data \
-  clawlink/hub:latest
+  -v /data/woclaw:/data \
+  woclaw/hub:latest
 ```
 
 ### OpenClaw Configuration
 ```yaml
 channels:
-  clawlink:
+  woclaw:
     enabled: true
     hubUrl: ws://vm153:8080
     agentId: vm151

@@ -24,7 +24,7 @@ export class RestServer {
     });
 
     this.server.listen(this.config.restPort, () => {
-      console.log(`[ClawLink] REST API running on http://${this.config.host}:${this.config.restPort}`);
+      console.log(`[WoClaw] REST API running on http://${this.config.host}:${this.config.restPort}`);
     });
   }
 
@@ -92,7 +92,7 @@ export class RestServer {
         res.end(JSON.stringify({ error: 'Not found' }));
       }
     } catch (e: any) {
-      console.error('[ClawLink] REST error:', e.message);
+      console.error('[WoClaw] REST error:', e.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: e.message }));
     }
@@ -174,7 +174,7 @@ export class RestServer {
   close(): void {
     if (this.server) {
       this.server.close();
-      console.log('[ClawLink] REST server closed');
+      console.log('[WoClaw] REST server closed');
     }
   }
 }

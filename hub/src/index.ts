@@ -31,14 +31,14 @@ async function main() {
     try {
       const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
       config = { ...config, ...fileConfig };
-      console.log(`[ClawLink] Loaded config from ${configPath}`);
+      console.log(`[WoClaw] Loaded config from ${configPath}`);
     } catch (e) {
-      console.error(`[ClawLink] Failed to load config: ${e}`);
+      console.error(`[WoClaw] Failed to load config: ${e}`);
       process.exit(1);
     }
   }
 
-  console.log(`[ClawLink] Configuration:`);
+  console.log(`[WoClaw] Configuration:`);
   console.log(`  WebSocket Port: ${config.port}`);
   console.log(`  REST Port: ${config.restPort}`);
   console.log(`  Host: ${config.host}`);
@@ -48,7 +48,7 @@ async function main() {
 
   // Initialize database
   const db = new ClawDB(config.dataDir);
-  console.log('[ClawLink] Database initialized');
+  console.log('[WoClaw] Database initialized');
 
   // Initialize WebSocket server (this also creates TopicsManager and MemoryPool internally)
   const wsServer = new WSServer(config, db);
@@ -57,16 +57,16 @@ async function main() {
   const restServer = new RestServer(config, db, wsServer.getTopicsManager(), wsServer.getMemoryPool());
   restServer.start();
   
-  console.log('[ClawLink] Server started successfully');
+  console.log('[WoClaw] Server started successfully');
   console.log('');
-  console.log('[ClawLink] Endpoints:');
+  console.log('[WoClaw] Endpoints:');
   console.log(`  WebSocket: ws://${config.host}:${config.port}`);
   console.log(`  REST API:  http://${config.host}:${config.restPort}`);
   console.log('');
 
   // Graceful shutdown
   const shutdown = () => {
-    console.log('[ClawLink] Shutting down...');
+    console.log('[WoClaw] Shutting down...');
     restServer.close();
     wsServer.close();
     process.exit(0);
@@ -77,6 +77,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('[ClawLink] Fatal error:', e);
+  console.error('[WoClaw] Fatal error:', e);
   process.exit(1);
 });

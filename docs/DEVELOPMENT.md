@@ -1,4 +1,4 @@
-# ClawLink 开发指南
+# WoClaw 开发指南
 
 ## 🛠️ 开发环境
 
@@ -11,8 +11,8 @@
 ### 克隆项目
 
 ```bash
-git clone https://github.com/XingP14/clawlink.git
-cd clawlink
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw
 ```
 
 ### 安装依赖
@@ -145,10 +145,10 @@ clients.forEach(id => {
 
 ```bash
 # 构建本地镜像
-docker build -t clawlink/hub:dev ./hub
+docker build -t woclaw/hub:dev ./hub
 
 # 运行
-docker run -p 8080:8080 clawlink/hub:dev
+docker run -p 8080:8080 woclaw/hub:dev
 
 # 测试
 node test-connect.mjs
@@ -160,10 +160,10 @@ node test-connect.mjs
 
 ```bash
 # 查看 systemd 日志
-journalctl -u clawlink-hub -f
+journalctl -u woclaw-hub -f
 
 # Docker 日志
-docker logs -f clawlink-hub
+docker logs -f woclaw-hub
 ```
 
 ### VS Code 调试配置

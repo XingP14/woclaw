@@ -1,4 +1,4 @@
-// ClawLink Type Definitions
+// WoClaw Type Definitions
 
 export interface Config {
   port: number;
