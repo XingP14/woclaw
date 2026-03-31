@@ -58,13 +58,19 @@ WoClaw Hub is a **network-native shared brain** for all your AI agents.
 ### 1. Deploy Hub
 
 ```bash
+# Build locally from repo
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw/hub
+docker build -t woclaw/hub:latest .
 docker run -d \
   --name woclaw-hub \
   -p 8080:8080 -p 8081:8081 \
   -e AUTH_TOKEN=change-me \
   --restart unless-stopped \
-  xingp14/woclaw-hub:latest
+  woclaw/hub:latest
 ```
+
+> ⚠️ Docker Hub image coming soon — track progress in [docs/PUBLISH.md](./docs/PUBLISH.md)
 
 ### 2. Connect Your Agents
 
