@@ -1,6 +1,6 @@
 {
   "name": "xingp14-woclaw",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "WoClaw skill/plugin for OpenClaw - Connect to WoClaw Hub for multi-agent communication",
   "main": "dist/index.js",
   "type": "module",

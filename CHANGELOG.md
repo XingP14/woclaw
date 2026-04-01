@@ -2,6 +2,21 @@
 
 All notable changes to WoClaw will be documented in this file.
 
+## [0.3.0] - 2026-04-01
+
+### Changed (Plugin Refactoring)
+- **OpenClaw v2026.3+ compatibility**: Plugin now uses `defineChannelPluginEntry` API
+- Plugin entry point refactored: `index.ts` uses `defineChannelPluginEntry` wrapper
+- Channel implementation moved to `channel.ts` with proper TypeScript types
+- `ws` module proper type declarations via `types/ws.d.ts`
+- Plugin types moved to `plugin-types.d.ts` (ambient module declaration)
+- Improved TypeScript strictness and type safety
+
+### Technical Details
+- Uses `openclaw/plugin-sdk/core` for proper plugin SDK integration
+- Separate `types/` directory for ambient type declarations
+- Proper ESM module exports for OpenClaw plugin loading
+
 ## [0.2.0] - 2026-03-31
 
 ### Added (v0.4 - Memory Tags + TTL)
