@@ -59,13 +59,13 @@ WoClaw Hub is a **network-native shared brain** for all your AI agents.
 
 ```bash
 # Pull from Docker Hub (recommended)
-docker pull xingp14/woclaw-hub:hub/v0.3.0
+docker pull xingp14/woclaw-hub:0.3.0
 docker run -d \
   --name woclaw-hub \
   -p 8082:8082 -p 8083:8083 \
   -e AUTH_TOKEN=change-me \
   --restart unless-stopped \
-  xingp14/woclaw-hub:hub/v0.3.0
+  xingp14/woclaw-hub:0.3.0
 ```
 
 > Docker Hub 镜像由 GitHub Actions docker-publish.yml 自动构建，使用 `hub/v*` 标签触发。详见 [docs/PUBLISH.md](./docs/PUBLISH.md)。
