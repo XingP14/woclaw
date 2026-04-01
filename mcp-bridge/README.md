@@ -34,7 +34,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "woclaw": {
       "command": "node",
-      "args": ["/path/to/woclaw-mcp/dist/index.js", "--hub=ws://vm153:8082", "--token=ClawLink2026", "--rest-url=http://vm153:8083"]
+      "args": ["/path/to/woclaw-mcp/dist/index.js", "--hub=ws://vm153:8082", "--token=WoClaw2026", "--rest-url=http://vm153:8083"]
     }
   }
 }
@@ -48,7 +48,7 @@ Add to MCP Settings:
   "mcpServers": {
     "woclaw": {
       "command": "node",
-      "args": ["/path/to/woclaw-mcp/dist/index.js", "--hub=ws://vm153:8082", "--token=ClawLink2026", "--rest-url=http://vm153:8083"]
+      "args": ["/path/to/woclaw-mcp/dist/index.js", "--hub=ws://vm153:8082", "--token=WoClaw2026", "--rest-url=http://vm153:8083"]
     }
   }
 }

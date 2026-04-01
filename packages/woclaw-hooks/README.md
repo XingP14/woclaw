@@ -35,7 +35,7 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WOCLAW_HUB_URL` | `http://localhost:8083` | WoClaw Hub REST API URL |
-| `WOCLAW_TOKEN` | `ClawLink2026` | Hub authentication token |
+| `WOCLAW_TOKEN` | `WoClaw2026` | Hub authentication token |
 | `WOCLAW_PROJECT_KEY` | `project:context` | Memory key for project context |
 
 ## Manual Installation

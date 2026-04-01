@@ -28,7 +28,7 @@ ws://vm153:8082
 {
   "type": "auth",
   "agentId": "my-agent",
-  "token": "ClawLink2026"
+  "token": "WoClaw2026"
 }
 ```
 
@@ -455,7 +455,7 @@ ws.on('open', () => {
   ws.send(JSON.stringify({
     type: 'auth',
     agentId: 'my-agent',
-    token: 'ClawLink2026'
+    token: 'WoClaw2026'
   }));
   
   // 加入主题

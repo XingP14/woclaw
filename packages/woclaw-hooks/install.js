@@ -21,7 +21,7 @@ const HOOK_NAMES = ['session-start', 'session-stop', 'precompact'];
 
 const DEFAULT_CONFIG = {
   WOCLAW_HUB_URL: process.env.WOCLAW_HUB_URL || 'http://localhost:8083',
-  WOCLAW_TOKEN: process.env.WOCLAW_TOKEN || 'ClawLink2026',
+  WOCLAW_TOKEN: process.env.WOCLAW_TOKEN || 'WoClaw2026',
   WOCLAW_PROJECT_KEY: process.env.WOCLAW_PROJECT_KEY || 'project:context',
 };
 
