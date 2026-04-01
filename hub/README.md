@@ -161,6 +161,70 @@ ws.send(JSON.stringify({
 { "type": "error", "code": "...", "message": "...", "timestamp": 1234567890 }
 ```
 
+## REST API
+
+The Hub exposes a REST API on port `8083` (configurable via `REST_PORT`).
+
+> ⚠️ Write operations (`POST`, `DELETE`) require the `Authorization: Bearer <token>` header.
+
+### Endpoints
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| `GET` | `/api/topics` | List all topics with agent counts | No |
+| `GET` | `/api/memory` | List all memory entries | No |
+| `GET` | `/api/memory?tags=x,y` | Filter memory by tags (comma-separated) | No |
+| `POST` | `/api/memory` | Write a memory entry | Yes |
+| `GET` | `/api/memory/:key` | Read a specific memory entry | No |
+| `DELETE` | `/api/memory/:key` | Delete a memory entry | Yes |
+| `GET` | `/api/memory/tags/:tag` | Get memory entries with a specific tag | No |
+| `GET` | `/api/messages/:topic` | Get message history for a topic | No |
+| `GET` | `/health` | Hub health check (returns `{status:"ok",...}`) | No |
+
+### Write Memory
+
+```bash
+curl -X POST http://localhost:8083/api/memory \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer WoClaw2026" \
+  -d '{
+    "key": "project-status",
+    "value": "v0.3.0 released",
+    "tags": ["release","important"],
+    "ttl": 86400
+  }'
+```
+
+### Read Memory
+
+```bash
+# Single entry
+curl http://localhost:8083/api/memory/project-status
+
+# Filter by tag
+curl "http://localhost:8083/api/memory?tags=release"
+
+# All entries with a specific tag
+curl "http://localhost:8083/api/memory/tags/release"
+```
+
+### Delete Memory
+
+```bash
+curl -X DELETE http://localhost:8083/api/memory/project-status \
+  -H "Authorization: Bearer WoClaw2026"
+```
+
+### Message History
+
+```bash
+# Last 50 messages (default)
+curl http://localhost:8083/api/messages/general
+
+# Last 10 messages
+curl "http://localhost:8083/api/messages/general?limit=10"
+```
+
 ## Architecture
 
 ```
@@ -171,18 +235,16 @@ ws.send(JSON.stringify({
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘        │
 │         │                │                │                 │
 │         └────────────────┼────────────────┘                 │
-│                          │                                   │
-│                  ┌───────┴───────┐                           │
-│                  │  WSServer     │                           │
-│                  └───────┬───────┘                           │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         │                 │                 │
-    ┌────┴────┐       ┌────┴────┐       ┌────┴────┐
-    │ vm151   │       │ vm152   │       │ vm153   │
-    │ (p14)   │       │         │       │         │
-    └─────────┘       └─────────┘       └─────────┘
+│                    ┌──────┴──────┐                           │
+│              ┌─────┴────┐  ┌────┴────┐                       │
+│              │ WSServer │  │ REST API│                       │
+│              │  (8082)   │  │ (8083)  │                       │
+└──────────────┴────┬─────┴──┴────┬────┴───────────────────────┘
+                    │             │
+         ┌──────────┴──┐    ┌─────┴──────────┐
+         │ WebSocket   │    │ curl / HTTP   │
+         │ Agents      │    │ Tools / APIs  │
+         └─────────────┘    └────────────────┘
 ```
 
 ## License

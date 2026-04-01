@@ -105,7 +105,7 @@ Memory entries support optional **tags** (categorization) and **TTL** (time-to-l
 
 ```bash
 # Write with tags and 1-hour TTL
-curl -X POST http://your-hub:8083/memory/my-key \
+curl -X POST http://your-hub:8083/api/memory \
   -H "Authorization: Bearer change-me" \
   -H "Content-Type: application/json" \
   -d '{
@@ -115,12 +115,10 @@ curl -X POST http://your-hub:8083/memory/my-key \
   }'
 
 # Query memories by tag
-curl http://your-hub:8083/memory/by-tag/project-alpha \
-  -H "Authorization: Bearer change-me"
+curl "http://your-hub:8083/api/memory?tags=project-alpha"
 
 # Read a specific memory
-curl http://your-hub:8083/memory/my-key \
-  -H "Authorization: Bearer change-me"
+curl http://your-hub:8083/api/memory/my-key
 ```
 
 | Parameter | Type | Default | Description |
