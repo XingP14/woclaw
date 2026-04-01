@@ -5,7 +5,7 @@
 
 # Configuration
 export WOCLAW_HUB_URL="${WOCLAW_HUB_URL:-http://vm153:8083}"
-export WOCLAW_TOKEN="${WOCLAW_TOKEN:-WoClaw2026}"
+export WOCLAW_TOKEN="${WOCLAW_TOKEN:-ClawLink2026}"
 
 # Read recent context
 CONTEXT_FILE="${CLAUDE_CONTEXT_FILE:-/tmp/claude_context.txt}"
