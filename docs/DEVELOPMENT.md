@@ -232,3 +232,24 @@ git push origin feature/my-feature
 - [TypeScript 文档](https://www.typescriptlang.org/docs/)
 - [ws 库文档](https://github.com/websockets/ws)
 - [OpenClaw 文档](https://docs.openclaw.ai)
+
+## Hub Token 说明（2026-04-02 更新）
+
+### REST API vs WebSocket Token
+- **REST API 认证**：进程启动时 `AUTH_TOKEN` 环境变量 → Hub 重启前不生效
+- **WebSocket 认证**：启动后接受参数 `token=` 动态校验
+- 当前状态：REST API 用 `WoClaw2026`，WebSocket 用 `ClawLink2026`
+- **解决方案**：重启 Hub，统一传入 `AUTH_TOKEN=ClawLink2026`
+
+### 重启 Hub（vm153）
+```bash
+# SSH 到 vm153
+ssh vm153
+# 查看 Hub 进程
+ps aux | grep woclaw
+# 重启（docker compose）
+cd /opt/woclaw && docker compose restart
+# 或直接
+docker restart woclaw-hub
+```
+
