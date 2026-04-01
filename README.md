@@ -99,6 +99,37 @@ curl -X POST http://your-hub:8083/memory/discovered \
   -d '{"value": "use fs.promises"}'
 ```
 
+**OpenCode (plugin — see [packages/opencode-woclaw-plugin](./packages/opencode-woclaw-plugin/)):**
+
+```bash
+# Install plugin
+cp packages/opencode-woclaw-plugin/index.js ~/.config/opencode/plugins/woclaw.js
+
+# Configure env vars
+export WOCLAW_HUB_URL=ws://your-hub:8082
+export WOCLAW_TOKEN=change-me
+```
+
+Then OpenCode can use built-in tools:
+```
+/woclaw_memory_read project-context
+/woclaw_memory_write discovered "use fs.promises"
+/woclaw_topics_list
+/woclaw_hub_status
+```
+
+**Python Codex agents (see [packages/codex-woclaw-example](./packages/codex-woclaw-example/)):**
+
+```python
+import asyncio
+from codex_example import memory_read, memory_write, hub_health
+
+async def main():
+    health = await hub_health()
+    await memory_write("codex:session", "Working on feature X")
+    context = await memory_read("project:context")
+```
+
 ### Shared Memory: Tags & TTL
 
 Memory entries support optional **tags** (categorization) and **TTL** (time-to-live):
@@ -159,6 +190,8 @@ curl http://your-hub:8083/memory/my-key
 |---------|---------|-------------|
 | [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.3.0 | Hub server |
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.3.0 | OpenClaw plugin |
+| [woclaw-mcp](https://www.npmjs.com/package/woclaw-mcp) | 0.1.2 | MCP Bridge for MCP clients |
+| [woclaw-hooks](https://github.com/XingP14/woclaw/tree/master/packages/woclaw-hooks) | 0.1.0 | Claude Code hook scripts |
 
 ## Links
 
