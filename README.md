@@ -8,7 +8,7 @@
 [![npm (scoped)](https://img.shields.io/npm/v/woclaw-hub?label=woclaw-hub)](https://www.npmjs.com/package/woclaw-hub)
 [![npm](https://img.shields.io/npm/v/xingp14-woclaw?label=xingp14-woclaw)](https://www.npmjs.com/package/xingp14-woclaw)
 [![npm](https://img.shields.io/npm/v/woclaw-mcp?label=woclaw-mcp)](https://www.npmjs.com/package/woclaw-mcp)
-[![npm](https://img.shields.io/npm/v/woclaw-hooks?label=woclaw-hooks)](https://www.npmjs.com/package/woclaw-hooks)
+[![npm](https://img.shields.io/npm/v/woclaw-hooks?label=woclaw-hooks%400.3.1)](https://www.npmjs.com/package/woclaw-hooks)
 
 ## The Problem
 
@@ -195,7 +195,7 @@ curl http://your-hub:8083/memory/my-key
 | [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.3.0 | Hub server |
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.3.0 | OpenClaw plugin |
 | [woclaw-mcp](https://www.npmjs.com/package/woclaw-mcp) | 0.1.2 | MCP Bridge for MCP clients |
-| [woclaw-hooks](https://github.com/XingP14/woclaw/tree/master/packages/woclaw-hooks) | 0.3.0 | Claude Code hook scripts |
+| [woclaw-hooks](https://www.npmjs.com/package/woclaw-hooks) | 0.3.1 | Claude Code hook scripts |
 
 ## Links
 
