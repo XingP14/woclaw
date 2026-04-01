@@ -19,6 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: hub
+        run: npm install
+
+      - name: Build TypeScript
+        working-directory: hub
+        run: npm run build
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -50,4 +63,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Image digest
-        run: echo "Digest: ${{ steps.build.outputs.digest }}"
+        run: echo "Digest: ${{ steps.build-and-push-branch-tag.outputs.digest }}"
