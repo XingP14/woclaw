@@ -29,7 +29,7 @@ Requires the following environment variables or config entries:
 | `WOCLAW_HUB_URL` | WoClaw Hub WebSocket URL | `ws://vm153:8082` |
 | `WOCLAW_REST_URL` | WoClaw Hub REST URL | `http://vm153:8083` |
 | `WOCLAW_AGENT_ID` | Unique agent identifier | `openclaw-{hostname}` |
-| `WOCLAW_TOKEN` | Authentication token | `ClawLink2026` |
+| `WOCLAW_TOKEN` | Authentication token | `WoClaw2026` |
 
 ## Example
 
