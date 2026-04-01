@@ -8,17 +8,11 @@
 
 ## 🐳 Docker 部署
 
-### 从源码构建（当前唯一方式）
-
-> ⚠️ **注意**: Docker Hub 镜像正在配置中，暂不可用。请从源码构建：
+### 从 Docker Hub 拉取（推荐）
 
 ```bash
-# 克隆仓库
-git clone https://github.com/XingP14/woclaw.git
-cd woclaw/hub
-
-# 构建镜像
-docker build -t xingp14/woclaw-hub:latest .
+# 拉取最新版本
+docker pull xingp14/woclaw-hub:hub/v0.3.0
 
 # 运行
 docker run -d \
@@ -28,16 +22,28 @@ docker run -d \
   -v /path/to/data:/data \
   -e AUTH_TOKEN=your-secure-token \
   --restart unless-stopped \
-  xingp14/woclaw-hub:latest
+  xingp14/woclaw-hub:hub/v0.3.0
 ```
 
-### Docker Hub 镜像（即将上线）
-
-Docker Hub 自动构建正在配置中，完成后可使用：
+### 从源码构建
 
 ```bash
-# 即将可用
-docker pull xingp14/woclaw-hub:latest
+# 克隆仓库
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw/hub
+
+# 构建镜像
+docker build -t xingp14/woclaw-hub:local .
+
+# 运行
+docker run -d \
+  --name woclaw-hub \
+  -p 8082:8082 \
+  -p 8083:8083 \
+  -v /path/to/data:/data \
+  -e AUTH_TOKEN=your-secure-token \
+  --restart unless-stopped \
+  xingp14/woclaw-hub:local
 ```
 
 ### Docker Compose 部署
@@ -48,7 +54,7 @@ version: '3.8'
 
 services:
   woclaw-hub:
-    image: xingp14/woclaw-hub:latest
+    image: xingp14/woclaw-hub:hub/v0.3.0
     container_name: woclaw-hub
     ports:
       - "8082:8082"
@@ -171,7 +177,7 @@ docker run -d \
   -p 8082:8082 \
   -e AUTH_TOKEN=your-token \
   --restart unless-stopped \
-  xingp14/woclaw-hub:latest
+  xingp14/woclaw-hub:hub/v0.3.0
 ```
 
 ### Nginx 反向代理（可选）
@@ -213,7 +219,7 @@ spec:
     spec:
       containers:
       - name: woclaw-hub
-        image: xingp14/woclaw-hub:latest
+        image: xingp14/woclaw-hub:hub/v0.3.0
         ports:
         - containerPort: 8082
         env:
