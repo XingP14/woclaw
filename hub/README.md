@@ -171,20 +171,20 @@ The Hub exposes a REST API on port `8083` (configurable via `REST_PORT`).
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
-| `GET` | `/api/topics` | List all topics with agent counts | No |
-| `GET` | `/api/memory` | List all memory entries | No |
-| `GET` | `/api/memory?tags=x,y` | Filter memory by tags (comma-separated) | No |
-| `POST` | `/api/memory` | Write a memory entry | Yes |
-| `GET` | `/api/memory/:key` | Read a specific memory entry | No |
-| `DELETE` | `/api/memory/:key` | Delete a memory entry | Yes |
-| `GET` | `/api/memory/tags/:tag` | Get memory entries with a specific tag | No |
-| `GET` | `/api/messages/:topic` | Get message history for a topic | No |
+| `GET` | `/topics` | List all topics with agent counts | No |
+| `GET` | `/memory` | List all memory entries | No |
+| `GET` | `/memory?tags=x,y` | Filter memory by tags (comma-separated) | No |
+| `POST` | `/memory` | Write a memory entry | Yes |
+| `GET` | `/memory/:key` | Read a specific memory entry | No |
+| `DELETE` | `/memory/:key` | Delete a memory entry | Yes |
+| `GET` | `/memory/tags/:tag` | Get memory entries with a specific tag | No |
+| `GET` | `/topics/:topic` | Get message history for a topic | No |
 | `GET` | `/health` | Hub health check (returns `{status:"ok",...}`) | No |
 
 ### Write Memory
 
 ```bash
-curl -X POST http://localhost:8083/api/memory \
+curl -X POST http://localhost:8083/memory \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer WoClaw2026" \
   -d '{
@@ -199,19 +199,19 @@ curl -X POST http://localhost:8083/api/memory \
 
 ```bash
 # Single entry
-curl http://localhost:8083/api/memory/project-status
+curl http://localhost:8083/memory/project-status
 
 # Filter by tag
-curl "http://localhost:8083/api/memory?tags=release"
+curl "http://localhost:8083/memory?tags=release"
 
 # All entries with a specific tag
-curl "http://localhost:8083/api/memory/tags/release"
+curl "http://localhost:8083/memory/tags/release"
 ```
 
 ### Delete Memory
 
 ```bash
-curl -X DELETE http://localhost:8083/api/memory/project-status \
+curl -X DELETE http://localhost:8083/memory/project-status \
   -H "Authorization: Bearer WoClaw2026"
 ```
 
@@ -219,10 +219,10 @@ curl -X DELETE http://localhost:8083/api/memory/project-status \
 
 ```bash
 # Last 50 messages (default)
-curl http://localhost:8083/api/messages/general
+curl http://localhost:8083/topics/general
 
 # Last 10 messages
-curl "http://localhost:8083/api/messages/general?limit=10"
+curl "http://localhost:8083/topics/general?limit=10"
 ```
 
 ## Architecture
