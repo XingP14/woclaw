@@ -31,22 +31,7 @@
 - [ ] Plugin 在 vm153 上安装验证
 - [ ] Plugin 在 VPS4 (本地) 安装验证
 
-## 🔥 v0.3 — MCP + Hook 系统
-
-### P0 - 跨框架 Hook 集成
-- [x] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory ✅
-- [ ] Gemini CLI MCP Bridge — WoClaw MCP server interface
-- [ ] OpenCode Hook Scripts — 同 Claude Code
-
-### P0 - OpenClaw Plugin 完善
-- [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
-- [ ] Plugin 在 vm153 上安装验证
-- [ ] Plugin 在 VPS4 (本地) 安装验证
-
-### P0 - 共享记忆增强（v0.3）
-- [x] Memory TTL — 支持设置过期时间 ✅ (2026-04-01 验证通过)
-- [x] Memory Tags — 支持分类标签（project/fact/decision/config）✅ (2026-04-01 验证通过)
-- [x] Docker Hub 自动构建 — workflow ready，通过推送 `hub/v*` tag 触发 ✅
+## 🔥 v0.3 — MCP + Hook 系统（2026-04-01 完成 ✅）
 
 ### MCP Bridge
 - [x] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具 ✅ (woclaw-mcp@0.1.2)
@@ -57,12 +42,15 @@
 - [ ] `woclaw hook install --framework claude-code` 命令
 - [ ] PreCompact hook — 自动将关键上下文写入 memory
 
+### Docker Hub 发布
+- [x] GitHub Actions 自动构建 ✅ (hub/v* tag 触发)
+- [x] Docker Hub 镜像 xingp14/woclaw-hub ✅
+
 ## 🎯 v0.4 — 多框架共享记忆
 
 ### Shared Memory 增强
-- [ ] Memory TTL — 支持设置过期时间
-- [ ] Memory Tags — 支持分类标签（project/fact/decision/config）
 - [ ] Memory Versioning — 保留历史版本
+- [ ] Semantic Recall — 意图感知检索
 
 ### Multi-Agent Orchestration
 - [ ] Agent 发现 — 自动发现同 Hub 上其他 agent
@@ -115,8 +103,8 @@
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
 | v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
 | v0.3 | 2026-04-01 | Tags/TTL 增强、Docker Hub Workflow ✅ |
-| v0.4 | 待定 | MCP Bridge、Hook 系统、生态集成 |
-| v0.5 | 待定 | ClawHub Skill、GitHub Actions 完善 |
+| v0.4 | 待定 | Hook 系统、Memory Versioning、生态集成 |
+| v0.5 | 待定 | ClawHub Skill（2026-04-13 账号满14天）、Graph Memory |
 | v1.0 | 待定 | Graph Memory、Federation |
 
 ---

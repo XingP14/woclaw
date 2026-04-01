@@ -2,17 +2,10 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/cache/apk/*
-
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (production only, no native deps needed)
 RUN npm ci --only=production
 
 # Copy source (pre-built)
