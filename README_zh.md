@@ -104,6 +104,37 @@ curl -X POST http://your-hub:8083/memory/discovered \
   -d '{"value": "use fs.promises"}'
 ```
 
+**OpenCode（插件 — 见 [packages/opencode-woclaw-plugin](./packages/opencode-woclaw-plugin/)）：**
+
+```bash
+# 安装插件
+cp packages/opencode-woclaw-plugin/index.js ~/.config/opencode/plugins/woclaw.js
+
+# 配置环境变量
+export WOCLAW_HUB_URL=ws://your-hub:8082
+export WOCLAW_TOKEN=change-me
+```
+
+然后 OpenCode 可使用内置工具：
+```
+/woclaw_memory_read project-context
+/woclaw_memory_write discovered "use fs.promises"
+/woclaw_topics_list
+/woclaw_hub_status
+```
+
+**Python Codex agents（见 [packages/codex-woclaw-example](./packages/codex-woclaw-example/)）：**
+
+```python
+import asyncio
+from codex_example import memory_read, memory_write, hub_health
+
+async def main():
+    health = await hub_health()
+    await memory_write("codex:session", "Working on feature X")
+    context = await memory_read("project:context")
+```
+
 **MCP Bridge（Node.js / Deno）：**
 ```bash
 npm install woclaw-mcp
