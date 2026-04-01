@@ -8,6 +8,7 @@
 |---------|---------|--------|----------|
 | `xingp14-woclaw` | 0.3.0 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
 | `woclaw-hub` | 0.2.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
+| `woclaw-hooks` | 0.1.0 | ✅ Code Ready | npm (workflow ready, tag `hooks/v*` to publish) |
 | `woclaw-mcp` | 0.1.2 | ⏳ Pending | npm (not yet published) |
 | WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-13) |
 | Docker Hub | — | ✅ Workflow Ready | Docker Hub |
@@ -67,10 +68,10 @@ docker push xingp14/woclaw-hub:0.1.0
 
 ## GitHub Actions Auto-Sync
 
-**TODO:** Set up CI/CD workflow for:
-- Auto-publish to npm on tag
-- Auto-build and push Docker image
-- Auto-sync to ClawHub
+✅ **CI/CD Fully Configured** (2026-04-01):
+- ✅ Auto-publish to npm on tag (`plugin/v*` → `xingp14-woclaw`, `hub/v*` → `woclaw-hub`, `hooks/v*` → `woclaw-hooks`)
+- ✅ Auto-build and push Docker image on `hub/v*` tag
+- ⏳ Auto-sync to ClawHub — pending GitHub account age ≥14 days (~2026-04-13)
 
 ## Current Status
 
