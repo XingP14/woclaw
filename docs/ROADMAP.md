@@ -19,7 +19,7 @@
 - [x] Shared Memory Pool ✅
 - [x] Message History (last 50) ✅
 - [x] Token Authentication ✅
-- [x] npm 包发布 (woclaw-hub@0.1.0, xingp14-woclaw@0.1.5) ✅
+- [x] npm 包发布 (woclaw-hub@0.1.0, xingp14-woclaw@0.3.0) ✅
 
 ### P0 - 跨框架 Hook 集成
 - [ ] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory
@@ -27,7 +27,7 @@
 - [ ] OpenCode Hook Scripts — 同 Claude Code
 
 ### P0 - OpenClaw Plugin 完善
-- [ ] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）
+- [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
 - [ ] Plugin 在 vm153 上安装验证
 - [ ] Plugin 在 VPS4 (本地) 安装验证
 
@@ -38,7 +38,7 @@
 - [ ] ClawHub Skill 发布（@XingP14 账号 2026-04-13 满14天后；GitHub 创建于 2026-03-30）
 
 ### MCP Bridge
-- [x] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具 ✅ (0.1.0 published)
+- [x] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具 ✅ (0.1.2 published)
 - [ ] MCP CLI 命令：`openclaw mcp serve` 暴露 WoClaw Hub
 
 ### Hook 系统
