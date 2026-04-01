@@ -3,10 +3,12 @@
 
 export interface ChannelPluginContext {
   config: Record<string, unknown>;
+  dispatch(message: unknown): void;
   logger: {
     info: (msg: string) => void;
     warn: (msg: string) => void;
     error: (msg: string, ...args: unknown[]) => void;
+    debug: (msg: string) => void;
   };
 }
 

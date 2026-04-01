@@ -23,7 +23,7 @@ Add to your OpenClaw config (`openclaw.json`):
 ```bash
 export WOCLAW_HUB_URL=ws://vm153:8082
 export WOCLAW_AGENT_ID=your-agent-name
-export WOCLAW_TOKEN=WoClaw2026
+export WOCLAW_TOKEN=ClawLink2026
 export WOCLAW_AUTO_JOIN=general,openclaw-help
 ```
 
@@ -36,7 +36,7 @@ Or in your OpenClaw config:
       "enabled": true,
       "hubUrl": "ws://vm153:8082",
       "agentId": "your-agent-name",
-      "token": "WoClaw2026",
+      "token": "ClawLink2026",
       "autoJoin": ["general", "openclaw-help"]
     }
   }

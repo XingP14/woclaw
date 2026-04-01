@@ -239,11 +239,11 @@ async function handleCallTool(name, args) {
       return { content: [{ type: 'text', text: JSON.stringify(msg, null, 2) }] };
     }
     case 'woclaw_topics_list': {
-      const msg = await send('topics.list', {});
+      const msg = await send('topics_list', {});
       return { content: [{ type: 'text', text: JSON.stringify(msg, null, 2) }] };
     }
     case 'woclaw_topic_messages': {
-      const msg = await send('topic.history', { topic: args.topic, limit: args.limit || 20 });
+      const msg = await send('topic_history', { topic: args.topic, limit: args.limit || 20 });
       return { content: [{ type: 'text', text: JSON.stringify(msg, null, 2) }] };
     }
     case 'woclaw_topic_send': {
