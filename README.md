@@ -195,7 +195,7 @@ curl http://your-hub:8083/memory/my-key
 | [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.3.0 | Hub server |
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.3.0 | OpenClaw plugin |
 | [woclaw-mcp](https://www.npmjs.com/package/woclaw-mcp) | 0.1.2 | MCP Bridge for MCP clients |
-| [woclaw-hooks](https://github.com/XingP14/woclaw/tree/master/packages/woclaw-hooks) | 0.1.0 | Claude Code hook scripts |
+| [woclaw-hooks](https://github.com/XingP14/woclaw/tree/master/packages/woclaw-hooks) | 0.3.0 | Claude Code hook scripts |
 
 ## Links
 
