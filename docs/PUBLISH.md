@@ -7,11 +7,12 @@
 | Package | Version | Status | Registry |
 |---------|---------|--------|----------|
 | `xingp14-woclaw` | 0.3.0 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
-| `woclaw-hub` | 0.2.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
+| `woclaw-hub` | 0.3.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
 | `woclaw-mcp` | 0.1.2 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-mcp) |
-| `woclaw-hooks` | 0.1.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hooks) |
+| `woclaw-hooks` | 0.3.1 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hooks) |
+| `opencode-woclaw` | 0.1.0 | 🔲 Not published | npm |
 | WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-13) |
-| Docker Hub | — | ✅ Workflow Ready | Docker Hub |
+| Docker Hub | latest | ✅ Done | [Docker Hub](https://hub.docker.com/r/xingp14/woclaw-hub) |
 
 ## npm Publishing Guide
 
@@ -79,7 +80,7 @@ docker push xingp14/woclaw-hub:0.1.0
 - [x] npm publish `xingp14-woclaw@0.3.0` - 2026-04-01
 - [x] npm publish `woclaw-hub@0.2.0` - 2026-04-01
 - [x] npm publish `woclaw-mcp@0.1.2` (via GitHub Actions)
-- [x] npm publish `woclaw-hooks@0.1.0` (via GitHub Actions)
+- [x] npm publish `woclaw-hooks@0.3.1` (via GitHub Actions)
 - [x] Set up GitHub Actions CI/CD (publish.yml, hub-publish.yml, docker-publish.yml)
 - [x] Docker Hub credentials configured (DOCKERHUB_USERNAME + DOCKERHUB_TOKEN)
 - [ ] Trigger Docker Hub publish (push `hub/v*` tag to GitHub)
