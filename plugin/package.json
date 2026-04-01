@@ -42,5 +42,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/XingP14/woclaw"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }
