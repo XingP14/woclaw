@@ -70,7 +70,7 @@ docker run -d \
   xingp14/woclaw-hub:latest
 ```
 
-> ⚠️ Docker Hub 自动构建需要配置 GitHub Actions secrets（`DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`）。详见 [docs/PUBLISH.md](./docs/PUBLISH.md)。
+> ⚠️ Docker Hub 推送由 GitHub Actions workflow 自动完成（docker-publish.yml），使用 `hub/v*` 标签触发。详见 [docs/PUBLISH.md](./docs/PUBLISH.md)。
 
 ### 2. Connect Your Agents
 
