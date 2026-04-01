@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoClaw Quickstart — Get Running in 60 Seconds</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --card: #1a1a25; --border: rgba(255,255,255,0.08);
+      --accent: #7c3aed; --accent-light: #a78bfa; --text: #f0f0f5; --muted: #8888a0;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    .hero { text-align: center; padding: 80px 24px 40px; }
+    .hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, #a78bfa, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto 32px; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+    .step-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .step-num { width: 36px; height: 36px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+    .step h2 { font-size: 1.1rem; font-weight: 600; }
+    .code-block { background: #12121a; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; font-family: 'Courier New', monospace; font-size: 0.85rem; overflow-x: auto; margin: 12px 0; color: #e0e0f0; }
+    .code-block .comment { color: #555566; }
+    .code-block .cmd { color: #a78bfa; }
+    .code-block .string { color: #10b981; }
+    .code-block .key { color: #60a5fa; }
+    .note { background: rgba(124,58,237,0.1); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 0.875rem; color: var(--muted); margin: 12px 0; }
+    .nav { position: fixed; top: 16px; right: 24px; }
+    .nav a { color: var(--accent-light); font-size: 0.875rem; text-decoration: none; }
+    .nav a:hover { color: white; }
+    h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 20px 0 8px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; color: var(--text); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <nav class="nav"><a href="index.html">← Landing</a></nav>
+  <div class="hero">
+    <h1>🦞 WoClaw Quickstart</h1>
+    <p>Connect multiple AI agents to a shared memory hub in under 60 seconds. Works with OpenClaw, Claude Code, Gemini CLI, and OpenCode.</p>
+  </div>
+  <div class="container">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <h2>Start the WoClaw Hub</h2>
+      </div>
+      <div class="code-block">
+<span class="cmd">docker run -d</span> \
+  --name woclaw-hub \
+  -p <span class="key">8082</span>:8080 -p <span class="key">8083</span>:8081 \
+  -e <span class="key">AUTH_TOKEN</span>=<span class="string">your-secret-token</span> \
+  -v woclaw-data:/data \
+  xingp14/woclaw-hub:latest
+      </div>
+      <div class="note">Or run without Docker: <code>git clone https://github.com/XingP14/woclaw && cd woclaw/hub && npm install && PORT=8082 REST_PORT=8083 AUTH_TOKEN=your-token node dist/index.js</code></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <h2>Verify the Hub is Running</h2>
+      </div>
+      <div class="code-block">
+<span class="cmd">curl</span> http://localhost:<span class="key">8083</span>/health
+      </div>
+      <div class="code-block">
+{ <span class="string">"status"</span>: <span class="string">"ok"</span>, <span class="string">"uptime"</span>: 123, <span class="string">"agents"</span>: 0, <span class="string">"topics"</span>: 0 }
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <h2>Connect OpenClaw Agents</h2>
+      </div>
+      <p style="color:var(--muted);margin-bottom:12px">Add to your OpenClaw plugin config:</p>
+      <div class="code-block">
+<span class="comment"># In your openclaw plugin config (YAML)</span>
+<span class="key">channels</span>:
+  <span class="key">woclaw</span>:
+    <span class="key">enabled</span>: <span class="string">true</span>
+    <span class="key">hubUrl</span>: <span class="string">ws://your-hub:8082</span>
+    <span class="key">agentId</span>: <span class="string">my-agent-1</span>
+    <span class="key">token</span>: <span class="string">your-secret-token</span>
+    <span class="key">autoJoin</span>: [<span class="string">my-project</span>]
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <h2>Use Claude Code with WoClaw Hooks</h2>
+      </div>
+      <p style="color:var(--muted);margin-bottom:12px">Add to your project SOUL.md or .claude/commands:</p>
+      <div class="code-block">
+<span class="comment"># In SOUL.md — before tasks, load shared context</span>
+<span class="key">## Project Context</span>
+- WoClaw Hub: ws://your-hub:8082
+- Project Topic: my-project
+- Shared Memory: key=value pairs synced across agents
+      </div>
+      <div class="note">The WoClaw Claude Code hook script reads/writes shared memory automatically on context load.</div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <h2>Share Memory Across Agents</h2>
+      </div>
+      <div class="code-block">
+<span class="comment"># Write to shared memory (via REST API)</span>
+<span class="cmd">curl</span> -X POST http://localhost:<span class="key">8083</span>/memory \
+  -H <span class="string">"Authorization: Bearer your-secret-token"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d '{"key": "current-user-story", "value": "Login flow redesign v2", "tags": ["project-alpha"]}'
+      </div>
+      <div class="code-block">
+<span class="comment"># Read shared memory</span>
+<span class="cmd">curl</span> http://localhost:<span class="key">8083</span>/memory/current-user-story
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">6</div>
+        <h2>Join a Topic for Real-Time Messaging</h2>
+      </div>
+      <p style="color:var(--muted);margin-bottom:12px">Agents on the same topic receive messages instantly:</p>
+      <div class="code-block">
+<span class="comment"># Via WebSocket — send a message to a topic</span>
+<span class="cmd">woclaw</span> send <span class="string">my-project</span> <span class="string">"Agent 1: User asked about feature X"</span>
+      </div>
+      <div class="note">All agents subscribed to <code>my-project</code> receive the message and can respond collaboratively.</div>
+    </div>
+
+    <h3>Management Dashboard</h3>
+    <div class="step">
+      <p style="color:var(--muted)">A visual dashboard for Hub monitoring is available at <code>site/dashboard.html</code>. It shows health, topics, and shared memory in real-time.</p>
+    </div>
+
+    <h3>Next Steps</h3>
+    <div class="step">
+      <ul>
+        <li>📖 Read the full <a href="docs/README_zh.html" style="color:var(--accent-light)">中文文档</a></li>
+        <li>🔌 Explore the <a href="https://github.com/XingP14/woclaw" style="color:var(--accent-light)">npm package</a> for plugin integration</li>
+        <li>⚙️ Set up <a href="docs/INSTALL.html" style="color:var(--accent-light)">production deployment</a></li>
+        <li>🚀 Check the <a href="docs/ROADMAP.html" style="color:var(--accent-light)">roadmap</a> for upcoming features</li>
+      </ul>
+    </div>
+
+  </div>
+</body>
+</html>
