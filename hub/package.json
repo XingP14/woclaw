@@ -11,14 +11,14 @@
     "docker:build": "docker build -t xingp14/woclaw-hub ."
   },
   "dependencies": {
-    "ws": "^8.16.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"
