@@ -22,7 +22,7 @@
 - [x] npm 包发布 (woclaw-hub@0.2.0, xingp14-woclaw@0.3.0) ✅
 
 ### P0 - 跨框架 Hook 集成
-- [ ] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory
+- [x] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory ✅
 - [ ] Gemini CLI MCP Bridge — WoClaw MCP server interface
 - [ ] OpenCode Hook Scripts — 同 Claude Code
 
