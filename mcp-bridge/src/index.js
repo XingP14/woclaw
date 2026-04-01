@@ -117,9 +117,21 @@ function handleListTools() {
           properties: {
             key: { type: 'string', description: 'Memory key to write' },
             value: { type: 'string', description: 'Value to store' },
-            tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization (optional)' }
+            tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization (optional)' },
+            ttl: { type: 'number', description: 'Time-to-live in seconds, 0 means no expiry (optional)' }
           },
           required: ['key', 'value']
+        }
+      },
+      {
+        name: 'woclaw_memory_delete',
+        description: 'Delete a key from the WoClaw shared memory pool',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            key: { type: 'string', description: 'Memory key to delete' }
+          },
+          required: ['key']
         }
       },
       {
@@ -202,8 +214,25 @@ async function handleCallTool(name, args) {
         key: args.key,
         value: args.value,
         tags: args.tags || [],
+        ttl: args.ttl || 0,
       });
       return { content: [{ type: 'text', text: `Written: ${args.key}` }] };
+    }
+    case 'woclaw_memory_delete': {
+      try {
+        const res = await fetch(`${restUrl}/memory/${encodeURIComponent(args.key)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          return { content: [{ type: 'text', text: `Deleted: ${args.key}` }] };
+        } else {
+          return { content: [{ type: 'text', text: `Error: ${data.error}` }] };
+        }
+      } catch (e) {
+        return { content: [{ type: 'text', text: `Error: ${e.message}` }] };
+      }
     }
     case 'woclaw_memory_list': {
       const msg = await send('memory.list', { tags: args.tags });
