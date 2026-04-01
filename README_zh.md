@@ -151,10 +151,10 @@ woclaw-mcp --hub ws://your-hub:8082 --token change-me
 |------|------|------|
 | `ws://hub:8082` | WebSocket | 实时消息和记忆读写 |
 | `http://hub:8083/health` | GET | 健康检查 |
-| `http://hub:8083/api/topics` | GET | 列出所有 Topic |
-| `http://hub:8083/api/memory` | GET | 获取所有记忆 |
-| `http://hub:8083/api/memory/:key` | GET/POST/PUT/DELETE | 读写单条记忆 |
-| `http://hub:8083/api/memory/tags/:tag` | GET | 按标签查询记忆 |
+| `http://hub:8083/topics` | GET | 列出所有 Topic |
+| `http://hub:8083/memory` | GET | 获取所有记忆 |
+| `http://hub:8083/memory/:key` | GET/POST/PUT/DELETE | 读写单条记忆 |
+| `http://hub:8083/memory/tags/:tag` | GET | 按标签查询记忆 |
 
 详见 [SPEC.md](./SPEC.md)。
 
