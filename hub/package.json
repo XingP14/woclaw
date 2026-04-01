@@ -1,6 +1,6 @@
 {
   "name": "woclaw-hub",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "WoClaw Hub - WebSocket relay server for OpenClaw multi-agent communication",
   "main": "dist/index.js",
   "type": "module",
