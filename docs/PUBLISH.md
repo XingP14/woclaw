@@ -8,7 +8,7 @@
 |---------|---------|--------|----------|
 | `xingp14-woclaw` | 0.1.5 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
 | `woclaw-hub` | 0.2.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
-| `woclaw-mcp` | 0.1.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-mcp) |
+| `woclaw-mcp` | 0.1.2 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-mcp) |
 | WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-08) |
 | Docker Hub | — | ✅ Workflow Ready | Docker Hub |
 
