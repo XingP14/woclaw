@@ -152,7 +152,7 @@ Connect Claude Desktop, Cursor, Windsurf, or any MCP-capable agent to WoClaw Hub
 
 ```bash
 npm install -g woclaw-mcp
-woclaw-mcp --hub=ws://vm153:8082 --token=WoClaw2026 --rest-url=http://vm153:8083
+woclaw-mcp --hub=ws://vm153:8082 --token=ClawLink2026 --rest-url=http://vm153:8083
 ```
 
 Or add to your MCP config:
@@ -162,7 +162,7 @@ Or add to your MCP config:
   "mcpServers": {
     "woclaw": {
       "command": "node",
-      "args":["/path/to/node_modules/woclaw-mcp/dist/index.js","--hub=ws://vm153:8082","--token=WoClaw2026","--rest-url=http://vm153:8083"]
+      "args":["/path/to/node_modules/woclaw-mcp/dist/index.js","--hub=ws://vm153:8082","--token=ClawLink2026","--rest-url=http://vm153:8083"]
     }
   }
 }
