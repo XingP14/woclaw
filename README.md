@@ -132,7 +132,7 @@ curl -X POST http://your-hub:8083/memory/discovered \
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.1.0 | Hub server |
+| [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.2.0 | Hub server |
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.3.0 | OpenClaw plugin |
 
 ## Links
