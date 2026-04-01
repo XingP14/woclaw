@@ -38,7 +38,7 @@ Token stored in GitHub Actions secrets: `NPM_TOKEN`
 - GitHub account connected to ClawHub
 - Account age ≥ 14 days
 
-**Estimated ready:** ~2026-04-08
+**Estimated ready:** ~2026-04-13 (GitHub account created 2026-03-30, needs 14 days)
 
 ```bash
 clawhub login
