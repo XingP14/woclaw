@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node bin/woclaw-cli.js",
     "build": "mkdir -p dist && npx tsc --project tsconfig.build.json && cp -r skills openclaw.plugin.json bin dist/",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "echo 'No tests yet' && exit 0"
   },
   "dependencies": {
     "ws": "^8.16.0"

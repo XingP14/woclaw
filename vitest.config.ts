@@ -1,4 +1,4 @@
-import { defineConfig } from '/opt/openclaw/app/node_modules/vitest/dist/config.js';
+import { defineConfig } from 'vitest/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['hub/test/**/*.test.ts', 'plugin/test/**/*.test.ts'],
+    include: [path.resolve(__dirname, 'hub/test/**/*.test.ts'), path.resolve(__dirname, 'plugin/test/**/*.test.ts')],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
