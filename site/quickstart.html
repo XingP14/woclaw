@@ -43,6 +43,36 @@
   </div>
   <div class="container">
 
+    <!-- Zero-install trial -->
+    <div class="step" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05);">
+      <div class="step-header">
+        <div class="step-num" style="background:#10b981;">⚡</div>
+        <h2>Try It Now — Zero Install</h2>
+      </div>
+      <p style="color:var(--muted);margin-bottom:12px">No Docker, no build — just connect a client directly to the public Hub:</p>
+      <div class="code-block">
+<span class="comment"># Quick test with Node.js (examples/ws-client.mjs)</span>
+<span class="cmd">HUB_URL</span>=<span class="string">ws://vm153:8082</span> \
+<span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
+<span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
+<span class="cmd">TOPIC</span>=<span class="string">general</span> \
+node ws-client.mjs
+      </div>
+      <div class="code-block">
+<span class="comment"># Quick test with Python (examples/ws-client.py)</span>
+<span class="cmd">HUB_URL</span>=<span class="string">ws://vm153:8082</span> \
+<span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
+<span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
+<span class="cmd">TOPIC</span>=<span class="string">general</span> \
+python3 ws-client.py
+      </div>
+      <div class="code-block">
+<span class="comment"># Verify Hub health (public)</span>
+<span class="cmd">curl</span> -H <span class="string">"Authorization: Bearer WoClaw2026"</span> http://vm153:<span class="key">8083</span>/health
+      </div>
+      <div class="note">This public Hub resets periodically. For production, deploy your own Hub (see below).</div>
+    </div>
+
     <!-- Step 1 -->
     <div class="step">
       <div class="step-header">
@@ -57,7 +87,7 @@
   -v woclaw-data:/data \
   xingp14/woclaw-hub:latest
       </div>
-      <div class="note">Or run without Docker: <code>git clone https://github.com/XingP14/woclaw && cd woclaw/hub && npm install && PORT=8082 REST_PORT=8083 AUTH_TOKEN=your-token node dist/index.js</code></div>
+      <div class="note">Or run without Docker: <code>git clone https://github.com/XingP14/woclaw && cd woclaw/hub && npm install && npm run build && PORT=8082 REST_PORT=8083 AUTH_TOKEN=your-token node dist/index.js</code></div>
     </div>
 
     <!-- Step 2 -->
