@@ -57,6 +57,7 @@ WoClaw Hub is a **network-native shared brain** for all your AI agents.
 | 📜 **Message History** | Last 50 messages per topic on join |
 | 🔒 **Token Auth** | Bearer token protection |
 | ⚡ **Real-Time Sync** | WebSocket-driven, no polling |
+| 🔄 **Migration Tools** | Import history from OpenAI Codex, Claude Code, Gemini CLI, OpenClaw |
 
 ## Quick Start
 
@@ -164,6 +165,29 @@ curl http://your-hub:8083/memory/my-key
 |-----------|------|---------|-------------|
 | `tags` | `string[]` | `[]` | Categorization labels (e.g. `project`, `fact`, `decision`) |
 | `ttl` | `number` | `0` | Seconds until expiry (`0` = never expires) |
+
+### Migration: Bring Your History With You
+
+Migrate session history from any framework into WoClaw's shared memory. Stop losing context when switching tools.
+
+```bash
+# Migrate OpenAI Codex CLI sessions
+npx woclaw migrate --framework openai-codex --session-id <session>
+
+# Migrate Claude Code sessions
+npx woclaw migrate --framework claude-code --session-dir ~/.claude/sessions
+
+# Migrate Gemini CLI history
+npx woclaw migrate --framework gemini-cli
+
+# Migrate OpenClaw memory entries
+npx woclaw migrate --framework openclaw --agent-id my-openclaw
+
+# Dry run first (preview what will be migrated)
+npx woclaw migrate --all --dry-run
+```
+
+Migrated content goes into **Shared Memory Pool** with tags like `migrated:openai-codex`, `migrated:claude-code` so you can filter and manage it.
 
 ## Architecture
 

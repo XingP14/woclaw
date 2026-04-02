@@ -77,9 +77,37 @@
 | **`recall`** | 按意图检索记忆 | `woclaw memory.recall(query, intent)` |
 | **`link`** | 将两条记忆关联起来 | `woclaw memory.link(from_key, to_key, relation)` |
 
-## 📦 v0.5 — 生态集成
+## 📦 v0.5 — 跨框架数据迁移
 
-### 发布到生态
+### 迁移工具 / Migration Tools
+- [ ] **OpenAI Codex 迁移** — 从 Codex session 历史导入共享记忆
+- [ ] **Claude Code 迁移** — 从 Claude Code transcript/sessions 导入项目上下文
+- [ ] **Gemini CLI 迁移** — 从 Gemini CLI 会话历史导入
+- [ ] **OpenClaw 迁移** — 从 OpenClaw memory/sessions 导入
+
+### 迁移设计
+
+| 源框架 | 迁移内容 | WoClaw 目标 |
+|--------|----------|-------------|
+| **OpenAI Codex CLI** | Session transcript, project context, key decisions | Shared Memory + Topics |
+| **Claude Code** | Session transcript, discovered facts, repo context | Shared Memory + Topics |
+| **Gemini CLI** | Conversation history, research findings | Shared Memory + Topics |
+| **OpenClaw** | Memory entries, session summaries, agent context | Shared Memory Pool |
+
+### 迁移命令
+```bash
+# 一键迁移框架历史到 WoClaw Hub
+woclaw migrate --framework openai-codex --session-id <id>
+woclaw migrate --framework claude-code --session-dir ~/.claude/sessions
+woclaw migrate --framework gemini-cli
+woclaw migrate --framework openclaw --agent-id my-openclaw
+
+# 批量迁移
+woclaw migrate --all --dry-run  # 预览，不执行
+woclaw migrate --all            # 执行所有迁移
+```
+
+### 生态集成
 - [ ] ClawHub Skill 发布
 - [ ] GitHub Actions CI/CD 完善
 - [ ] VS Code / Cursor 插件（可选）
@@ -88,6 +116,13 @@
 - [ ] Hook 集成指南（针对每个框架）
 - [ ] MCP Server 使用文档
 - [ ] 视频演示
+
+## 🔧 v0.6 — 生态完善
+
+### 发布到生态
+- [ ] Docker Hub 发布（credentials 配置）
+- [ ] ClawHub Skill 发布（2026-04-13 后）
+- [ ] VS Code / Cursor 插件（可选）
 
 ## 🔮 v1.0+ — 高级特性
 
@@ -116,8 +151,8 @@
 | v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
 | v0.3 | 2026-04-01 | Tags/TTL 增强、Docker Hub Workflow ✅ |
 | v0.4 | **2026-04-02** | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）|
-| v0.5 | 待定 | Hook 系统完善、Memory Versioning、生态集成 |
-| v0.6 | 待定 | ClawHub Skill（2026-04-13 账号满14天）、Graph Memory |
+| v0.5 | 待定 | ⭐ **跨框架数据迁移**（OpenAI/Claude/Gemini/OpenClaw → WoClaw）|
+| v0.6 | 待定 | Hook 系统完善、Docker Hub、ClawHub Skill |
 | v1.0 | 待定 | Graph Memory、Federation |
 
 ---

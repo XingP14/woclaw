@@ -200,6 +200,7 @@ woclaw/
 - 🤖 **MCP Bridge** - MCP Server 接口
 - 🪝 **Claude Code Hooks** - 会话生命周期内存同步
 - 🐍 **OpenAI Codex CLI** - 官方 Python Codex 代理集成（⭐ 高优先级）
+- 🔄 **跨框架迁移** - 从 OpenAI Codex / Claude Code / Gemini CLI / OpenClaw 导入历史数据
 
 ## 🗺️ 路线图
 
@@ -220,7 +221,9 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 - [x] npm 全部包发布
 
 ### 计划中 📋
-- [ ] ClawHub Skill 发布（等待账号 14 天，~2026-04-13）
+- [ ] ⭐ **跨框架数据迁移**（v0.5）— 从 OpenAI Codex / Claude Code / Gemini CLI / OpenClaw 导入历史数据
+- [ ] OpenAI Codex CLI Hook Scripts（v0.4，高优先级）
+- [ ] ClawHub Skill 发布（~2026-04-13）
 - [ ] TLS/SSL 加密
 - [ ] 私有 Topic（需邀请）
 - [ ] 消息搜索
