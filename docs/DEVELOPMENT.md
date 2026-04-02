@@ -192,17 +192,30 @@ docker logs -f woclaw-hub
 
 Chrome DevTools → Network → WS → 点击连接 → Messages
 
-## 📦 发布到 npm（待实现）
+## 📦 发布到 npm
+
+发布通过 GitHub Actions CI/CD 自动完成，触发方式为推送 Git tag：
 
 ```bash
-# 1. 登录 npm
-npm login
+# 1. 更新版本（自动触发 GitHub Actions）
+git add .
+git commit -m "chore: bump version"
+git tag hub/v0.4.0        # hub 包 → woclaw-hub
+git tag plugin/v0.4.0     # plugin 包 → xingp14-woclaw
+git tag hooks/v0.4.0     # hooks 包 → woclaw-hooks
+git push --tags
 
-# 2. 更新版本
-npm version patch  # 或 minor / major
+# 2. GitHub Actions 自动：
+#    - 构建并发布到 npm
+#    - 构建并推送 Docker 镜像（hub/* tags）
+```
 
-# 3. 发布
-npm publish --access public
+本地手动发布（不推荐）：
+
+```bash
+cd hub && HOME=/home/node/.openclaw/tmp npm publish
+cd plugin && HOME=/home/node/.openclaw/tmp npm publish
+cd hooks && HOME=/home/node/.openclaw/tmp npm publish
 ```
 
 ## 🎯 代码规范
