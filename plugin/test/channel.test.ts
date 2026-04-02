@@ -56,4 +56,18 @@ describe('WoClawChannelInstance', () => {
 
   // We test the channel instance by importing and creating it
   // Note: Since the actual import requires the OpenClaw SDK, we test the logic separately
+
+  it('should have mock WebSocket ready for channel tests', () => {
+    expect(mockWs.on).toBeDefined();
+    expect(mockWs.send).toBeDefined();
+    expect(mockWs.close).toBeDefined();
+    expect(mockWs.readyState).toBe(1);
+  });
+
+  it('should clear mocks between tests', () => {
+    dispatchMock();
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    vi.clearAllMocks();
+    expect(dispatchMock).not.toHaveBeenCalled();
+  });
 });
