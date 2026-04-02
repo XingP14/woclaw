@@ -1,6 +1,6 @@
 # WoClaw
 
-> **Shared memory and messaging hub for AI agents across all frameworks** — OpenClaw, Claude Code, Gemini CLI, OpenCode.
+> **Shared memory and messaging hub for AI agents across all frameworks** — OpenClaw, Claude Code, Gemini CLI, **OpenAI Codex CLI**, OpenCode.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
@@ -14,7 +14,7 @@
 
 Every AI agent starts from scratch. Every session.
 
-You use **Claude Code** for coding, **OpenClaw** for orchestration, **Gemini CLI** for research. Each one forgets everything when the session ends. You repeat the same context to every agent, every session.
+You use **Claude Code** for coding, **OpenAI Codex CLI** for Python agents, **OpenClaw** for orchestration, **Gemini CLI** for research. Each one forgets everything when the session ends. You repeat the same context to every agent, every session.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -50,7 +50,7 @@ WoClaw Hub is a **network-native shared brain** for all your AI agents.
 |---------|-------------|
 | 🧠 **Shared Memory Pool** | Global key-value store with Tags & TTL support |
 | 📡 **Topic Pub/Sub** | Real-time message routing between agents |
-| 🔗 **Multi-Framework** | Connect OpenClaw, Claude Code, Gemini CLI, OpenCode |
+| 🔗 **Multi-Framework** | Connect OpenClaw, Claude Code, Gemini CLI, **OpenAI Codex CLI**, OpenCode |
 | 🌉 **MCP Bridge** | Built-in MCP server for MCP-capable agents |
 | 🪝 **Hook Integration** | LLM-supervised memory via lifecycle hooks |
 | 📜 **Message History** | Last 50 messages per topic on join |
@@ -92,7 +92,7 @@ npm install xingp14-woclaw
 }
 ```
 
-**Claude Code / Gemini CLI / OpenCode (hook scripts):**
+**Claude Code / Gemini CLI / OpenAI Codex CLI / OpenCode (hook scripts):**
 ```bash
 # SessionStart: load shared context
 curl -s http://your-hub:8083/memory/project-context
@@ -101,6 +101,21 @@ curl -s http://your-hub:8083/memory/project-context
 curl -X POST http://your-hub:8083/memory/discovered \
   -H "Authorization: Bearer change-me" \
   -d '{"value": "use fs.promises"}'
+```
+
+**OpenAI Codex CLI (⭐ High Priority — see [packages/codex-woclaw-example](./packages/codex-woclaw-example/)):**
+
+OpenAI Codex CLI is OpenAI's official CLI for Codex model-powered agents. Connect it to WoClaw Hub for shared memory across all your agents:
+
+```bash
+# Install
+npm install -g woclaw-hooks
+
+# Configure Codex CLI to use WoClaw
+export WOCLAW_HUB_URL=ws://your-hub:8082
+export WOCLAW_TOKEN=change-me
+
+# Codex CLI will automatically read/write shared memory on session start/stop
 ```
 
 **OpenCode (plugin — see [packages/opencode-woclaw-plugin](./packages/opencode-woclaw-plugin/)):**
@@ -120,18 +135,6 @@ Then OpenCode can use built-in tools:
 /woclaw_memory_write discovered "use fs.promises"
 /woclaw_topics_list
 /woclaw_hub_status
-```
-
-**Python Codex agents (see [packages/codex-woclaw-example](./packages/codex-woclaw-example/)):**
-
-```python
-import asyncio
-from codex_example import memory_read, memory_write, hub_health
-
-async def main():
-    health = await hub_health()
-    await memory_write("codex:session", "Working on feature X")
-    context = await memory_read("project:context")
 ```
 
 ### Shared Memory: Tags & TTL
@@ -171,11 +174,11 @@ curl http://your-hub:8083/memory/my-key
                              │                  │
          ┌───────────────────┼──────┐    ┌─────┼────────────────┐
          │                   │      │    │     │                │
-     ┌───┴───┐          ┌────┴────┐ │ ┌───┴─┐  ┌┴────┐     ┌────┴────┐
-     │OpenClaw│          │Claude  │ │ │Gemini│  │Open │     │ MCP     │
-     │Plugin │          │Code    │ │ │ CLI  │  │Code │     │ Clients │
-     │       │          │(hooks) │ │ │(hook)│  │(hook)│     │         │
-     └───────┘          └────────┘ │ └─────┘  └─────┘     └─────────┘
+     ┌───┴───┐          ┌────┴────┐ │ ┌───┴─┐  ┌┴────┐  ┌────┴────┐  ┌────┴────┐
+     │OpenClaw│          │Claude  │ │ │Gemini│  │Open │  │OpenAI   │  │ MCP     │
+     │Plugin │          │Code    │ │ │ CLI  │  │Code │  │Codex CLI│  │ Clients │
+     │       │          │(hooks) │ │ │(hook)│  │(hook)│  │(hooks)  │  │         │
+     └───────┘          └────────┘ │ └─────┘  └─────┘  └─────────┘  └─────────┘
 
      Shared across all: Topics · Memory Pool · Message History
 ```

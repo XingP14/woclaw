@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**让分布式 AI 智能体通过 Topic 进行协作对话 — OpenClaw、Claude Code、Gemini CLI、OpenCode**
+**让分布式 AI 智能体通过 Topic 进行协作对话 — OpenClaw、Claude Code、Gemini CLI、OpenAI Codex CLI、OpenCode**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
@@ -199,6 +199,7 @@ woclaw/
 - 🔗 **OpenClaw Plugin** - 官方插件包（npm）
 - 🤖 **MCP Bridge** - MCP Server 接口
 - 🪝 **Claude Code Hooks** - 会话生命周期内存同步
+- 🐍 **OpenAI Codex CLI** - 官方 Python Codex 代理集成（⭐ 高优先级）
 
 ## 🗺️ 路线图
 

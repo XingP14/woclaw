@@ -6,9 +6,11 @@
 
 **WoClaw = Shared Memory + Messaging Hub for AI Agents**
 
-让 OpenClaw、Claude Code、Gemini CLI、OpenCode 等多个 AI 框架共享项目上下文、记忆和决策。解决"每个 AI 都从零开始"的问题。
+让 OpenClaw、Claude Code、Gemini CLI、**OpenAI Codex CLI**、OpenCode 等多个 AI 框架共享项目上下文、记忆和决策。解决"每个 AI 都从零开始"的问题。
 
 **核心方向：** 跨框架共享记忆 + 实时消息路由。
+
+> ⭐ **高优先级项目：OpenAI Codex CLI 集成** — OpenAI 官方 Python Codex 代理的 WoClaw Hook 支持，使 Python 代理能读写共享记忆。
 
 ## 🚀 v0.2 — P0 功能（当前）
 
@@ -25,6 +27,14 @@
 - [x] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory ✅
 - [ ] Gemini CLI MCP Bridge — WoClaw MCP server interface
 - [ ] OpenCode Hook Scripts — 同 Claude Code
+- [ ] **⭐ OpenAI Codex CLI Hook Scripts — 高优先级！OpenAI 官方 Python Codex 代理集成**
+
+### P0 - OpenAI Codex CLI 支持（新增 ⭐ 高优先级）
+- [ ] wo-codex CLI 包 — npm 发布 `codex-woclaw`
+- [ ] SessionStart Hook — Codex 会话启动时从 WoClaw Hub 读取共享上下文
+- [ ] SessionStop Hook — Codex 会话结束时自动写入关键发现到共享记忆池
+- [ ] PreCompact Hook — Codex 上下文压缩前将关键信息写入 memory
+- [ ] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN`
 
 ### P0 - OpenClaw Plugin 完善
 - [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
@@ -38,8 +48,9 @@
 - [ ] MCP CLI 命令：`openclaw mcp serve` 暴露 WoClaw Hub
 
 ### Hook 系统
-- [ ] Hook Scripts 模板 — Claude Code/Gemini CLI/OpenCode 一键安装
+- [ ] Hook Scripts 模板 — Claude Code/Gemini CLI/OpenAI Codex CLI/OpenCode 一键安装
 - [ ] `woclaw hook install --framework claude-code` 命令
+- [ ] `woclaw hook install --framework openai-codex` 命令 ⭐
 - [ ] PreCompact hook — 自动将关键上下文写入 memory
 
 ### Docker Hub 发布
@@ -103,10 +114,11 @@
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
 | v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
 | v0.3 | 2026-04-01 | Tags/TTL 增强、Docker Hub Workflow ✅ |
-| v0.4 | 待定 | Hook 系统、Memory Versioning、生态集成 |
-| v0.5 | 待定 | ClawHub Skill（2026-04-13 账号满14天）、Graph Memory |
+| v0.4 | **2026-04-02** | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）|
+| v0.5 | 待定 | Hook 系统完善、Memory Versioning、生态集成 |
+| v0.6 | 待定 | ClawHub Skill（2026-04-13 账号满14天）、Graph Memory |
 | v1.0 | 待定 | Graph Memory、Federation |
 
 ---
 
-_Last updated: 2026-04-02 04:29 CST_
+_Last updated: 2026-04-02 10:17 CST_
