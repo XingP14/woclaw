@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0] - 2026-04-02
+
+### Added (Codex CLI Integration ⭐)
+- **woclaw-codex package** — `packages/codex-woclaw/` with Python hooks for OpenAI Codex CLI
+  - `session_start.py` — reads shared context from WoClaw Hub on session start, injects as additionalContext
+  - `stop.py` — reads session transcript and writes summary to WoClaw Hub on session end
+  - `install.py` — one-command installer: creates `~/.codex/hooks/` + `~/.codex/hooks.json` + enables `codex_hooks` in config
+  - `bin/cli.js` — npm entry point (`npx woclaw-codex install`)
+  - README with usage docs
+
+
 All notable changes to WoClaw will be documented in this file.
 
 ## [0.3.1] - 2026-04-02

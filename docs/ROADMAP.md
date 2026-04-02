@@ -30,11 +30,12 @@
 - [ ] **⭐ OpenAI Codex CLI Hook Scripts — 高优先级！OpenAI 官方 Python Codex 代理集成**
 
 ### P0 - OpenAI Codex CLI 支持（新增 ⭐ 高优先级）
-- [ ] wo-codex CLI 包 — npm 发布 `codex-woclaw`
-- [ ] SessionStart Hook — Codex 会话启动时从 WoClaw Hub 读取共享上下文
-- [ ] SessionStop Hook — Codex 会话结束时自动写入关键发现到共享记忆池
+- [x] wo-codex CLI 包 — `packages/codex-woclaw/` created (woclaw-codex@0.1.0) ✅
+- [x] SessionStart Hook — `session_start.py` reads from WoClaw Hub REST API ✅
+- [x] SessionStop Hook — `stop.py` reads transcript + writes summary to WoClaw Hub ✅
 - [ ] PreCompact Hook — Codex 上下文压缩前将关键信息写入 memory
-- [ ] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN`
+- [ ] npm publish: `npm publish --access public` (需测试)
+- [ ] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN` ✅
 
 ### P0 - OpenClaw Plugin 完善
 - [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
