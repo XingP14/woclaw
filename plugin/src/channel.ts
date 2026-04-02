@@ -42,6 +42,7 @@ class WoClawChannelInstance {
   private config: WoClawConfig | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private pingTimer: NodeJS.Timeout | null = null;
+  private startupTimer: NodeJS.Timeout | null = null;
   private pendingMessages: Map<string, (result: any) => void> = new Map();
   private topics: Set<string> = new Set();
   private agentId: string = '';
@@ -62,6 +63,15 @@ class WoClawChannelInstance {
     }
 
     this.connect();
+
+    // Startup fallback: ensure connection is established within 10s
+    if (this.startupTimer) clearTimeout(this.startupTimer);
+    this.startupTimer = setTimeout(() => {
+      if (!this.ws || this.ws.readyState !== 1) {
+        this.logger?.info('[WoClaw] Startup check: not connected, retrying...');
+        this.connect();
+      }
+    }, 10000);
   }
 
   private connect(): void {
@@ -78,7 +88,7 @@ class WoClawChannelInstance {
           this.send({ type: 'join', topic });
         }
         this.pingTimer = setInterval(() => {
-          if (this.ws?.readyState === WebSocket.OPEN) {
+          if (this.ws?.readyState === 1) {
             this.send({ type: 'ping' });
           }
         }, 25000);
@@ -117,7 +127,7 @@ class WoClawChannelInstance {
   }
 
   private send(msg: OutboundMessage): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.ws?.readyState === 1) {
       this.ws.send(JSON.stringify(msg));
     }
   }
@@ -185,9 +195,14 @@ class WoClawChannelInstance {
     });
   }
 
+  isConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === 1; // 1 = OPEN
+  }
+
   shutdown(): void {
     if (this.pingTimer) clearInterval(this.pingTimer);
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.startupTimer) clearTimeout(this.startupTimer);
     for (const topic of this.topics) {
       this.send({ type: 'leave', topic });
     }

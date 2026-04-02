@@ -8,17 +8,23 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "docker:build": "docker build -t xingp14/woclaw-hub ."
+    "docker:build": "docker build -t xingp14/woclaw-hub .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "uuid": "^9.0.1",
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.0",
+    "ws": "^8.16.0"
   },
   "engines": {
     "node": ">=18.0.0"
