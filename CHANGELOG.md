@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1] - 2026-04-02
+
+### Added (Codex CLI PreCompact Hook)
+- **precompact.py** — Codex context compaction checkpoint hook: saves critical context to WoClaw Hub before Codex compresses its context window
+  - Scans `~/.codex/sessions/` for latest session transcript (last 30 lines)
+  - Writes checkpoint as `compact:{project_key}:{timestamp}` to Hub memory
+  - Registered as Codex `PreCompact` hook via `~/.codex/hooks.json`
+  - Updated `install.py` to install/uninstall precompact.py automatically
+
 ## [0.4.0] - 2026-04-02
 
 ### Added (Codex CLI Integration ⭐)

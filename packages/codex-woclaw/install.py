@@ -36,12 +36,13 @@ def ensure_hooks_dir():
 
 
 def copy_hooks():
-    for script in ["session_start.py", "stop.py"]:
+    for script in ["session_start.py", "stop.py", "precompact.py"]:
         src = SCRIPT_DIR / script
-        dst = HOOKS_DIR / script
-        shutil.copy2(src, dst)
-        os.chmod(dst, 0o755)
-        print(f"Copied: {dst}")
+        if src.exists():
+            dst = HOOKS_DIR / script
+            shutil.copy2(src, dst)
+            os.chmod(dst, 0o755)
+            print(f"Copied: {dst}")
 
 
 def create_hooks_json():
@@ -67,6 +68,18 @@ def create_hooks_json():
                             "command": f"python3 {HOOKS_DIR / 'stop.py'}",
                             "timeout": 30,
                             "statusMessage": "Saving session to WoClaw Hub"
+                        }
+                    ]
+                }
+            ],
+            "PreCompact": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"python3 {HOOKS_DIR / 'precompact.py'}",
+                            "timeout": 15,
+                            "statusMessage": "Saving checkpoint to WoClaw before compaction"
                         }
                     ]
                 }
@@ -109,7 +122,7 @@ def update_config_toml():
 def uninstall():
     """Remove WoClaw hooks from Codex configuration."""
     # Remove hook scripts
-    for script in ["session_start.py", "stop.py"]:
+    for script in ["session_start.py", "stop.py", "precompact.py"]:
         dst = HOOKS_DIR / script
         if dst.exists():
             dst.unlink()
@@ -123,7 +136,7 @@ def uninstall():
                 "SessionStart" in data["hooks"] or "Stop" in data["hooks"]
             ):
                 # Clear WoClaw hooks from the config
-                for key in ["SessionStart", "Stop"]:
+                for key in ["SessionStart", "Stop", "PreCompact"]:
                     if key in data["hooks"]:
                         data["hooks"][key] = [
                             h for h in data["hooks"][key]

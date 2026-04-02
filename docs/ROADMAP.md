@@ -33,9 +33,9 @@
 - [x] wo-codex CLI 包 — `packages/codex-woclaw/` created (woclaw-codex@0.1.0) ✅
 - [x] SessionStart Hook — `session_start.py` reads from WoClaw Hub REST API ✅
 - [x] SessionStop Hook — `stop.py` reads transcript + writes summary to WoClaw Hub ✅
-- [ ] PreCompact Hook — Codex 上下文压缩前将关键信息写入 memory
+- [x] PreCompact Hook — Codex 上下文压缩前将关键信息写入 memory ✅ v0.1.2
 - [ ] npm publish: `npm publish --access public` (需测试)
-- [ ] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN` ✅
+- [x] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN` ✅
 
 ### P0 - OpenClaw Plugin 完善
 - [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
@@ -52,7 +52,7 @@
 - [ ] Hook Scripts 模板 — Claude Code/Gemini CLI/OpenAI Codex CLI/OpenCode 一键安装
 - [ ] `woclaw hook install --framework claude-code` 命令
 - [ ] `woclaw hook install --framework openai-codex` 命令 ⭐
-- [ ] PreCompact hook — 自动将关键上下文写入 memory
+- [x] PreCompact hook — Codex PreCompact Hook 完成 ✅ (v0.4.1)，Claude Code precompact.sh 已就绪
 
 ### Docker Hub 发布
 - [x] GitHub Actions 自动构建 ✅ (hub/v* tag 触发)
