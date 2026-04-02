@@ -88,7 +88,9 @@ describe('MemoryPool', () => {
 
   describe('cleanupExpired', () => {
     it('removes expired entries', () => {
-      mp.write('expired', 'v', 'a', [], -1);
+      // Create expired entry directly in DB
+      const now = Date.now();
+      (db as any).data.memory.push({ key: 'expired', value: 'v', tags: [], ttl: 1, expireAt: now - 1000, updatedAt: now, updatedBy: 'a' });
       mp.write('valid', 'v', 'a', [], 0);
       const removed = mp.cleanupExpired();
       expect(removed).toBe(1);

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ClawDB } from '../src/db.js';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, writeFileSync } from 'fs';
 import path from 'path';
 
 describe('ClawDB', () => {
@@ -36,14 +36,15 @@ describe('ClawDB', () => {
       expect(mem!.tags.length).toBe(2);
     });
 
-    it('handles TTL expiry correctly', () => {
-      // Set TTL to 1 second
+    it('handles TTL expiry correctly', async () => {
+      // Set TTL to 1 second and wait for expiry
       db.setMemory('temp', 'data', 'agent1', [], 1);
       const mem = db.getMemory('temp');
       expect(mem).toBeDefined(); // Not expired yet
 
-      // Force expire by setting TTL to -1 (already expired)
-      db.setMemory('temp', 'data', 'agent1', [], -1);
+      // Force expire by setting expireAt to past
+      const entry = (db as any).data.memory.find((m: any) => m.key === 'temp');
+      entry.expireAt = Date.now() - 1000; // Already expired
       const expired = db.getMemory('temp');
       expect(expired).toBeUndefined();
     });
@@ -77,15 +78,18 @@ describe('ClawDB', () => {
 
     it('getAllMemory excludes expired entries', () => {
       db.setMemory('valid', 'val', 'a', [], 0);
-      db.setMemory('expired', 'val', 'a', [], -1); // Already expired
+      // Create an expired entry directly
+      (db as any).data.memory.push({ key: 'expired', value: 'old', tags: [], ttl: 1, expireAt: Date.now() - 1000, updatedAt: Date.now(), updatedBy: 'a' });
       const all = db.getAllMemory();
       expect(all.map(m => m.key)).toContain('valid');
       expect(all.map(m => m.key)).not.toContain('expired');
     });
 
     it('cleanupExpired removes expired entries', () => {
-      db.setMemory('exp1', 'v', 'a', [], -1);
-      db.setMemory('exp2', 'v', 'a', [], -1);
+      // Create already-expired entries directly
+      const now = Date.now();
+      (db as any).data.memory.push({ key: 'exp1', value: 'v', tags: [], ttl: 1, expireAt: now - 1000, updatedAt: now, updatedBy: 'a' });
+      (db as any).data.memory.push({ key: 'exp2', value: 'v', tags: [], ttl: 1, expireAt: now - 1000, updatedAt: now, updatedBy: 'a' });
       db.setMemory('valid', 'v', 'a', [], 0);
       const removed = db.cleanupExpired();
       expect(removed).toBe(2);
@@ -100,9 +104,22 @@ describe('ClawDB', () => {
     });
 
     it('migrates legacy memory entries without tags/ttl', () => {
-      // Directly manipulate data to simulate legacy entry
-      (db as any).data.memory.push({ key: 'legacy', value: 'old', updatedBy: 'sys' });
+      // Write legacy data directly to the DB file (simulating pre-v0.4 data)
+      const legacyData = {
+        messages: [],
+        memory: [{ key: 'legacy', value: 'old', updatedBy: 'sys' }], // missing tags, ttl, expireAt
+        topics: [],
+      };
+      const dbPath = (db as any).dbPath;
+      writeFileSync(dbPath, JSON.stringify(legacyData));
+      console.log('dbPath:', dbPath);
+      console.log('Before load - memory:', JSON.stringify((db as any).data.memory));
+      // Re-call load() to trigger migration
+      (db as any).load();
+      console.log('After load - memory:', JSON.stringify((db as any).data.memory));
       const mem = db.getMemory('legacy');
+      console.log('mem:', mem);
+      expect(mem).toBeDefined();
       expect(mem!.tags).toEqual([]);
       expect(mem!.ttl).toBe(0);
     });

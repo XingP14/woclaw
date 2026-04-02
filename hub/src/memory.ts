@@ -12,7 +12,9 @@ export class MemoryPool {
   write(key: string, value: any, updatedBy: string, tags: string[] = [], ttl: number = 0): DBMemory {
     const serialized = typeof value === 'string' ? value : JSON.stringify(value);
     this.db.setMemory(key, serialized, updatedBy, tags, ttl);
-    return this.db.getMemory(key)!;
+    const mem = this.db.getMemory(key)!;
+    this.notifySubscribers({ type: 'memory_write', key, value: serialized, updatedBy });
+    return mem;
   }
 
   read(key: string): DBMemory | undefined {
