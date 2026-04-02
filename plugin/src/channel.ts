@@ -201,7 +201,7 @@ class WoClawChannelInstance {
 // Global channel instance (single Hub connection)
 // ============================================================================
 
-const channelInstance = new WoClawChannelInstance();
+export const channelInstance = new WoClawChannelInstance();
 
 // ============================================================================
 // Channel Config Adapter
