@@ -441,9 +441,12 @@ woclaw migrate --all            # 执行所有迁移
   - Hook stdin 格式：`{session_id, transcript_path, cwd, stopReason}`
   - 输出：`docs/S13-1-CODEX-SESSION-FORMAT.md`
 
-- [ ] **S13-2（10min）：实现 session parser**
-  - 在 `packages/woclaw-hooks/` 创建 `codex-migrate.js`
-  - 解析 Codex session JSON，提取 key decisions/context
+- [x] **S13-2（10min）：实现 session parser** ✅ 2026-04-04
+  - 创建 `packages/woclaw-hooks/codex-migrate.js`（纯 Node.js，456 行）
+  - 支持 --list/--session-id/--session-file/--all 四种模式
+  - 解析 history.jsonl，提取 decisions/files_modified/tools_used/commands_run
+  - 生成 markdown summary，写入 WoClaw Hub (codex:session:<id>)
+  - VPS4 测试：--list 正常返回（Codex 未安装，结果为 0 sessions）
 
 - [ ] **S13-3（10min）：实现 `woclaw migrate --framework codex` CLI**
   - 添加到 `plugin/bin/woclaw-cli.js`
@@ -455,4 +458,4 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
-_Last updated: 2026-04-03 23:03 CST_
+_Last updated: 2026-04-04 01:48 CST_
