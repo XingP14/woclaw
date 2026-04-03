@@ -252,10 +252,11 @@ woclaw migrate --all            # 执行所有迁移
   - 检查 woclaw plugin 是否已安装（`~/.openclaw/extensions/`）
   - 检查 channel 状态
 
-- [ ] **S4-2（10min）：安装/更新 xingp14-woclaw plugin**
-  - 如未安装：`npm install -g xingp14-woclaw@latest` 或从源码构建
-  - 更新 `~/.openclaw/openclaw.json` 配置
-  - 重启 gateway：`kill && nohup openclaw gateway`
+- [x] **S4-2（10min）：安装/更新 xingp14-woclaw plugin** ✅ 2026-04-03
+  - 原 0.3.0 → 升级到 0.4.3（npm latest）
+  - rm -rf 清理旧目录后正常安装
+  - 重启 gateway（kill old PID → nohup openclaw gateway）
+  - channel 状态确认：configured, enabled，Hub 自连正常
 
 - [ ] **S4-3（10min）：验证 WebSocket 连接**
   - `curl http://vm153:8083/health`
@@ -420,4 +421,4 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
-_Last updated: 2026-04-03 20:18 CST_
+_Last updated: 2026-04-03 20:30 CST_
