@@ -116,8 +116,8 @@ woclaw migrate --all            # 执行所有迁移
 ### 文档
 - [x] Hook 集成指南 — Claude Code（`docs/CLAUDE-CODE-HOOKS.md`）✅ 2026-04-04
 - [x] Hook 集成指南 — Gemini CLI（`docs/GEMINI-CLI-HOOKS.md`）✅ 2026-04-04
-- [ ] Hook 集成指南 — Codex CLI / OpenCode
-- [ ] MCP Server 使用文档
+- [x] Hook 集成指南 — Codex CLI / OpenCode（`docs/CODEX-CLI-HOOKS.md`）✅ 2026-04-04
+- [x] MCP Server 使用文档（`docs/MCP-SERVER.md`）✅ 2026-04-04
 - [ ] 视频演示
 
 ## 🔧 v0.6 — 生态完善
@@ -185,10 +185,7 @@ woclaw migrate --all            # 执行所有迁移
 | S14 | Claude Code 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
 | S15 | Gemini CLI 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
 | S16 | OpenClaw 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
-| S13 | Codex 迁移工具 | v0.5 | 4 | ~2h |
-| S14 | Claude Code 迁移工具 | v0.5 | 4 | ~2h |
-| S15 | Gemini CLI 迁移工具 | v0.5 | 4 | ~2h |
-| S16 | OpenClaw 迁移工具 | v0.5 | 4 | ~2h |
+| S17 | MCP Server 使用文档 | v0.6 | 3 | ~1h | 进行中 |
 
 ---
 
@@ -466,6 +463,17 @@ woclaw migrate --all            # 执行所有迁移
   - S16 模板：`openclaw-migrate.js` — 读 ~/.openclaw/openclaw.json，迁移 agent memory
   - 所有脚本通过 --help/--list 测试（无报错）；openclaw-migrate --list 正确识别 defaults agent
 
+### S17: MCP Server 使用文档（v0.6）
+> 评估：mcp-bridge README 仅 75 行，需要完整中文文档，~3 步骤
+
+- [x] **S17-1（10min）：编写 docs/MCP-SERVER.md 完整文档** ✅ 2026-04-04
+  - 创建 `docs/MCP-SERVER.md`（199 行），包含：
+    - 三种安装方式（woclaw CLI / 直接运行 / 本地构建）
+    - Claude Desktop / Cursor / Windsurf 配置示例
+    - 8 个 MCP tools 详解（记忆 4 个 + Topic 4 个）
+    - 环境变量说明
+    - 故障排除指南
+
 ---
 
-_Last updated: 2026-04-04 02:33 CST_
+_Last updated: 2026-04-04 03:03 CST_
