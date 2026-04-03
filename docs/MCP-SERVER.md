@@ -102,8 +102,7 @@ node dist/index.js --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm
 
 ```json
 {
-  "tag": "project",     // 可选：只返回含此 tag 的记忆
-  "limit": 20           // 可选：最多返回条数，默认 50
+  "tags": "project,context"  // 可选：逗号分隔的 tag 列表
 }
 ```
 
