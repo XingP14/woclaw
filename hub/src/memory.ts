@@ -1,5 +1,5 @@
 import { ClawDB } from './db.js';
-import { DBMemory, OutboundMessage } from './types.js';
+import { DBMemory, DBMemoryVersion, OutboundMessage } from './types.js';
 
 export class MemoryPool {
   private db: ClawDB;
@@ -32,6 +32,11 @@ export class MemoryPool {
   // v0.4: query memory by tag
   queryByTag(tag: string): DBMemory[] {
     return this.getAll().filter(m => m.tags.includes(tag));
+  }
+
+  // v0.4: Memory Versioning - get all historical versions for a key
+  getVersions(key: string): DBMemoryVersion[] {
+    return this.db.getMemoryVersions(key);
   }
 
   cleanupExpired(): number {

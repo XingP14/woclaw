@@ -80,14 +80,26 @@ export class RestServer {
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
       } else if (path.startsWith('/memory/')) {
-        const key = decodeURIComponent(path.slice(8));
-        if (method === 'GET') {
-          this.handleMemoryGet(res, key);
-        } else if (method === 'DELETE') {
-          this.handleMemoryDelete(res, key);
+        const memPath = path.slice(8);
+        // v0.4: GET /memory/:key/versions
+        if (memPath.endsWith('/versions')) {
+          const key = decodeURIComponent(memPath.slice(0, -9));
+          if (method === 'GET') {
+            this.handleMemoryVersions(res, key);
+          } else {
+            res.writeHead(405);
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          const key = decodeURIComponent(memPath);
+          if (method === 'GET') {
+            this.handleMemoryGet(res, key);
+          } else if (method === 'DELETE') {
+            this.handleMemoryDelete(res, key);
+          } else {
+            res.writeHead(405);
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
         }
       } else if (path.startsWith('/topics/')) {
         const topicName = decodeURIComponent(path.slice(8));
@@ -214,6 +226,26 @@ export class RestServer {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, key }));
+  }
+
+  // v0.4: Memory Versioning endpoint
+  private handleMemoryVersions(res: http.ServerResponse, key: string): void {
+    const versions = this.memory.getVersions(key);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      key,
+      count: versions.length,
+      versions: versions.map(v => ({
+        key: v.key,
+        value: v.value,
+        version: v.version,
+        tags: v.tags,
+        ttl: v.ttl,
+        expireAt: v.expireAt,
+        updatedAt: v.updatedAt,
+        updatedBy: v.updatedBy,
+      }))
+    }));
   }
 
   private handleMemoryByTag(res: http.ServerResponse, tag: string): void {

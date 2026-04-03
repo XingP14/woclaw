@@ -3,13 +3,14 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
-import { DBMessage, DBMemory } from './types.js';
+import { DBMessage, DBMemory, DBMemoryVersion } from './types.js';
 
 export class ClawDB {
   private dbPath: string;
   private data: {
     messages: DBMessage[];
     memory: { key: string; value: string; tags: string[]; ttl: number; expireAt: number; updatedAt: number; updatedBy: string }[];
+    memory_versions: DBMemoryVersion[];
     topics: { name: string; createdAt: number; messageCount: number }[];
   };
 
@@ -41,6 +42,7 @@ export class ClawDB {
     return {
       messages: [],
       memory: [],
+      memory_versions: [],
       topics: [],
     };
   }
@@ -85,6 +87,21 @@ export class ClawDB {
     const expireAt = ttl > 0 ? now + ttl * 1000 : 0;
     const existing = this.data.memory.find(m => m.key === key);
     if (existing) {
+      // Save current value as a version before overwriting
+      const existingVersions = this.data.memory_versions.filter(v => v.key === key);
+      const nextVersion = existingVersions.length > 0
+        ? Math.max(...existingVersions.map(v => v.version)) + 1
+        : 1;
+      this.data.memory_versions.push({
+        key,
+        value: existing.value,
+        version: nextVersion,
+        tags: existing.tags,
+        ttl: existing.ttl,
+        expireAt: existing.expireAt,
+        updatedAt: existing.updatedAt,
+        updatedBy: existing.updatedBy,
+      });
       existing.value = value;
       existing.tags = tags;
       existing.ttl = ttl;
@@ -152,6 +169,13 @@ export class ClawDB {
       this.save();
     }
     return valid;
+  }
+
+  // v0.4: Memory Versioning
+  getMemoryVersions(key: string): DBMemoryVersion[] {
+    return this.data.memory_versions
+      .filter(v => v.key === key)
+      .sort((a, b) => b.version - a.version); // newest first
   }
 
   cleanupExpired(): number {

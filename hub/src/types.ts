@@ -68,3 +68,14 @@ export interface DBMemory {
   updatedAt: number;
   updatedBy: string;
 }
+
+export interface DBMemoryVersion {
+  key: string;
+  value: string;
+  version: number;
+  tags: string[];
+  ttl: number;
+  expireAt: number;
+  updatedAt: number;
+  updatedBy: string;
+}
