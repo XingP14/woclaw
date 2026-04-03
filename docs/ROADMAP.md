@@ -374,26 +374,24 @@ woclaw migrate --all            # 执行所有迁移
 ### S10: Semantic Recall（v0.4）
 > 评估：最复杂，~5 步骤
 
-- [ ] **S10-1（10min）：设计 Semantic Recall 方案**
-  - 方案A：关键词 + TF-IDF 评分（简单，无需外部依赖）
-  - 方案B：向量嵌入 + 余弦相似度（准确，需要 embedding 模型）
-  - 输出：选定方案（建议方案A起步）
+- [x] **S10-1（10min）：设计 Semantic Recall 方案** ✅ 2026-04-04
+  - 选择方案A：关键词 + 评分（stop words 过滤 + 关键词匹配 + tag 权重 + recency 排序）
+  - 无外部依赖，直接可用
 
-- [ ] **S10-2（10min）：实现 recall(query) 函数**
-  - 在 `memory.ts` 添加 `recall(query)` 方法
-  - 基于关键词匹配 + 评分排序
+- [x] **S10-2（10min）：实现 recall(query) 函数** ✅ 2026-04-04
+  - 在 `memory.ts` 添加 `recall(query, intent?, limit?)` 方法
+  - 基于关键词匹配（substring/token/tag）+ recency 排序
 
-- [ ] **S10-3（10min）：实现 recall intent 解析**
-  - 支持 `intent` 参数（如 "project", "decision", "todo"）
-  - 根据 intent 筛选相关 tags
+- [x] **S10-3（10min）：实现 recall intent 解析** ✅ 2026-04-04（随 S10-2 完成）
+  - 支持 `intent` 参数，根据 intent 标签匹配 +5 权重
 
-- [ ] **S10-4（10min）：添加 REST API 端点**
-  - `GET /memory/recall?q=<query>&intent=<intent>`
-  - 更新 `rest_server.ts`
+- [x] **S10-4（10min）：添加 REST API 端点** ✅ 2026-04-04
+  - `GET /memory/recall?q=<query>&intent=<intent>&limit=<n>`
+  - Hub 已部署，API 测试通过 ✅
 
-- [ ] **S10-5（10min）：测试 + 文档**
-  - 手动测试 recall 效果
-  - 更新 README 文档
+- [x] **S10-5（10min）：测试 + 文档** ✅ 2026-04-04
+  - 6 个 recall 单元测试 ✅，58/58 tests pass ✅
+  - Bug fix: recency boost 不应计入 score filter
 
 ### S11: Agent 发现 API（v0.4）
 > 评估：简单 API 端点，~2 步骤
