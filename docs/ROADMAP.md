@@ -114,7 +114,8 @@ woclaw migrate --all            # 执行所有迁移
 - [ ] VS Code / Cursor 插件（可选）
 
 ### 文档
-- [ ] Hook 集成指南（针对每个框架）
+- [x] Hook 集成指南 — Claude Code（`docs/CLAUDE-CODE-HOOKS.md`）✅ 2026-04-04
+- [ ] Hook 集成指南 — Gemini CLI / Codex CLI / OpenCode
 - [ ] MCP Server 使用文档
 - [ ] 视频演示
 
@@ -462,4 +463,4 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
-_Last updated: 2026-04-04 02:05 CST_
+_Last updated: 2026-04-04 02:10 CST_
