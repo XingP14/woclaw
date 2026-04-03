@@ -274,10 +274,10 @@ woclaw migrate --all            # 执行所有迁移
   - Plugin ID mismatch：manifest id="woclaw" vs npm package="xingp14-woclaw"
   - **S5-2 修复方案**：更新 `openclaw.plugin.json` manifest id 为 `xingp14-woclaw`，或修改 config entries key
 
-- [ ] **S5-2（10min）：修复 plugin ID mismatch**
-  - 方案A（推荐）：更新 `~/.openclaw/extensions/xingp14-woclaw/openclaw.plugin.json` 的 id 为 `xingp14-woclaw`
-  - 同步更新 `~/.openclaw/openclaw.json` 的 `plugins.entries` key 从 `woclaw` → `xingp14-woclaw`
-  - 方案B：`xingp14-woclaw.broken` 需 root 权限删除（当前无法操作）
+- [x] **S5-2（10min）：修复 plugin ID mismatch** ✅ 2026-04-03
+  - 修复：`~/.openclaw/openclaw.json` 的 `plugins.installs.woclaw` → `plugins.installs.xingp14-woclaw`（与 manifest id 和目录名对齐）
+  - 重启 gateway 后 channel 状态 clean，无 mismatch 警告
+  - 注：`plugins.entries.xingp14-woclaw` 早已正确，无需修改
 
 - [ ] **S5-3（10min）：重启并验证**
   - 重启 gateway
