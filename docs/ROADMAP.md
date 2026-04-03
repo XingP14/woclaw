@@ -266,19 +266,23 @@ woclaw migrate --all            # 执行所有迁移
 ### S5: VPS4 plugin 验证（v0.2）
 > 评估：本地 Docker 环境，~3 步骤（注意 plugin ID mismatch 警告）
 
-- [ ] **S5-1（10min）：检查当前 plugin 状态**
-  - `openclaw status` 查看 woclaw channel 状态
-  - 检查 `~/.openclaw/extensions/` 内容
-  - 确认 plugin ID mismatch 问题（manifest="woclaw" vs entry="xingp14-woclaw"）
+- [x] **S5-1（10min）：检查当前 plugin 状态** ✅ 2026-04-03
+  - `openclaw status` + `openclaw channels list` 执行完毕
+  - 结果：WoClaw channel "configured, enabled" ✅，Hub 健康 ✅ (`{"status":"ok","agents":2,"topics":2}`)
+  - `xingp14-woclaw` (v0.4.3) 已安装，config 指向 Hub ws://192.168.102.153:8082 ✅
+  - `xingp14-woclaw.broken`（root 所有，无法清理）是旧版残留，造成 duplicate ID 警告 ⚠️
+  - Plugin ID mismatch：manifest id="woclaw" vs npm package="xingp14-woclaw"
+  - **S5-2 修复方案**：更新 `openclaw.plugin.json` manifest id 为 `xingp14-woclaw`，或修改 config entries key
 
 - [ ] **S5-2（10min）：修复 plugin ID mismatch**
-  - 统一 manifest 和 entry point 的 plugin ID
-  - 或更新 config 中的 entries 配置
+  - 方案A（推荐）：更新 `~/.openclaw/extensions/xingp14-woclaw/openclaw.plugin.json` 的 id 为 `xingp14-woclaw`
+  - 同步更新 `~/.openclaw/openclaw.json` 的 `plugins.entries` key 从 `woclaw` → `xingp14-woclaw`
+  - 方案B：`xingp14-woclaw.broken` 需 root 权限删除（当前无法操作）
 
 - [ ] **S5-3（10min）：重启并验证**
   - 重启 gateway
-  - 验证 `openclaw channels list` woclaw 显示 OK
-  - 测试 DingTalk 连接
+  - 验证 `openclaw channels list` woclaw 显示 OK（无 mismatch 警告）
+  - 确认 Hub 连接数（agents: 2 → 3 after p14 reconnect）
 
 ### S6: Claude Code Hook 安装器验证（v0.3）
 > 评估：install.js 已完整，需要测试验证，~2 步骤
