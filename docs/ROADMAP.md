@@ -307,16 +307,18 @@ woclaw migrate --all            # 执行所有迁移
   - 或在临时目录模拟 `~/.claude/` 结构测试
 
 ### S7: Codex Hook 安装器完善（v0.3）
-> 评估：需要统一 codex 安装入口，~2 步骤
+> 评估：需要统一 codex 安装入口，~2 步骤 ✅ 全部完成
 
-- [ ] **S7-1（10min）：对比 install.py vs install.js 的 Codex 支持**
-  - 检查 `packages/codex-woclaw/install.py` 内容
-  - 检查 `packages/woclaw-hooks/install.js` --framework codex 的逻辑
-  - 决定哪个作为 official installer
+- [x] **S7-1（10min）：对比 install.py vs install.js 的 Codex 支持** ✅ 2026-04-03
+  - ✅ `install.py`（woclaw-codex）：完整支持 SessionStart/Stop/PreCompact + config.toml 自动配置
+  - ✅ `install.js`（woclaw-hooks）：支持 SessionStart/Stop，缺失 PreCompact + 需手动 config.toml
+  - 结论：`woclaw-codex`（install.py）为官方推荐完整安装方式
+  - 详见 `docs/S7-1-ANALYSIS.md`
 
-- [ ] **S7-2（10min）：统一 Codex 安装体验**
-  - 确保 `npx woclaw-hooks --framework codex` 工作正常
-  - 更新 README 明确推荐安装方式
+- [x] **S7-2（10min）：统一 Codex 安装体验** ✅ 2026-04-03
+  - ✅ README 新增 "OpenAI Codex CLI — Recommended: use woclaw-codex package instead" 章节
+  - ✅ 对比表：woclaw-codex vs woclaw-hooks 功能差异
+  - ✅ 提供两种安装路径（完整 vs 基础）
 
 ### S8: MCP CLI serve 命令（v0.3）
 > 评估：需要 OpenClaw CLI 集成，~4 步骤
@@ -436,4 +438,4 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
-_Last updated: 2026-04-03 20:35 CST_
+_Last updated: 2026-04-03 23:03 CST_
