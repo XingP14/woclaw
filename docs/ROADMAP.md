@@ -396,13 +396,14 @@ woclaw migrate --all            # 执行所有迁移
 ### S11: Agent 发现 API（v0.4）
 > 评估：简单 API 端点，~2 步骤
 
-- [ ] **S11-1（10min）：实现 GET /agents 端点**
-  - 在 `ws_server.ts` 维护 agents Map（agentId → metadata）
-  - 在 `rest_server.ts` 添加 `GET /agents` 返回 agent 列表
+- [x] **S11-1（10min）：实现 GET /agents 端点** ✅ 2026-04-04
+  - `ws_server.ts` 新增 `getAgentsInfo()` 方法，返回所有已连接 agent 列表
+  - `rest_server.ts` 新增 `GET /agents` 端点，`/agents?format=details` 返回完整信息
+  - `index.ts` 更新 RestServer 构造函数传递 wsServer
+  - 测试通过：`GET /agents` → vm152 + vm153 两个 agent ✅
 
-- [ ] **S11-2（10min）：测试 + 补充字段**
-  - 用 curl 测试 `GET http://vm153:8083/agents`
-  - 补充 lastSeen, connectedAt 等字段
+- [x] **S11-2（10min）：测试 + 补充字段** ✅ 2026-04-04
+  - `GET /agents` → 返回 vm152 + vm153，含 connectedAt/topics/lastSeen 字段 ✅
 
 ### S12: 任务委托机制（v0.4）
 > 评估：复杂协议设计，~5 步骤
