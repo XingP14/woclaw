@@ -341,9 +341,12 @@ woclaw migrate --all            # 执行所有迁移
   - 添加 `--rest-url` 全局旗标支持；添加 `__dirname` ES module polyfill
   - 验证：`woclaw mcp serve` → Hub ws://vm153:8082 连接成功
 
-- [ ] **S8-4（10min）：测试 woclaw mcp serve + npm 发布**
-  - 实现 `woclaw_topics_list`, `woclaw_memory_read` 等 tools
-  - 连接到 Hub REST API 获取数据
+- [x] **S8-4（10min）：测试 woclaw mcp serve + npm 发布** ✅ 2026-04-04
+  - REST API 测试通过：`GET /memory` → 正常返回记忆列表 ✅
+  - REST API 测试通过：`GET /topics` → 正常返回 topics (general, woclaw-test) ✅
+  - WebSocket 连接测试通过 → Hub ws://vm153:8082 认证成功 ✅
+  - MCP 暴露 8 个 tools：woclaw_memory_read/write/delete/list, woclaw_topics_list/messages/send/join ✅
+  - npm 包已就绪：xingp14-woclaw@0.4.3 ✅，woclaw-mcp@0.1.2 ✅
 
 ### S9: Memory Versioning（v0.4）
 > 评估：Hub 侧改动，~4 步骤
