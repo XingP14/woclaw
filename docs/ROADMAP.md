@@ -213,17 +213,18 @@ woclaw migrate --all            # 执行所有迁移
 > 评估：OpenCode **无原生 session lifecycle hooks**（Feature Request #14863 未实现），~3 步骤
 
 - [x] **S2-1（10min）：调研 OpenCode hooks 机制** ✅ 2026-04-03
-  - Web 搜索 + GitHub issue 研究
-  - 输出：❌ OpenCode 无原生 hooks，需自建 plugin；详见 `docs/OPENCODE-HOOKS-RESEARCH.md`
-  - 建议：跳过 S2 进入 S3，或长期自建 plugin
+  - OpenCode 有原生 plugin 系统 + session events（已修正旧结论）
+  - oh-my-opencode 有 Claude Code 完整兼容层
 
-- [ ] **S2-2（10min）：评估 oh-my-opencode 集成可行性**
-  - 研究 oh-my-opencode 插件的 hooks 是否可用
-  - 输出：是否可作为 WoClaw 集成的中间层
+- [x] **S2-2（10min）：评估 oh-my-opencode 集成可行性** ✅ 2026-04-03
+  - ✅ oh-my-opencode 有完整 Claude Code 兼容层（46+ hooks）
+  - ✅ WoClaw Claude Code hooks 可直接复用（无需新开发）
+  - 方案A（推荐）：文档引导用户安装 oh-my-opencode，WoClaw hooks 自动生效
+  - 方案B：自建 woclaw-opencode 原生 plugin（长期方案）
 
 - [ ] **S2-3（10min）：设计 OpenCode WoClaw plugin 方案**
-  - 设计 OpenCode plugin 架构（参考 Claude Code hook 模式）
-  - 输出：plugin 目录结构和关键文件设计
+  - 方案A：写集成文档（OpenCode + oh-my-opencode + WoClaw）
+  - 方案B：设计 woclaw-opencode 原生 npm 插件架构（参考 opencode-supermemory）
 
 ### S3: Codex Hook npm 发布（v0.2）
 > 评估：package.json 已就绪，~2 步骤
