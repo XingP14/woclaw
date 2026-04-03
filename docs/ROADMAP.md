@@ -323,10 +323,11 @@ woclaw migrate --all            # 执行所有迁移
 ### S8: MCP CLI serve 命令（v0.3）
 > 评估：需要 OpenClaw CLI 集成，~4 步骤
 
-- [ ] **S8-1（10min）：研究 openclaw mcp serve 接口**
-  - 查看 OpenClaw CLI `openclaw mcp --help` 帮助
-  - 理解 `openclaw mcp serve` 的工作方式（stdin/stdout MCP 协议）
-  - 确认 woclaw-mcp 如何对接到 OpenClaw MCP serve
+- [x] **S8-1（10min）：研究 openclaw mcp serve 接口** ✅ 2026-04-03
+  - `openclaw mcp serve` exposes OpenClaw sessions as MCP tools（与 WoClaw 无关）
+  - `woclaw-mcp@0.1.2` 已完整实现 WoClaw MCP serve（8 tools，JSON-RPC 2.0 over stdio）
+  - 方案确定：在 woclaw-cli.js 添加 `mcp serve` 子命令，spawn woclaw-mcp 子进程
+  - 详见 `docs/S8-1-RESEARCH.md`
 
 - [ ] **S8-2（10min）：设计 woclaw MCP serve 实现方案**
   - 方案A：woclaw-mcp 作为 OpenClaw MCP server 的 backend
