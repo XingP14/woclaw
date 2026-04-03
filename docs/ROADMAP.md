@@ -408,9 +408,10 @@ woclaw migrate --all            # 执行所有迁移
 ### S12: 任务委托机制（v0.4）
 > 评估：复杂协议设计，~5 步骤
 
-- [ ] **S12-1（10min）：设计委托协议**
+- [x] **S12-1（10min）：设计委托协议** ✅ 2026-04-04
   - 设计 delegation 消息格式（type, task, fromAgent, toAgent, status）
   - 确定 Hub 侧状态存储方式
+  - 输出：`docs/S12-1-DELEGATION-PROTOCOL.md` + `hub/src/types.ts` delegation types
 
 - [ ] **S12-2（10min）：实现 delegation 消息路由**
   - 在 `ws_server.ts` 处理 `delegate` 消息类型
