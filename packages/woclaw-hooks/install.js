@@ -32,12 +32,15 @@ const FRAMEWORK_CONFIG = {
   'gemini': {
     hooksDir: path.join(os.homedir(), '.gemini', 'hooks'),
     settingsFile: path.join(os.homedir(), '.gemini', 'settings.json'),
-    hookNames: ['session-start', 'session-stop'],
+    hookNames: ['gemini-session-start', 'gemini-session-stop'],
     hookPrefix: 'woclaw-',
-    settingsHint: `# Add to your ~/.gemini/env or shell profile:
-export WOCLAW_HUB_URL="http://vm153:8083"
-export WOCLAW_TOKEN="ClawLink2026"
-export WOCLAW_PROJECT_KEY="project:context"`,
+    settingsHint: `# Add to your ~/.gemini/settings.json:
+{
+  "hooks": {
+    "sessionStart": "bash ~/.gemini/hooks/woclaw-gemini-session-start.sh",
+    "sessionStop": "bash ~/.gemini/hooks/woclaw-gemini-session-stop.sh"
+  }
+}`,
   },
   'opencode': {
     hooksDir: path.join(os.homedir(), '.opencode', 'hooks'),
