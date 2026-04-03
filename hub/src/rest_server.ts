@@ -71,6 +71,17 @@ export class RestServer {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
+      // v0.4: Semantic Recall (must be before /memory/:key route)
+      } else if (path.startsWith('/memory/recall')) {
+        const q = url.searchParams.get('q');
+        const intent = url.searchParams.get('intent');
+        const limit = parseInt(url.searchParams.get('limit') || '10');
+        if (!q) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'q (query) parameter required' }));
+        } else {
+          this.handleMemoryRecall(res, q, intent || undefined, Math.min(limit, 50));
+        }
       } else if (path.startsWith('/memory/tags/')) {
         const tag = decodeURIComponent(path.slice(13));
         if (method === 'GET') {
@@ -244,6 +255,26 @@ export class RestServer {
         expireAt: v.expireAt,
         updatedAt: v.updatedAt,
         updatedBy: v.updatedBy,
+      }))
+    }));
+  }
+
+  // v0.4: Semantic Recall endpoint
+  private handleMemoryRecall(res: http.ServerResponse, query: string, intent?: string, limit: number = 10): void {
+    const results = this.memory.recall(query, intent, limit);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      query,
+      intent: intent || null,
+      count: results.length,
+      results: results.map(m => ({
+        key: m.key,
+        value: m.value,
+        tags: m.tags,
+        ttl: m.ttl,
+        expireAt: m.expireAt,
+        updatedAt: m.updatedAt,
+        updatedBy: m.updatedBy,
       }))
     }));
   }
