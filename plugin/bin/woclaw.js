@@ -6,6 +6,8 @@
 import WebSocket from 'ws';
 import readline from 'readline';
 import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import os from 'os';
 import { existsSync, mkdirSync } from 'fs';
 
@@ -30,6 +32,7 @@ while (i < args.length && args[i]?.startsWith('--')) {
   else if (flag === '--token' && args[i]) HUB_TOKEN = args[i++];
   else if (flag === '--json') JSON_MODE = true;
   else if (flag === '--help' || flag === '-h') SHOW_HELP = true;
+  else if (flag === '--rest-url' && args[i]) HUB_REST = args[i++];
 }
 const command = args[i];
 const cmdArgs = args.slice(i + 1);
@@ -54,6 +57,7 @@ function usage() {
   log(bold('REST API Commands:'));
   log('  ' + cyan('status') + '                Hub health check');
   log('  ' + cyan('topics') + '                List topics');
+  log('  ' + cyan('mcp serve') + '             Start WoClaw MCP server (stdio JSON-RPC, for Claude Desktop/Cursor)');
   log('  ' + cyan('topics <name> [n]') + '     Topic messages (default n=50)');
   log('  ' + cyan('memory') + '                List memory keys');
   log('  ' + cyan('memory <key>') + '           Read memory value');
@@ -225,6 +229,30 @@ async function shell() {
       else if (cmd==='topics') { if (!a[0]) await cmdTopics(); else await cmdTopicMsgs(a[0], parseInt(a[1]||'50')); }
       else if (cmd==='memory') { if (!a[0]) await cmdMemoryList(); else if (a[0]==='write') await cmdMemoryWrite(a[1], a.slice(2).join(' ')); else if (a[0]==='delete') await cmdMemoryDelete(a[1]); else await cmdMemoryRead(a[0]); }
       else if (cmd==='agents') await cmdAgents();
+      else if (cmd==='mcp') {
+        if (!a[0] || a[0]==='help' || a[0]==='--help' || a[0]==='-h') {
+          log('WoClaw MCP commands:');
+          log('  ' + cyan('serve') + '           Start MCP server (stdio JSON-RPC)');
+          log('');
+          log('Options:');
+          log('  ' + dim('--hub <url>') + '      WebSocket URL of WoClaw Hub');
+          log('  ' + dim('--rest-url <url>') + ' REST URL of WoClaw Hub');
+          log('  ' + dim('--token <t>') + '       Auth token');
+          return;
+        }
+        if (a[0]==='serve') {
+          const { spawn } = await import('child_process');
+          const mcpPath = '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js';
+          const extraArgs = [];
+          if (HUB_WS !== 'ws://localhost:8082') extraArgs.push('--hub=' + HUB_WS);
+          if (HUB_REST !== 'http://localhost:8083') extraArgs.push('--rest-url=' + HUB_REST);
+          if (HUB_TOKEN !== 'WoClaw2026') extraArgs.push('--token=' + HUB_TOKEN);
+          const child = spawn('node', [mcpPath, ...extraArgs], { stdio: 'inherit' });
+          child.on('exit', (code) => process.exit(code || 0));
+          return;
+        }
+        err('Unknown mcp subcommand: ' + a[0]);
+      }
       else if (cmd==='send') { if (!a[0]||!a[1]) err('Usage: send <topic> <msg>'); else await wsSend(a[0], a.slice(1).join(' ')); }
       else if (cmd==='join') { if (!a[0]) err('Usage: join <topic>'); else await wsJoin(a[0]); }
       else if (cmd==='exit'||cmd==='quit'||cmd==='q') { if (!JSON_MODE) log(dim('Goodbye!')); rl.close(); process.exit(0); }
@@ -246,6 +274,31 @@ async function main() {
     else if (command==='topics') { if (!cmdArgs[0]) await cmdTopics(); else await cmdTopicMsgs(cmdArgs[0], parseInt(cmdArgs[1]||'50')); }
     else if (command==='memory') { if (!cmdArgs[0]) await cmdMemoryList(); else if (cmdArgs[0]==='write') { if (!cmdArgs[1]||!cmdArgs[2]) { err('Usage: memory write <key> <value>'); process.exit(1); } await cmdMemoryWrite(cmdArgs[1], cmdArgs.slice(2).join(' ')); } else if (cmdArgs[0]==='delete') { if (!cmdArgs[1]) { err('Usage: memory delete <key>'); process.exit(1); } await cmdMemoryDelete(cmdArgs[1]); } else await cmdMemoryRead(cmdArgs[0]); }
     else if (command==='agents') await cmdAgents();
+    else if (command==='mcp') {
+      if (!cmdArgs[0] || cmdArgs[0]==='help' || cmdArgs[0]==='--help' || cmdArgs[0]==='-h') {
+        log('WoClaw MCP commands:');
+        log('  ' + cyan('serve') + '           Start MCP server (stdio JSON-RPC)');
+        log('');
+        log('Options:');
+        log('  ' + dim('--hub <url>') + '      WebSocket URL of WoClaw Hub');
+        log('  ' + dim('--rest-url <url>') + ' REST URL of WoClaw Hub');
+        log('  ' + dim('--token <t>') + '       Auth token');
+        return;
+      }
+      if (cmdArgs[0]==='serve') {
+        const { spawn } = await import('child_process');
+        const mcpPath = '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js';
+        const extraArgs = [];
+        if (HUB_WS !== 'ws://localhost:8082') extraArgs.push('--hub=' + HUB_WS);
+        if (HUB_REST !== 'http://localhost:8083') extraArgs.push('--rest-url=' + HUB_REST);
+        if (HUB_TOKEN !== 'WoClaw2026') extraArgs.push('--token=' + HUB_TOKEN);
+        const child = spawn('node', [mcpPath, ...extraArgs], { stdio: 'inherit' });
+        child.on('exit', (code) => process.exit(code || 0));
+        return;
+      }
+      err('Unknown mcp subcommand: ' + cmdArgs[0]);
+      process.exit(1);
+    }
     else if (command==='send') { if (!cmdArgs[0]||!cmdArgs[1]) { err('Usage: send <topic> <msg>'); process.exit(1); } await wsSend(cmdArgs[0], cmdArgs.slice(1).join(' ')); }
     else if (command==='join') { if (!cmdArgs[0]) { err('Usage: join <topic>'); process.exit(1); } await wsJoin(cmdArgs[0]); }
     else { err('Unknown: ' + command); usage(); process.exit(1); }
