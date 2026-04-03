@@ -25,8 +25,8 @@
 
 ### P0 - 跨框架 Hook 集成
 - [x] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory ✅
-- [ ] Gemini CLI MCP Bridge — WoClaw MCP server interface
-- [ ] OpenCode Hook Scripts — 同 Claude Code
+- [ ] **Story: Gemini CLI → WoClaw 记忆读写** — 实现 Gemini CLI 的 hook 脚本读写 WoClaw Memory
+- [ ] **Story: OpenCode → WoClaw 记忆读写** — 实现 OpenCode 的 hook 脚本（参考 Claude Code）
 - [ ] **⭐ OpenAI Codex CLI Hook Scripts — 高优先级！OpenAI 官方 Python Codex 代理集成**
 
 ### P0 - OpenAI Codex CLI 支持（新增 ⭐ 高优先级）
@@ -34,24 +34,25 @@
 - [x] SessionStart Hook — `session_start.py` reads from WoClaw Hub REST API ✅
 - [x] SessionStop Hook — `stop.py` reads transcript + writes summary to WoClaw Hub ✅
 - [x] PreCompact Hook — Codex 上下文压缩前将关键信息写入 memory ✅ v0.1.2
-- [ ] npm publish: `npm publish --access public` (需测试)
+- [ ] **Story: Codex Hook npm 发布** — `woclaw-codex` npm publish --access public
 - [x] 环境变量配置：`WOCLAW_HUB_URL` + `WOCLAW_TOKEN` ✅
 
 ### P0 - OpenClaw Plugin 完善
 - [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
-- [ ] Plugin 在 vm153 上安装验证
-- [ ] Plugin 在 VPS4 (本地) 安装验证
+- [ ] **Story: vm153 plugin 验证** — 在 vm153 上安装 xingp14-woclaw，重启 gateway，验证 channel 连接正常
+- [ ] **Story: VPS4 plugin 验证** — 在 VPS4 本地安装验证
 
-## 🔥 v0.3 — MCP + Hook 系统（2026-04-01 完成 ✅）
+---
+
+## 🔥 v0.3 — MCP + Hook 系统
 
 ### MCP Bridge
 - [x] WoClaw MCP Server — 暴露 `woclaw_topics`, `woclaw_memory_read`, `woclaw_memory_write`, `woclaw_send` 工具 ✅ (woclaw-mcp@0.1.2)
-- [ ] MCP CLI 命令：`openclaw mcp serve` 暴露 WoClaw Hub
+- [ ] **Story: MCP CLI serve 命令** — 实现 `openclaw mcp serve` 暴露 WoClaw Hub 为 MCP server
 
 ### Hook 系统
-- [ ] Hook Scripts 模板 — Claude Code/Gemini CLI/OpenAI Codex CLI/OpenCode 一键安装
-- [ ] `woclaw hook install --framework claude-code` 命令
-- [ ] `woclaw hook install --framework openai-codex` 命令 ⭐
+- [ ] **Story: Claude Code Hook 安装器** — `woclaw hook install --framework claude-code` 一键安装脚本
+- [ ] **Story: Codex Hook 安装器** — `woclaw hook install --framework openai-codex` 一键安装脚本 ⭐
 - [x] PreCompact hook — Codex PreCompact Hook 完成 ✅ (v0.4.1)，Claude Code precompact.sh 已就绪
 
 ### Docker Hub 发布
@@ -61,13 +62,13 @@
 ## 🎯 v0.4 — 多框架共享记忆
 
 ### Shared Memory 增强
-- [ ] Memory Versioning — 保留历史版本
-- [ ] Semantic Recall — 意图感知检索
+- [ ] **Story: Memory Versioning** — 每次 write 时保留旧版本，支持 `memory.versions(key)` 查询
+- [ ] **Story: Semantic Recall** — 实现 `recall(query, intent)` 意图感知检索
 
 ### Multi-Agent Orchestration
-- [ ] Agent 发现 — 自动发现同 Hub 上其他 agent
-- [ ] 委托任务 — agent 可以委托任务给其他 agent
-- [ ] 任务状态追踪 — 跨 agent 任务状态同步
+- [ ] **Story: Agent 发现** — Hub API `GET /agents` 返回已连接 agent 列表
+- [ ] **Story: 委托任务** — Agent 可发送 `delegate(task, toAgentId)` 消息
+- [ ] **Story: 任务状态追踪** — 委托任务可追踪 PENDING/RUNNING/DONE/FAILED 状态
 
 ### 记忆原语设计
 
@@ -80,10 +81,10 @@
 ## 📦 v0.5 — 跨框架数据迁移
 
 ### 迁移工具 / Migration Tools
-- [ ] **OpenAI Codex 迁移** — 从 Codex session 历史导入共享记忆
-- [ ] **Claude Code 迁移** — 从 Claude Code transcript/sessions 导入项目上下文
-- [ ] **Gemini CLI 迁移** — 从 Gemini CLI 会话历史导入
-- [ ] **OpenClaw 迁移** — 从 OpenClaw memory/sessions 导入
+- [ ] **Story: Codex 迁移** — `woclaw migrate --framework openai-codex --session-id <id>` 从 Codex 历史导入
+- [ ] **Story: Claude Code 迁移** — `woclaw migrate --framework claude-code --session-dir <path>` 导入 sessions
+- [ ] **Story: Gemini CLI 迁移** — `woclaw migrate --framework gemini-cli` 导入会话历史
+- [ ] **Story: OpenClaw 迁移** — `woclaw migrate --framework openclaw --agent-id <id>` 导入 memory/sessions
 
 ### 迁移设计
 
@@ -96,7 +97,7 @@
 
 ### 迁移命令
 ```bash
-# 一键迁移框架历史到 WoClaw Hub
+# 单框架迁移
 woclaw migrate --framework openai-codex --session-id <id>
 woclaw migrate --framework claude-code --session-dir ~/.claude/sessions
 woclaw migrate --framework gemini-cli
@@ -150,11 +151,38 @@ woclaw migrate --all            # 执行所有迁移
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
 | v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
 | v0.3 | 2026-04-01 | Tags/TTL 增强、Docker Hub Workflow ✅ |
-| v0.4 | **2026-04-02** | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）|
+| v0.4 | 2026-04-02 | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）|
 | v0.5 | 待定 | ⭐ **跨框架数据迁移**（OpenAI/Claude/Gemini/OpenClaw → WoClaw）|
 | v0.6 | 待定 | Hook 系统完善、Docker Hub、ClawHub Skill |
 | v1.0 | 待定 | Graph Memory、Federation |
 
 ---
 
-_Last updated: 2026-04-02 10:17 CST_
+## 📋 Story 卡片（便于心跳执行）
+
+> 每个 Story 应在 1 次心跳（15 分钟）内完成，或明确拆分步骤
+
+### 待办 Stories（按优先级）
+
+| # | Story | 版本 | 状态 |
+|---|-------|------|------|
+| S1 | Gemini CLI Hook 脚本 | v0.2 | 🛑 |
+| S2 | OpenCode Hook 脚本 | v0.2 | 🛑 |
+| S3 | Codex Hook npm 发布 | v0.2 | 🛑 |
+| S4 | vm153 plugin 验证 | v0.2 | 🛑 |
+| S5 | VPS4 plugin 验证 | v0.2 | 🛑 |
+| S6 | Claude Code Hook 安装器 | v0.3 | 🛑 |
+| S7 | Codex Hook 安装器 | v0.3 | 🛑 |
+| S8 | MCP CLI serve 命令 | v0.3 | 🛑 |
+| S9 | Memory Versioning | v0.4 | 🛑 |
+| S10 | Semantic Recall | v0.4 | 🛑 |
+| S11 | Agent 发现 API | v0.4 | 🛑 |
+| S12 | 任务委托机制 | v0.4 | 🛑 |
+| S13 | Codex 迁移工具 | v0.5 | 🛑 |
+| S14 | Claude Code 迁移工具 | v0.5 | 🛑 |
+| S15 | Gemini CLI 迁移工具 | v0.5 | 🛑 |
+| S16 | OpenClaw 迁移工具 | v0.5 | 🛑 |
+
+---
+
+_Last updated: 2026-04-03 17:38 CST_
