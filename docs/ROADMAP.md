@@ -241,7 +241,7 @@ woclaw migrate --all            # 执行所有迁移
   - ✅ 更新 ROADMAP.md
 
 ### S4: vm153 plugin 验证（v0.2）
-> 评估：需要 SSH + 操作，~3 步骤
+> 评估：需要 SSH + 操作，~3 步骤 ✅ 全部完成
 
 - [x] **S4-1（10min）：SSH 检查 vm153 当前状态** ✅ 2026-04-03
   - `openclaw status` + `openclaw channels list` 执行完毕
@@ -258,10 +258,10 @@ woclaw migrate --all            # 执行所有迁移
   - 重启 gateway（kill old PID → nohup openclaw gateway）
   - channel 状态确认：configured, enabled，Hub 自连正常
 
-- [ ] **S4-3（10min）：验证 WebSocket 连接**
-  - `curl http://vm153:8083/health`
-  - 测试 `node -e "const WebSocket=require('ws');..."` WebSocket 连接 Hub
-  - 确认 channel 状态 OK
+- [x] **S4-3（10min）：验证 WebSocket 连接** ✅ 2026-04-03
+  - `curl http://vm153:8083/health` → `{"status":"ok","agents":2,"topics":2}`
+  - WebSocket 直连测试：ws://192.168.102.153:8082 → 连接成功（315ms），认证正常
+  - Hub 可见 2 个 agent，channel WoClaw default 配置 enabled
 
 ### S5: VPS4 plugin 验证（v0.2）
 > 评估：本地 Docker 环境，~3 步骤（注意 plugin ID mismatch 警告）
@@ -421,4 +421,4 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
-_Last updated: 2026-04-03 20:30 CST_
+_Last updated: 2026-04-03 20:35 CST_
