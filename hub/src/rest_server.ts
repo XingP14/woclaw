@@ -427,6 +427,7 @@ export class RestServer {
       }
       // Update in-memory directly (REST-side cancel)
       d.status = 'cancelled';
+      d.note = 'Cancelled via REST API';
       d.updatedAt = Date.now();
       // Notify both parties via WS
       this.wsServer.sendToAgent(d.toAgent, {

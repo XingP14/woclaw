@@ -418,9 +418,9 @@ woclaw migrate --all            # 执行所有迁移
   - 将 delegation 转发给目标 agent
   - Hub SIGUSR1 重启完成，delegations.size 已纳入 stats
 
-- [ ] **S12-3（10min）：实现委托状态跟踪**
-  - 添加 `delegations` Map 存储状态
-  - 支持 CANCEL 取消委托
+- [x] **S12-3（10min）：实现委托状态跟踪** ✅ 2026-04-04
+  - `delegations` Map 已存在于 ws_server.ts，`handleDelegateCancel` 完整实现双向通知
+  - 修复 REST DELETE `/delegations/:id` 缺少 `note` 字段的不一致问题
 
 - [x] **S12-4（10min）：添加 REST API 端点** ✅ 2026-04-04
   - `GET /delegations`, `POST /delegations`, `DELETE /delegations/:id` ✅
