@@ -7,6 +7,8 @@
 // Types
 // ============================================================================
 
+import { WebSocket } from 'ws';
+
 export interface WoClawConfig {
   hubUrl: string;
   agentId: string;
