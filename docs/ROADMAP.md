@@ -335,11 +335,13 @@ woclaw migrate --all            # 执行所有迁移
   - 传递 `--hub`, `--token`, `--rest-url` 参数
   - 详见 `docs/S8-2-DESIGN.md`
 
-- [ ] **S8-3（10min）：实现 MCP serve 基本框架**
-  - 创建 `packages/woclaw-mcp/` 目录结构（如不存在）
-  - 实现 JSON-RPC 2.0 stdin/stdout 处理
+- [x] **S8-3（10min）：实现 woclaw mcp serve 子命令** ✅ 2026-04-03
+  - 在 `bin/woclaw.js` 添加 `mcp serve` 子命令，spawn woclaw-mcp 子进程
+  - 通过环境变量 `WOCLAW_WS_URL`, `WOCLAW_REST_URL`, `WOCLAW_TOKEN` 传递 Hub 连接参数
+  - 添加 `--rest-url` 全局旗标支持；添加 `__dirname` ES module polyfill
+  - 验证：`woclaw mcp serve` → Hub ws://vm153:8082 连接成功
 
-- [ ] **S8-4（10min）：实现 woclaw tools（tools/list  handler）**
+- [ ] **S8-4（10min）：测试 woclaw mcp serve + npm 发布**
   - 实现 `woclaw_topics_list`, `woclaw_memory_read` 等 tools
   - 连接到 Hub REST API 获取数据
 
