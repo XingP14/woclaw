@@ -329,10 +329,11 @@ woclaw migrate --all            # 执行所有迁移
   - 方案确定：在 woclaw-cli.js 添加 `mcp serve` 子命令，spawn woclaw-mcp 子进程
   - 详见 `docs/S8-1-RESEARCH.md`
 
-- [ ] **S8-2（10min）：设计 woclaw MCP serve 实现方案**
-  - 方案A：woclaw-mcp 作为 OpenClaw MCP server 的 backend
-  - 方案B：woclaw CLI 增加 `woclaw mcp serve` 命令
-  - 输出：选择方案并设计接口
+- [x] **S8-2（10min）：设计 woclaw MCP serve 实现方案** ✅ 2026-04-03
+  - **选择方案 B2**：独立子进程 + 相对路径引用 mcp-bridge
+  - 在 `bin/woclaw.js` 添加 `mcp serve` 子命令，spawn `../mcp-bridge/dist/index.js`
+  - 传递 `--hub`, `--token`, `--rest-url` 参数
+  - 详见 `docs/S8-2-DESIGN.md`
 
 - [ ] **S8-3（10min）：实现 MCP serve 基本框架**
   - 创建 `packages/woclaw-mcp/` 目录结构（如不存在）
