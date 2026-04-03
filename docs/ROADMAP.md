@@ -279,10 +279,11 @@ woclaw migrate --all            # 执行所有迁移
   - 重启 gateway 后 channel 状态 clean，无 mismatch 警告
   - 注：`plugins.entries.xingp14-woclaw` 早已正确，无需修改
 
-- [ ] **S5-3（10min）：重启并验证**
-  - 重启 gateway
-  - 验证 `openclaw channels list` woclaw 显示 OK（无 mismatch 警告）
-  - 确认 Hub 连接数（agents: 2 → 3 after p14 reconnect）
+- [x] **S5-3（10min）：重启并验证** ✅ 2026-04-03
+  - 重启 gateway（SIGUSR1 hot reload）
+  - 验证 `openclaw channels list` woclaw 显示 "configured, enabled"（无 mismatch 警告）✅
+  - 确认 Hub 连接数（2 agents, 2 topics）✅
+  - 注意：channel key 必须是 `woclaw`（匹配 manifest channels 数组），plugin entry key 是 `xingp14-woclaw`（匹配 manifest id）
 
 ### S6: Claude Code Hook 安装器验证（v0.3）
 > 评估：install.js 已完整，需要测试验证，~2 步骤
