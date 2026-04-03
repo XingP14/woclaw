@@ -9,6 +9,30 @@ Share memory and context between coding agents (Claude Code, Gemini CLI, OpenCod
 - **PreCompact**: Checkpoint important context before agents compress their context
 - **Multi-Framework**: Supports Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI
 
+## OpenAI Codex CLI — Recommended: use `woclaw-codex` package instead
+
+For **OpenAI Codex CLI**, the dedicated [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex) package (`install.py`) is recommended over `woclaw-hooks`:
+
+| | `woclaw-codex` (install.py) | `woclaw-hooks --framework codex` |
+|---|---|---|
+| SessionStart | ✅ | ✅ |
+| SessionStop | ✅ | ✅ |
+| PreCompact | ✅ | ❌ |
+| config.toml auto-enable | ✅ | ❌ (manual) |
+
+```bash
+# Recommended: install woclaw-codex for complete Codex support
+npm install -g woclaw-codex
+cd ~/.codex && python3 install.py
+
+# Alternative: use woclaw-hooks (SessionStart/Stop only, manual config.toml)
+npm install -g woclaw-hooks
+woclaw-hooks --install --framework codex
+# Then add to ~/.codex/config.toml:
+#   [features]
+#   codex_hooks = true
+```
+
 ## Installation
 
 ```bash
