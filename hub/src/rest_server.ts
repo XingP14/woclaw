@@ -91,6 +91,14 @@ export class RestServer {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
+      // v1.0: Rate limiting status
+      } else if (path === '/rate-limits') {
+        if (method === 'GET') {
+          this.handleRateLimits(res);
+        } else {
+          res.writeHead(405);
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+        }
       } else if (path === '/memory') {
         if (method === 'GET') {
           this.handleMemoryList(res, url.searchParams.get('tags'));
@@ -201,6 +209,18 @@ export class RestServer {
     const agents = this.wsServer.getAgentsInfo();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ agents, count: agents.length }));
+  }
+
+  // v1.0: Rate limit status
+  private handleRateLimits(res: http.ServerResponse): void {
+    if (!this.wsServer) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Rate limit info not available' }));
+      return;
+    }
+    const statuses = this.wsServer.getRateLimitStatuses();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ rateLimits: statuses, count: statuses.length }));
   }
 
   private handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null): void {

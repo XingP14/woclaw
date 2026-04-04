@@ -31,7 +31,7 @@ export interface Message {
 
 // Inbound messages from clients
 export interface InboundMessage {
-  type: 'message' | 'join' | 'leave' | 'memory_write' | 'memory_read' | 'topics_list' | 'topic_members' | 'ping'
+  type: 'message' | 'join' | 'leave' | 'memory_write' | 'memory_read' | 'topics_list' | 'topic_members' | 'ping' | 'pong'
        | 'delegate_request' | 'delegate_response' | 'delegate_progress' | 'delegate_result' | 'delegate_cancel';
   topic?: string;
   content?: string;
@@ -177,3 +177,26 @@ export type InboundDelegationMessage =
 
 // Extend InboundMessage to include delegation types
 export type InboundMessageWithDelegation = InboundMessage | InboundDelegationMessage;
+
+// ─── v1.0: Rate Limiting Types ──────────────────────────────────────────────
+
+export interface RateLimitConfig {
+  messages: number;    // max messages per window
+  windowMs: number;     // window size in milliseconds
+}
+
+export interface RateLimitEntry {
+  timestamps: number[]; // timestamps of recent messages within the window
+}
+
+export interface RateLimitStatus {
+  agentId: string;
+  limit: number;
+  windowMs: number;
+  currentCount: number;
+  oldestTimestamp: number | null;
+}
+
+// Config defaults (can be overridden via env)
+export const DEFAULT_RATE_LIMIT_MESSAGES = 100;
+export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60000;

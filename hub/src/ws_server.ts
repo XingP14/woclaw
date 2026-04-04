@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import https from 'https';
 import http from 'http';
 import { readFileSync } from 'fs';
-import { Agent, InboundMessage, OutboundMessage, Config } from './types.js';
+import { Agent, InboundMessage, OutboundMessage, Config, RateLimitEntry, RateLimitConfig, RateLimitStatus, DEFAULT_RATE_LIMIT_MESSAGES, DEFAULT_RATE_LIMIT_WINDOW_MS } from './types.js';
 import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { ClawDB } from './db.js';
@@ -21,6 +21,12 @@ export class WSServer {
   private config: Config;
   private pingInterval: NodeJS.Timeout | null = null;
   private delegations: Map<string, import('./types.js').Delegation> = new Map();
+  // Rate limiting
+  private rateLimits: Map<string, RateLimitEntry> = new Map();
+  private rateLimitConfig: RateLimitConfig = {
+    messages: DEFAULT_RATE_LIMIT_MESSAGES,
+    windowMs: DEFAULT_RATE_LIMIT_WINDOW_MS,
+  };
 
   constructor(config: Config, db: ClawDB) {
     this.config = config;
@@ -119,6 +125,17 @@ export class WSServer {
   private handleMessage(agentId: string, msg: InboundMessage): void {
     const agent = this.agents.get(agentId);
     if (!agent) return;
+
+    // Rate limiting check (skip for ping/pong to avoid bias)
+    if (msg.type !== 'ping' && msg.type !== 'pong') {
+      const rateLimitResult = this.checkRateLimit(agentId);
+      if (rateLimitResult.limited) {
+        this.sendError(agent.ws, 'RATE_LIMIT_EXCEEDED',
+          `Rate limit exceeded. Retry after ${rateLimitResult.retryAfter}ms`,
+          rateLimitResult.retryAfter);
+        return;
+      }
+    }
 
     switch (msg.type) {
       case 'message':
@@ -380,8 +397,74 @@ export class WSServer {
     }
   }
 
-  private sendError(ws: WS, code: string, message: string): void {
-    this.send(ws, { type: 'error', code, message, timestamp: Date.now() });
+  private sendError(ws: WS, code: string, message: string, retryAfter?: number): void {
+    const msg: OutboundMessage = { type: 'error', code, message, timestamp: Date.now() };
+    if (retryAfter !== undefined) (msg as any).retryAfter = retryAfter;
+    this.send(ws, msg);
+  }
+
+  /**
+   * Check rate limit for an agent.
+   * Uses sliding window counter: keeps timestamps of recent messages within the window.
+   * Returns { limited: false } if OK, { limited: true, retryAfter: ms } if exceeded.
+   */
+  private checkRateLimit(agentId: string): { limited: boolean; retryAfter?: number } {
+    const now = Date.now();
+    const { messages, windowMs } = this.rateLimitConfig;
+
+    // Get or create entry
+    let entry = this.rateLimits.get(agentId);
+    if (!entry) {
+      entry = { timestamps: [] };
+      this.rateLimits.set(agentId, entry);
+    }
+
+    // Remove timestamps outside the window
+    const windowStart = now - windowMs;
+    entry.timestamps = entry.timestamps.filter(t => t > windowStart);
+
+    if (entry.timestamps.length >= messages) {
+      // Oldest timestamp in window determines when agent can retry
+      const oldest = entry.timestamps[0];
+      const retryAfter = (oldest + windowMs) - now;
+      return { limited: true, retryAfter: Math.max(0, retryAfter) };
+    }
+
+    // Record this message
+    entry.timestamps.push(now);
+    return { limited: false };
+  }
+
+  /** Get rate limit status for all agents (for REST API /rate-limits). */
+  getRateLimitStatuses(): RateLimitStatus[] {
+    const now = Date.now();
+    const { messages, windowMs } = this.rateLimitConfig;
+    const statuses: RateLimitStatus[] = [];
+
+    for (const [agentId, entry] of this.rateLimits) {
+      // Prune old timestamps first
+      const windowStart = now - windowMs;
+      const valid = entry.timestamps.filter(t => t > windowStart);
+      entry.timestamps = valid;
+
+      if (valid.length > 0 || this.agents.has(agentId)) {
+        statuses.push({
+          agentId,
+          limit: messages,
+          windowMs,
+          currentCount: valid.length,
+          oldestTimestamp: valid.length > 0 ? valid[0] : null,
+        });
+      }
+    }
+
+    return statuses;
+  }
+
+  /** Set rate limit config (called by REST API). */
+  setRateLimitConfig(config: Partial<RateLimitConfig>): void {
+    if (config.messages !== undefined) this.rateLimitConfig.messages = config.messages;
+    if (config.windowMs !== undefined) this.rateLimitConfig.windowMs = config.windowMs;
   }
 
   private pingAll(): void {

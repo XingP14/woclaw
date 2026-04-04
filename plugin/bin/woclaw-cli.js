@@ -150,6 +150,36 @@ async function main() {
           resolve();
         });
       }
+      else if (command === 'rate-limits') {
+        const restUrl = (process.env.WOCLAW_REST_URL || 'http://localhost:8081').replace('ws://', 'http://');
+        const path = '/rate-limits';
+        log(`Fetching rate limits via REST API: ${restUrl}${path}`);
+        http.get(`${restUrl}${path}`, (res) => {
+          let body = '';
+          res.on('data', chunk => { body += chunk; });
+          res.on('end', () => {
+            try {
+              const data = JSON.parse(body);
+              if (!data.count || data.count === 0) {
+                log('No rate limit data available.');
+              } else {
+                log(`Rate Limits (${data.count}):`);
+                for (const [agentId, status] of Object.entries(data.rateLimits || {})) {
+                  log(`  ${agentId}: ${status.currentCount}/${status.limit} msgs in ${Math.round(status.windowMs/1000)}s window`);
+                }
+              }
+            } catch (e) {
+              log(`Parse error: ${e.message}`);
+            }
+            ws.close();
+            resolve();
+          });
+        }).on('error', (e) => {
+          log(`REST API error: ${e.message}`);
+          ws.close();
+          resolve();
+        });
+      }
       else if (command === 'migrate') {
         // woclaw migrate --framework <framework> [options]
         const fwIdx = args.indexOf('--framework');
@@ -214,7 +244,7 @@ async function main() {
       }
       else if (command === 'shell') {
         // Interactive shell mode
-        log('Entering shell mode. Commands: join, leave, send, list, memory-write, memory-read, delegate, delegations, exit');
+        log('Entering shell mode. Commands: join, leave, send, list, memory-write, memory-read, delegate, delegations, rate-limits, exit');
         process.stdin.setEncoding('utf8');
         process.stdin.on('data', (line) => {
           const cmd = line.trim().split(' ');
@@ -246,7 +276,7 @@ async function main() {
       }
       else if (command) {
         log(`Unknown command: ${command}`);
-        log('Commands: join, leave, send, list, memory-write, memory-read, delegate, delegations, migrate, shell');
+        log('Commands: join, leave, send, list, memory-write, memory-read, delegate, delegations, rate-limits, migrate, shell');
         ws.close();
         resolve();
       }
