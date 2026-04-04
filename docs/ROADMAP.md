@@ -188,6 +188,8 @@ woclaw migrate --all            # 执行所有迁移
 | S17 | MCP Server 使用文档 | v0.6 | 3 | ~1h | ✅ 2026-04-04 |
 | S18 | TLS/SSL 支持 | v0.6 | 3 | ~30min | ✅ 2026-04-04 |
 | S19 | 连接限流 | v1.0 | 4 | ~40min | ✅ 2026-04-04 |
+| S20 | Graph Memory — 图数据库设计 | v1.0 | 2 | ~20min | 🔨 进行中 |
+| S21 | Graph Memory — 核心实现 | v1.0 | 4 | ~3h | ⏳ 待开始 |
 
 ---
 
@@ -503,31 +505,66 @@ woclaw migrate --all            # 执行所有迁移
   - 环境变量说明表：TLS_KEY, TLS_CERT
 
 ### S19: 连接限流（Connection Rate Limiting）（v1.0）
-> 评估：Hub 侧安全功能，~4 步骤
 
 - [x] **S19-1（10min）：设计 Rate Limiting 方案** ✅ 2026-04-04
-  - 选择方案：滑动时间窗口（sliding window counter）
-  - 每 agent 独立计数（Map<agentId, { timestamps: number[] }>）
-  - 全局默认限制：100 messages / 60s window
-  - 超限时返回 `RATE_LIMIT_EXCEEDED` 错误消息（含 retryAfter），不直接断开连接（graceful）
-  - 输出：`hub/src/types.ts` 新增 `RateLimitConfig`, `RateLimitEntry`, `RateLimitStatus` 类型
-  - `checkRateLimit()`, `getRateLimitStatuses()`, `setRateLimitConfig()` 方法已添加到 ws_server.ts
-
-- [x] **S19-2（10min）：实现 ws_server.ts 限流逻辑** ✅ 2026-04-04（随 S19-1 完成）
-  - 在 `WSServer` 添加 `private rateLimits: Map<string, { timestamps: number[] }>` 追踪
-  - 在 `handleMessage()` 入口处调用 `checkRateLimit(agentId)` 检查
-  - 超出限制时发送 `{ type: 'error', code: 'RATE_LIMIT_EXCEEDED', retryAfter: <ms> }`，不断开连接
-  - Hub 启动时输出限流配置（messages/window）
-
+- [x] **S19-2（10min）：实现 ws_server.ts 限流逻辑** ✅ 2026-04-04
 - [x] **S19-3（10min）：CLI + REST API 端点** ✅ 2026-04-04
-  - `GET /rate-limits` — 查看当前所有限流配置和状态
-  - `woclaw rate-limits` CLI 子命令
-  - REST 返回格式：`{ [agentId]: { limit: number, windowMs: number, currentCount: number } }`
-
 - [x] **S19-4（10min）：单元测试 + 文档** ✅ 2026-04-04
-  - 添加 `hub/test/rate_limit.test.ts`，测试限流计数和窗口滑动
-  - README 新增 Rate Limiting 章节
+
+### S20: Graph Memory — 图数据库设计（v1.0）
+
+> 目标：为 WoClaw 设计 Graph Memory 存储架构，支持 temporal/entity/causal/semantic 边类型
+
+**图模型设计：**
+```
+节点类型：
+  • Memory — 一条共享记忆（对应现有 memory pool 条目）
+  • Agent — Agent 节点（关联创建者/访问者）
+  • Topic — Topic 节点
+
+边类型（Edge Types）：
+  • temporal — 时间关系（"发生在 X 之后"、"同时"）
+  • entity — 实体关系（"关于 X"、"属于 X"）
+  • causal — 因果关系（"导致 X"、"因为 X"）
+  • semantic — 语义相似（"相似于 X"）
+```
+
+- [x] **S20-1（10min）：调研图数据库方案** ✅ 2026-04-05
+  - 方案 A：graphlib（老旧，2019，无原生 TS）❌
+  - 方案 B：Neo4j（外部依赖，重型）❌
+  - 方案 C：自定义邻接表（需自研遍历算法）⚠️
+  - **决定：graphology** ✅（原生 TypeScript 支持，活跃维护，API 丰富：遍历/路径/邻接，支持节点/边属性）
+
+- [x] **S20-2（10min）：设计 TypeScript 类型和图存储结构** ✅ 2026-04-05
+  - `hub/src/graph/types.ts` — GraphNode, GraphEdge, EdgeType, IGraphStore 接口
+  - `hub/src/graph/store.ts` — 内存图存储（纯 TS Map 实现，支持 BFS 遍历/路径查找/自动关联）
+  - Build ✅ + All tests ✅
+
+### S21: Graph Memory — 核心实现（v1.0）
+
+> 目标：实现完整的 Graph Memory CRUD + 遍历查询 API
+
+- [ ] **S21-1（10min）：节点 CRUD API** ⏳ 待开始
+  - `POST /graph/nodes` — 创建节点
+  - `GET /graph/nodes` — 列出节点（支持 type 过滤）
+  - `GET /graph/nodes/:id` — 获取节点详情
+  - `DELETE /graph/nodes/:id` — 删除节点
+
+- [ ] **S21-2（10min）：边 CRUD API** ⏳ 待开始
+  - `POST /graph/edges` — 创建边（指定 type: temporal|entity|causal|semantic）
+  - `GET /graph/edges` — 列出边（支持 from/to/type 过滤）
+  - `DELETE /graph/edges/:id` — 删除边
+
+- [ ] **S21-3（10min）：图遍历查询 API** ⏳ 待开始
+  - `GET /graph/traverse/:nodeId` — BFS 遍历邻接节点（depth 参数控制深度）
+  - `GET /graph/paths/:from/:to` — 查找两节点间路径（maxDepth 参数）
+  - `GET /graph/related/:nodeId` — 获取某节点所有相关节点（按边类型分组）
+
+- [ ] **S21-4（10min）：自动边生成 + 单元测试** ⏳ 待开始
+  - memory.write 时自动创建 entity 边（memory → agent, memory → topic）
+  - recall 操作时自动评估 semantic 相似度并创建 semantic 边
+  - `hub/test/graph.test.ts` — 图操作单元测试
 
 ---
 
-_Last updated: 2026-04-04 16:38 CST_
+_Last updated: 2026-04-05 06:31 CST_
