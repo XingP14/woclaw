@@ -185,6 +185,51 @@ export class RestServer {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
+      } else if (path === '/graph' && method === 'GET') {
+        // Redirect /graph to /graph/nodes
+        const nodes = this.graph.getNodes(undefined);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ nodes, count: nodes.length }));
+      } else if (path === '/graph/edges' && method === 'GET') {
+        const edges = this.graph.getEdges({
+          source: url.searchParams.get('source') || undefined,
+          target: url.searchParams.get('target') || undefined,
+          type: (url.searchParams.get('type') as any) || undefined,
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ edges, count: edges.length }));
+      } else if (path === '/graph/edges' && method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const { source, target, type, weight, metadata = {} } = JSON.parse(body);
+            if (!source || !target || !type) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing required fields: source, target, type' }));
+              return;
+            }
+            const edge = this.graph.addEdge({ source, target, type, weight, metadata });
+            res.writeHead(201, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ edge }));
+          } catch (e: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      } else if (path.startsWith('/graph/edges/') && method === 'DELETE') {
+        const edgeId = decodeURIComponent(path.slice(14));
+        const removed = this.graph.removeEdge(edgeId);
+        if (!removed) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Edge not found' }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, deleted: edgeId }));
+      } else if (path === '/graph/stats' && method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(this.graph.getStats()));
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
