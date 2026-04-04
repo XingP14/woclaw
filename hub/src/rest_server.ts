@@ -6,6 +6,8 @@ import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { Config } from './types.js';
 import { WSServer } from './ws_server.js';
+import { GraphStore } from './graph/store.js';
+import type { GraphNodeType } from './graph/types.js';
 
 export class RestServer {
   private server: http.Server | null = null;
@@ -14,12 +16,14 @@ export class RestServer {
   private memory: MemoryPool;
   private config: Config;
   private wsServer: WSServer | null = null;
+  private graph: GraphStore;
 
-  constructor(config: Config, db: ClawDB, topics: TopicsManager, memory: MemoryPool, wsServer?: WSServer) {
+  constructor(config: Config, db: ClawDB, topics: TopicsManager, memory: MemoryPool, graph: GraphStore, wsServer?: WSServer) {
     this.config = config;
     this.db = db;
     this.topics = topics;
     this.memory = memory;
+    this.graph = graph;
     this.wsServer = wsServer || null;
   }
 
@@ -160,6 +164,27 @@ export class RestServer {
       // v0.4: Delegation REST endpoints
       } else if (path === '/delegations' || path.startsWith('/delegations')) {
         this.handleDelegations(req, res, url, path, method);
+      // v1.0: Graph Memory — Node CRUD
+      } else if (path === '/graph/nodes') {
+        if (method === 'GET') {
+          const type = url.searchParams.get('type') as GraphNodeType | null;
+          this.handleGraphNodesList(res, type || undefined);
+        } else if (method === 'POST') {
+          this.handleGraphNodeCreate(req, res);
+        } else {
+          res.writeHead(405);
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+        }
+      } else if (path.startsWith('/graph/nodes/')) {
+        const nodeId = decodeURIComponent(path.slice(13));
+        if (method === 'GET') {
+          this.handleGraphNodeGet(res, nodeId);
+        } else if (method === 'DELETE') {
+          this.handleGraphNodeDelete(res, nodeId);
+        } else {
+          res.writeHead(405);
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+        }
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -487,9 +512,193 @@ export class RestServer {
       return;
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // GRAPH MEMORY ROUTES (S21)
+    // ═══════════════════════════════════════════════════════════
+
+    // GET /graph/nodes — list all nodes (optional ?type=memory|agent|topic)
+    if ((path === '/graph/nodes' || path === '/graph') && method === 'GET') {
+      const url2 = new URL(req.url!, `http://${req.headers.host}`);
+      const type = url2.searchParams.get('type') as GraphNodeType | null;
+      const nodes = this.graph.getNodes(type || undefined);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ nodes, count: nodes.length }));
+      return;
+    }
+
+    // POST /graph/nodes — create a node
+    if (path === '/graph/nodes' && method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const { type, label, metadata = {} } = JSON.parse(body);
+          if (!type || !label) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing required fields: type, label' }));
+            return;
+          }
+          const node = this.graph.addNode({ type, label, metadata });
+          res.writeHead(201, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ node }));
+        } catch (e: any) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+
+    // GET /graph/nodes/:id
+    const nodeMatch = path.match(/^\/graph\/nodes\/(.+)$/);
+    if (nodeMatch && method === 'GET') {
+      const id = nodeMatch[1];
+      const node = this.graph.getNode(id);
+      if (!node) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Node not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ node }));
+      return;
+    }
+
+    // DELETE /graph/nodes/:id
+    if (nodeMatch && method === 'DELETE') {
+      const id = nodeMatch[1];
+      const removed = this.graph.removeNode(id);
+      if (!removed) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Node not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, deleted: id }));
+      return;
+    }
+
+    // GET /graph/edges — list edges (?source=X&target=Y&type=entity)
+    if (path === '/graph/edges' && method === 'GET') {
+      const url2 = new URL(req.url!, `http://${req.headers.host}`);
+      const edges = this.graph.getEdges({
+        source: url2.searchParams.get('source') || undefined,
+        target: url2.searchParams.get('target') || undefined,
+        type: (url2.searchParams.get('type') as any) || undefined,
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ edges, count: edges.length }));
+      return;
+    }
+
+    // POST /graph/edges — create an edge
+    if (path === '/graph/edges' && method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const { source, target, type, weight, metadata = {} } = JSON.parse(body);
+          if (!source || !target || !type) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing required fields: source, target, type' }));
+            return;
+          }
+          const edge = this.graph.addEdge({ source, target, type, weight, metadata });
+          res.writeHead(201, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ edge }));
+        } catch (e: any) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+
+    // DELETE /graph/edges/:id
+    const edgeMatch = path.match(/^\/graph\/edges\/(.+)$/);
+    if (edgeMatch && method === 'DELETE') {
+      const id = edgeMatch[1];
+      const removed = this.graph.removeEdge(id);
+      if (!removed) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Edge not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, deleted: id }));
+      return;
+    }
+
+    // GET /graph/stats
+    if (path === '/graph/stats' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(this.graph.getStats()));
+      return;
+    }
+
     res.writeHead(405, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Method not allowed for this path' }));
   }
+
+  // ─────────────────────────────────────────────────────────────────
+  // v1.0: Graph Memory — Node CRUD Handlers
+  // ─────────────────────────────────────────────────────────────────
+
+  private handleGraphNodesList(res: http.ServerResponse, type?: GraphNodeType): void {
+    const nodes = this.graph.getNodes(type);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ nodes, count: nodes.length }));
+  }
+
+  private async handleGraphNodeCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    let body = '';
+    for await (const chunk of req) { body += chunk; }
+    let parsed: any;
+    try { parsed = JSON.parse(body); } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      return;
+    }
+    const { type, label, metadata } = parsed;
+    if (!type || !label) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'type and label are required' }));
+      return;
+    }
+    const validTypes = ['memory', 'agent', 'topic'];
+    if (!validTypes.includes(type)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `type must be one of: ${validTypes.join(', ')}` }));
+      return;
+    }
+    const node = this.graph.addNode({ type, label, metadata: metadata || {} });
+    res.writeHead(201, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ node }));
+  }
+
+  private handleGraphNodeGet(res: http.ServerResponse, nodeId: string): void {
+    const node = this.graph.getNode(nodeId);
+    if (!node) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Node not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ node }));
+  }
+
+  private handleGraphNodeDelete(res: http.ServerResponse, nodeId: string): void {
+    const deleted = this.graph.removeNode(nodeId);
+    if (!deleted) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Node not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, deleted: nodeId }));
+  }
+
+  // ─────────────────────────────────────────────────────────────────
 
   private handleTopicMessages(res: http.ServerResponse, topic: string, limit?: string | null): void {
     const limitNum = Math.min(parseInt(limit || '50'), 200);

@@ -2,6 +2,7 @@ import { WSServer } from './ws_server.js';
 import { RestServer } from './rest_server.js';
 import { ClawDB } from './db.js';
 import { Config } from './types.js';
+import { GraphStore } from './graph/store.js';
 import { readFileSync } from 'fs';
 
 const DEFAULT_CONFIG: Config = {
@@ -55,11 +56,14 @@ async function main() {
 
   // Initialize WebSocket server (this also creates TopicsManager and MemoryPool internally)
   const wsServer = new WSServer(config, db);
-  
-  // Start REST API server with access to db, topics, memory
-  const restServer = new RestServer(config, db, wsServer.getTopicsManager(), wsServer.getMemoryPool(), wsServer);
+
+  // Initialize Graph Memory store (v1.0)
+  const graphStore = new GraphStore();
+
+  // Start REST API server with access to db, topics, memory, graph
+  const restServer = new RestServer(config, db, wsServer.getTopicsManager(), wsServer.getMemoryPool(), graphStore, wsServer);
   restServer.start();
-  
+
   console.log('[WoClaw] Server started successfully');
   console.log('');
   console.log('[WoClaw] Endpoints:');
@@ -67,6 +71,7 @@ async function main() {
   const restProto = config.tlsKey ? 'https' : 'http';
   console.log(`  WebSocket: ${wsProto}://${config.host}:${config.port}`);
   console.log(`  REST API:  ${restProto}://${config.host}:${config.restPort}`);
+  console.log(`  Graph:     ${restProto}://${config.host}:${config.restPort}/graph/{nodes,edges,stats}`);
   console.log('');
 
   // Graceful shutdown

@@ -188,8 +188,8 @@ woclaw migrate --all            # 执行所有迁移
 | S17 | MCP Server 使用文档 | v0.6 | 3 | ~1h | ✅ 2026-04-04 |
 | S18 | TLS/SSL 支持 | v0.6 | 3 | ~30min | ✅ 2026-04-04 |
 | S19 | 连接限流 | v1.0 | 4 | ~40min | ✅ 2026-04-04 |
-| S20 | Graph Memory — 图数据库设计 | v1.0 | 2 | ~20min | 🔨 进行中 |
-| S21 | Graph Memory — 核心实现 | v1.0 | 4 | ~3h | ⏳ 待开始 |
+| S20 | Graph Memory — 图数据库设计 | v1.0 | 2 | ~20min | ✅ 2026-04-05 |
+| S21 | Graph Memory — 核心实现 | v1.0 | 4 | ~3h | 🔨 进行中 |
 
 ---
 
@@ -544,16 +544,18 @@ woclaw migrate --all            # 执行所有迁移
 
 > 目标：实现完整的 Graph Memory CRUD + 遍历查询 API
 
-- [ ] **S21-1（10min）：节点 CRUD API** ⏳ 待开始
-  - `POST /graph/nodes` — 创建节点
-  - `GET /graph/nodes` — 列出节点（支持 type 过滤）
-  - `GET /graph/nodes/:id` — 获取节点详情
-  - `DELETE /graph/nodes/:id` — 删除节点
+- [x] **S21-1（10min）：节点 CRUD API** ✅ 2026-04-05
+  - `POST /graph/nodes` — 创建节点 ✅
+  - `GET /graph/nodes` — 列出节点（支持 type 过滤）✅
+  - `GET /graph/nodes/:id` — 获取节点详情 ✅
+  - `DELETE /graph/nodes/:id` — 删除节点 ✅
+  - Build ✅ + All tests ✅
 
-- [ ] **S21-2（10min）：边 CRUD API** ⏳ 待开始
-  - `POST /graph/edges` — 创建边（指定 type: temporal|entity|causal|semantic）
-  - `GET /graph/edges` — 列出边（支持 from/to/type 过滤）
-  - `DELETE /graph/edges/:id` — 删除边
+- [x] **S21-2（10min）：边 CRUD API** ✅ 2026-04-05
+  - `POST /graph/edges` — 创建边 ✅
+  - `GET /graph/edges` — 列出边（支持 source/target/type 过滤）✅
+  - `DELETE /graph/edges/:id` — 删除边 ✅
+  - `GET /graph/stats` — 图统计 ✅
 
 - [ ] **S21-3（10min）：图遍历查询 API** ⏳ 待开始
   - `GET /graph/traverse/:nodeId` — BFS 遍历邻接节点（depth 参数控制深度）
