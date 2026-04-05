@@ -72,21 +72,30 @@ Environment:
 
 // ─── Core Parser ─────────────────────────────────────────────────────────────
 
+function normalizeTimestampMs(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return value < 1e12 ? value * 1000 : value;
+}
+
 /**
- * Parse a single history.jsonl entry (one session)
+ * Parse a single history.jsonl line (one event in a session stream)
  * @param {string} line - JSON line from history.jsonl
- * @returns {object|null} parsed session or null
+ * @returns {object|null} parsed event or null
  */
 function parseHistoryEntry(line) {
   try {
     const entry = JSON.parse(line.trim());
     return {
       session_id: entry.session_id || null,
-      created_at: entry.created_at || null,
-      updated_at: entry.updated_at || null,
+      created_at: entry.created_at || (entry.ts ? new Date(normalizeTimestampMs(entry.ts)).toISOString() : null),
+      updated_at: entry.updated_at || (entry.ts ? new Date(normalizeTimestampMs(entry.ts)).toISOString() : null),
       model: entry.model || null,
-      messages: entry.messages || [],
-      message_count: (entry.messages || []).length,
+      messages: [{
+        role: entry.role || 'user',
+        content: typeof entry.text === 'string' ? entry.text : (typeof entry.content === 'string' ? entry.content : ''),
+        ts: entry.ts || null,
+      }],
+      message_count: 1,
     };
   } catch {
     return null;
@@ -263,11 +272,38 @@ async function* streamHistorySessions(filterFn = () => true, limit = 10) {
     input: fs.createReadStream(HISTORY_FILE),
   });
 
-  let count = 0;
+  const sessions = new Map();
+
   for await (const line of rl) {
     if (!line.trim()) continue;
-    const session = parseHistoryEntry(line);
-    if (session && filterFn(session)) {
+    const event = parseHistoryEntry(line);
+    if (!event || !event.session_id) continue;
+
+    const existing = sessions.get(event.session_id) || {
+      session_id: event.session_id,
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+      model: event.model,
+      messages: [],
+    };
+
+    if (!existing.created_at && event.created_at) existing.created_at = event.created_at;
+    if (event.updated_at) existing.updated_at = event.updated_at;
+    if (!existing.model && event.model) existing.model = event.model;
+    existing.messages.push(...event.messages);
+    sessions.set(event.session_id, existing);
+  }
+
+  let count = 0;
+  const ordered = [...sessions.values()].sort((a, b) => {
+    const aTs = a.updated_at || a.created_at || '';
+    const bTs = b.updated_at || b.created_at || '';
+    return String(bTs).localeCompare(String(aTs));
+  });
+
+  for (const session of ordered) {
+    session.message_count = session.messages.length;
+    if (filterFn(session)) {
       yield session;
       count++;
       if (count >= limit) break;

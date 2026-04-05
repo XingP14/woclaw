@@ -6,6 +6,7 @@ import http from 'http';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -14,7 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const command = args[0];
 
-const HUB_URL = process.env.WOCLAW_HUB_URL || 'ws://localhost:8080';
+const HUB_URL = process.env.WOCLAW_HUB_URL || 'ws://vm153:8082';
 const AGENT_ID = process.env.WOCLAW_AGENT_ID || 'cli-agent';
 const AUTH_TOKEN = process.env.WOCLAW_TOKEN || 'change-me';
 const AUTO_JOIN = (process.env.WOCLAW_AUTO_JOIN || '').split(',').filter(Boolean);
@@ -27,7 +28,75 @@ function send(ws, msg) {
   ws.send(JSON.stringify(msg));
 }
 
+function resolveMigrationScript(scriptName) {
+  const candidates = [
+    join(__dirname, '..', '..', 'packages', 'woclaw-hooks', scriptName),
+    join(__dirname, '..', '..', '..', 'packages', 'woclaw-hooks', scriptName),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return candidates[0];
+}
+
 async function main() {
+  if (command === 'migrate') {
+    // Migration commands use the REST API and do not need a live WS session.
+    const fwIdx = args.indexOf('--framework');
+    const framework = fwIdx >= 0 ? args[fwIdx + 1] : null;
+    if (!framework) {
+      log('Usage: woclaw migrate --framework <framework> [options]');
+      log('Supported: codex, openai-codex, claude-code, gemini-cli, gemini, openclaw');
+      return;
+    }
+
+    const migrateScripts = {
+      'codex': 'codex-migrate.js',
+      'openai-codex': 'codex-migrate.js',
+      'claude-code': 'claude-migrate.js',
+      'claude': 'claude-migrate.js',
+      'gemini-cli': 'gemini-migrate.js',
+      'gemini': 'gemini-migrate.js',
+      'openclaw': 'openclaw-migrate.js',
+    };
+    const scriptName = migrateScripts[framework];
+    if (!scriptName) {
+      log(`Migrate: framework '${framework}' not yet implemented.`);
+      log('Supported: codex, openai-codex, claude-code, gemini-cli, gemini, openclaw');
+      return;
+    }
+
+    const migrateScript = resolveMigrationScript(scriptName);
+    const migrateArgs = args.slice(fwIdx + 2);
+
+    log(`Running ${framework} migration...`);
+    log(`  Script: ${migrateScript}`);
+    log(`  Args: ${migrateArgs.length ? migrateArgs.join(' ') : '(none)'}`);
+
+    const extraEnv = { ...process.env };
+    if (framework === 'codex' || framework === 'openai-codex') {
+      extraEnv.CODEX_HOME = process.env.CODEX_HOME || join(process.env.HOME || '/root', '.codex');
+    }
+    if (framework === 'gemini-cli' || framework === 'gemini') {
+      extraEnv.GEMINI_HOME = process.env.GEMINI_HOME || join(process.env.HOME || '/root', '.gemini');
+    }
+    if (framework === 'openclaw') {
+      extraEnv.OPENCLAW_CONFIG = process.env.OPENCLAW_CONFIG || join(process.env.HOME || '/root', '.openclaw', 'openclaw.json');
+    }
+
+    await new Promise((resolve) => {
+      const child = spawn('node', [migrateScript, ...migrateArgs], {
+        env: extraEnv,
+        stdio: 'inherit',
+      });
+      child.on('close', (code) => {
+        log(`Migration exited with code ${code}`);
+        resolve();
+      });
+    });
+    return;
+  }
+
   log(`Connecting to ${HUB_URL} as ${AGENT_ID}...`);
   
   return new Promise((resolve, reject) => {
@@ -179,68 +248,6 @@ async function main() {
           ws.close();
           resolve();
         });
-      }
-      else if (command === 'migrate') {
-        // woclaw migrate --framework <framework> [options]
-        const fwIdx = args.indexOf('--framework');
-        const framework = fwIdx >= 0 ? args[fwIdx + 1] : null;
-        const otherArgs = args.slice(1).filter(a => !a.startsWith('--framework'));
-
-        if (!framework) {
-          log('Usage: woclaw migrate --framework <framework> [options]');
-          log('Supported: codex, claude-code, gemini-cli, openclaw');
-          ws.close();
-          resolve();
-          return;
-        }
-
-        // Resolve path to codex-migrate.js relative to plugin bin/
-        const migrateScript = join(__dirname, '..', '..', '..', 'packages', 'woclaw-hooks', 'codex-migrate.js');
-        const fullArgs = ['--session-id', 'dummy']; // placeholder, overridden below
-
-        if (framework === 'codex' || framework === 'openai-codex') {
-          // Parse migrate-specific args
-          let migrateArgs = ['--session-id', 'dummy'];
-          const listIdx = otherArgs.indexOf('--list');
-          const allIdx = otherArgs.indexOf('--all');
-          const sidIdx = otherArgs.indexOf('--session-id');
-
-          if (sidIdx >= 0 && sidIdx + 1 < otherArgs.length) {
-            migrateArgs = ['--session-id', otherArgs[sidIdx + 1]];
-          } else if (listIdx >= 0) {
-            migrateArgs = ['--list'];
-          } else if (allIdx >= 0) {
-            migrateArgs = ['--all'];
-            const limIdx = otherArgs.indexOf('--limit');
-            if (limIdx >= 0 && limIdx + 1 < otherArgs.length) {
-              migrateArgs.push('--limit', otherArgs[limIdx + 1]);
-            }
-          } else {
-            log(`Usage: woclaw migrate --framework codex [--list|--session-id <id>|--all [--limit n]]`);
-            ws.close();
-            resolve();
-            return;
-          }
-
-          log(`Running Codex session migration...`);
-          log(`  Script: ${migrateScript}`);
-          log(`  Args: ${migrateArgs.join(' ')}`);
-
-          const child = spawn('node', [migrateScript, ...migrateArgs], {
-            env: { ...process.env, CODEX_HOME: process.env.CODEX_HOME || join(process.env.HOME || '/root', '.codex') },
-            stdio: 'inherit',
-          });
-          child.on('close', (code) => {
-            log(`Migration exited with code ${code}`);
-            ws.close();
-            resolve();
-          });
-        } else {
-          log(`Migrate: framework '${framework}' not yet implemented. Supported: codex`);
-          log('See docs/ROADMAP.md for migration roadmap (S13-S16).');
-          ws.close();
-          resolve();
-        }
       }
       else if (command === 'shell') {
         // Interactive shell mode
