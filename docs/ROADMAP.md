@@ -785,7 +785,9 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - Agents 在线状态
   - Memory 搜索
 
-- [ ] **S27-3（10min）：部署 + 文档** :hourglass: 待开始
+- [x] **S27-3（10min）：部署 + 文档** :white_check_mark: 2026-04-05
+  - Hub 启动时自动启动静态文件服务器（port 8084）:white_check_mark:
+  - README 新增 Web UI 章节 :white_check_mark:
   - Hub 启动时同时启动静态文件服务器
   - README 新增 Web UI 章节
   - hub/test/dedup.test.ts — 9 tests :white_check_mark:
