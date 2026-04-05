@@ -51,14 +51,44 @@ npx woclaw-hooks --framework claude-code
 ```json
 {
   "hooks": {
-    "onEnter": ["bash ~/.claude/hooks/woclaw-session-start.sh"],
-    "onExit": ["bash ~/.claude/hooks/woclaw-session-stop.sh"],
-    "onCompact": ["bash ~/.claude/hooks/woclaw-precompact.sh"]
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-session-start.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-session-stop.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-precompact.sh"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-> **注意**：Claude Code 的 hook 名称在 `settings.json` 中**不含 `.sh` 后缀**（脚本文件名含后缀）。例如 `onEnter` 对应 `session-start.sh`。
+> **注意**：Claude Code 的 hook 名称在 `settings.json` 中**不含 `.sh` 后缀**（脚本文件名含后缀）。例如 `SessionStart` 对应 `session-start.sh`。
 
 ---
 

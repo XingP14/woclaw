@@ -27,7 +27,43 @@ const FRAMEWORK_CONFIG = {
     settingsFile: path.join(os.homedir(), '.claude', 'settings.json'),
     hookNames: ['session-start', 'session-stop', 'precompact'],
     hookPrefix: 'woclaw-',
-    settingsHint: `{ "hooks": { "onEnter": ["bash ~/.claude/hooks/woclaw-session-start.sh"] } }`,
+    settingsHint: `{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-session-start.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-session-stop.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/woclaw-precompact.sh"
+          }
+        ]
+      }
+    ]
+  }
+}`,
   },
   'gemini': {
     hooksDir: path.join(os.homedir(), '.gemini', 'hooks'),
