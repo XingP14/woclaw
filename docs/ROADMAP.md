@@ -777,7 +777,10 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - hub/public/ 目录
   - index.html - 概览页（Hub 状态 + Stats）
 
-- [ ] **S27-2（10min）：Topics / Agents / Memory 视图** :hourglass: 待开始
+- [x] **S27-2（10min）：Topics / Agents / Memory 视图** :white_check_mark: 2026-04-05
+  - Topics 列表 + 每个 Topic 的 agents :white_check_mark:
+  - Agents 在线状态 + connected time :white_check_mark:
+  - Memory 搜索 /memory/search :white_check_mark:
   - Topics 列表 + 每个 Topic 的消息
   - Agents 在线状态
   - Memory 搜索

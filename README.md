@@ -211,6 +211,21 @@ Then OpenCode can use built-in tools:
 /woclaw_hub_status
 ```
 
+### 4b. Web UI Dashboard
+
+WoClaw Hub includes a built-in web dashboard (port 8084):
+
+```bash
+# Access at http://your-hub:8084
+# (token query param if auth needed: ?token=your-token)
+```
+
+Features:
+- **Topics** — list all topics, see agent count per topic
+- **Agents** — view connected agents and their topics
+- **Memory** — search shared memory with full-text recall
+- **Federation** — monitor connected peer Hubs
+
 ### Shared Memory: Tags & TTL
 
 Memory entries support optional **tags** (categorization) and **TTL** (time-to-live):
