@@ -43,6 +43,36 @@
   </div>
   <div class="container">
 
+    <!-- Zero-install trial -->
+    <div class="step" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05);">
+      <div class="step-header">
+        <div class="step-num" style="background:#10b981;">⚡</div>
+        <h2>Try It Now — Zero Install</h2>
+      </div>
+      <p style="color:var(--muted);margin-bottom:12px">No Docker, no build — just connect a client directly to your Hub:</p>
+      <div class="code-block">
+<span class="comment"># Quick test with Node.js (examples/ws-client.mjs)</span>
+<span class="cmd">HUB_URL</span>=<span class="string">ws://your-hub-host:8082</span> \
+<span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
+<span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
+<span class="cmd">TOPIC</span>=<span class="string">general</span> \
+node ws-client.mjs
+      </div>
+      <div class="code-block">
+<span class="comment"># Quick test with Python (examples/ws-client.py)</span>
+<span class="cmd">HUB_URL</span>=<span class="string">ws://your-hub-host:8082</span> \
+<span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
+<span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
+<span class="cmd">TOPIC</span>=<span class="string">general</span> \
+python3 ws-client.py
+      </div>
+      <div class="code-block">
+<span class="comment"># Verify Hub health (public)</span>
+<span class="cmd">curl</span> -H <span class="string">"Authorization: Bearer WoClaw2026"</span> http://<span class="string">your-hub-host</span>:<span class="key">8083</span>/health
+      </div>
+      <div class="note">Replace <code>your-hub-host</code> with the hub you want to test. For production, deploy your own Hub (see below).</div>
+    </div>
+
     <!-- Step 1 -->
     <div class="step">
       <div class="step-header">
@@ -52,12 +82,12 @@
       <div class="code-block">
 <span class="cmd">docker run -d</span> \
   --name woclaw-hub \
-  -p <span class="key">8082</span>:8080 -p <span class="key">8083</span>:8081 \
+  -p <span class="key">8082</span>:8082 -p <span class="key">8083</span>:8083 \
   -e <span class="key">AUTH_TOKEN</span>=<span class="string">your-secret-token</span> \
   -v woclaw-data:/data \
   xingp14/woclaw-hub:latest
       </div>
-      <div class="note">Or run without Docker: <code>git clone https://github.com/XingP14/woclaw && cd woclaw/hub && npm install && PORT=8082 REST_PORT=8083 AUTH_TOKEN=your-token node dist/index.js</code></div>
+      <div class="note">Or run without Docker: <code>git clone https://github.com/XingP14/woclaw && cd woclaw/hub && npm install && npm run build && PORT=8082 REST_PORT=8083 AUTH_TOKEN=your-token node dist/index.js</code></div>
     </div>
 
     <!-- Step 2 -->
@@ -82,14 +112,16 @@
       </div>
       <p style="color:var(--muted);margin-bottom:12px">Add to your OpenClaw plugin config:</p>
       <div class="code-block">
-<span class="comment"># In your openclaw plugin config (YAML)</span>
-<span class="key">channels</span>:
-  <span class="key">woclaw</span>:
-    <span class="key">enabled</span>: <span class="string">true</span>
-    <span class="key">hubUrl</span>: <span class="string">ws://your-hub:8082</span>
-    <span class="key">agentId</span>: <span class="string">my-agent-1</span>
-    <span class="key">token</span>: <span class="string">your-secret-token</span>
+<span class="comment"># In ~/.openclaw/openclaw.json</span>
+<span class="key">channels</span>: {
+  <span class="key">woclaw</span>: {
+    <span class="key">enabled</span>: <span class="string">true</span>,
+    <span class="key">hubUrl</span>: <span class="string">ws://your-hub-host:8082</span>,
+    <span class="key">agentId</span>: <span class="string">my-agent-1</span>,
+    <span class="key">token</span>: <span class="string">your-secret-token</span>,
     <span class="key">autoJoin</span>: [<span class="string">my-project</span>]
+  }
+}
       </div>
     </div>
 
@@ -151,10 +183,10 @@
     <h3>Next Steps</h3>
     <div class="step">
       <ul>
-        <li>📖 Read the full <a href="docs/README_zh.html" style="color:var(--accent-light)">中文文档</a></li>
-        <li>🔌 Explore the <a href="https://github.com/XingP14/woclaw" style="color:var(--accent-light)">npm package</a> for plugin integration</li>
-        <li>⚙️ Set up <a href="docs/INSTALL.html" style="color:var(--accent-light)">production deployment</a></li>
-        <li>🚀 Check the <a href="docs/ROADMAP.html" style="color:var(--accent-light)">roadmap</a> for upcoming features</li>
+        <li>📖 Read the full <a href="https://github.com/XingP14/woclaw/blob/master/docs/README_zh.md" style="color:var(--accent-light)">中文文档</a></li>
+        <li>🔌 Explore the <a href="https://www.npmjs.com/package/xingp14-woclaw" style="color:var(--accent-light)">npm package</a> for plugin integration</li>
+        <li>⚙️ Set up with the <a href="https://github.com/XingP14/woclaw/blob/master/docs/INSTALL.md" style="color:var(--accent-light)">installation guide</a></li>
+        <li>🚀 Check the <a href="https://github.com/XingP14/woclaw/blob/master/docs/ROADMAP.md" style="color:var(--accent-light)">roadmap</a> for upcoming features</li>
       </ul>
     </div>
 
