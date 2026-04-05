@@ -55,16 +55,26 @@ Gemini CLI 通过 `settings.json` 的 `hooks` 字段配置生命周期钩子。
   "hooks": {
     "SessionStart": [
       {
-        "name": "woclaw-session-start",
-        "type": "command",
-        "command": "bash /home/user/.gemini/hooks/woclaw-session-start.sh"
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "woclaw-session-start",
+            "type": "command",
+            "command": "bash /home/user/.gemini/hooks/woclaw-session-start.sh"
+          }
+        ]
       }
     ],
     "SessionEnd": [
       {
-        "name": "woclaw-session-end",
-        "type": "command",
-        "command": "bash /home/user/.gemini/hooks/woclaw-session-stop.sh"
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "woclaw-session-end",
+            "type": "command",
+            "command": "bash /home/user/.gemini/hooks/woclaw-session-stop.sh"
+          }
+        ]
       }
     ]
   }

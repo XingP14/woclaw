@@ -26,16 +26,26 @@
   "hooks": {
     "SessionStart": [
       {
-        "name": "woclaw-session-start",
-        "type": "command",
-        "command": "bash /path/to/gemini-session-start.sh"
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "woclaw-session-start",
+            "type": "command",
+            "command": "bash /path/to/gemini-session-start.sh"
+          }
+        ]
       }
     ],
     "SessionEnd": [
       {
-        "name": "woclaw-session-end",
-        "type": "command",
-        "command": "bash /path/to/gemini-session-end.sh"
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "woclaw-session-end",
+            "type": "command",
+            "command": "bash /path/to/gemini-session-end.sh"
+          }
+        ]
       }
     ]
   }

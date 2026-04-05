@@ -6,6 +6,8 @@
 # - Configure hooks in ~/.gemini/settings.json
 # - Hook scripts communicate via stdin/stdout JSON
 # - SessionEnd hook receives sessionId + recentInteractions
+# - Example settings.json uses SessionEnd entries shaped like:
+#   { "matcher": "*", "hooks": [{ "type": "command", "command": "bash /path/to/hook.sh" }] }
 
 # Load env from ~/.woclaw/.env (set by install.js)
 if [ -f "$HOME/.woclaw/.env" ]; then
@@ -17,8 +19,6 @@ fi
 export WOCLAW_HUB_URL="${WOCLAW_HUB_URL:-http://vm153:8083}"
 export WOCLAW_TOKEN="${WOCLAW_TOKEN:-WoClaw2026}"
 export WOCLAW_PROJECT_KEY="${WOCLAW_PROJECT_KEY:-project:context}"
-
-echo "=== WoClaw [Gemini]: Saving session context ==="
 
 # Read Gemini CLI hook event from stdin (JSON)
 # Gemini passes: { sessionId, events, recentInteractions }
@@ -87,4 +87,15 @@ RESULT=$(curl -s -X POST \
   -d "{\"key\":\"$WOCLAW_PROJECT_KEY\",\"value\":$WRITE_VALUE,\"updatedBy\":\"gemini:$SESSION_ID\"}" \
   "$WOCLAW_HUB_URL/memory")
 
-echo "Context saved to WoClaw Hub: $RESULT"
+MESSAGE="Context saved to WoClaw Hub"
+if [ -n "$RESULT" ]; then
+  MESSAGE="$MESSAGE: $RESULT"
+fi
+
+HOOK_RESULT=$(node - "$MESSAGE" <<'NODE'
+const msg = process.argv[2] || '';
+process.stdout.write(JSON.stringify({ decision: 'allow', systemMessage: msg }));
+NODE
+)
+
+printf '%s\n' "$HOOK_RESULT"

@@ -5,7 +5,14 @@
 # Gemini CLI hook mechanism (v0.26.0+):
 # - Configure hooks in ~/.gemini/settings.json
 # - Hook scripts communicate via stdin/stdout
-# - Example settings.json: { "hooks": { "sessionStart": "bash /path/to/hook.sh" } }
+# - Example settings.json:
+#   {
+#     "hooks": {
+#       "SessionStart": [
+#         { "matcher": "*", "hooks": [{ "type": "command", "command": "bash /path/to/hook.sh" }] }
+#       ]
+#     }
+#   }
 
 # Load env from ~/.woclaw/.env (set by install.js)
 if [ -f "$HOME/.woclaw/.env" ]; then
@@ -41,11 +48,15 @@ try {
 " 2>/dev/null)
 
 if [ -n "$CONTEXT" ]; then
-  echo ""
-  echo "=== WoClaw: Shared project context ($WOCLAW_PROJECT_KEY) ==="
-  echo "$CONTEXT"
-  echo "============================================================"
+  MESSAGE="=== WoClaw: Shared project context ($WOCLAW_PROJECT_KEY) ===\n$CONTEXT\n============================================================"
 else
-  echo ""
-  echo "=== WoClaw: No shared context found (first session?) ==="
+  MESSAGE="=== WoClaw: No shared context found (first session?) ==="
 fi
+
+HOOK_RESULT=$(node - "$MESSAGE" <<'NODE'
+const msg = process.argv[2] || '';
+process.stdout.write(JSON.stringify({ decision: 'allow', systemMessage: msg }));
+NODE
+)
+
+printf '%s\n' "$HOOK_RESULT"

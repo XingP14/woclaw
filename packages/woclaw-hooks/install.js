@@ -37,8 +37,28 @@ const FRAMEWORK_CONFIG = {
     settingsHint: `# Add to your ~/.gemini/settings.json:
 {
   "hooks": {
-    "sessionStart": "bash ~/.gemini/hooks/woclaw-gemini-session-start.sh",
-    "sessionStop": "bash ~/.gemini/hooks/woclaw-gemini-session-stop.sh"
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.gemini/hooks/woclaw-gemini-session-start.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.gemini/hooks/woclaw-gemini-session-stop.sh"
+          }
+        ]
+      }
+    ]
   }
 }`,
   },
