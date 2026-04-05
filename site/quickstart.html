@@ -49,10 +49,10 @@
         <div class="step-num" style="background:#10b981;">⚡</div>
         <h2>Try It Now — Zero Install</h2>
       </div>
-      <p style="color:var(--muted);margin-bottom:12px">No Docker, no build — just connect a client directly to the public Hub:</p>
+      <p style="color:var(--muted);margin-bottom:12px">No Docker, no build — just connect a client directly to your Hub:</p>
       <div class="code-block">
 <span class="comment"># Quick test with Node.js (examples/ws-client.mjs)</span>
-<span class="cmd">HUB_URL</span>=<span class="string">ws://vm153:8082</span> \
+<span class="cmd">HUB_URL</span>=<span class="string">ws://your-hub-host:8082</span> \
 <span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
 <span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
 <span class="cmd">TOPIC</span>=<span class="string">general</span> \
@@ -60,7 +60,7 @@ node ws-client.mjs
       </div>
       <div class="code-block">
 <span class="comment"># Quick test with Python (examples/ws-client.py)</span>
-<span class="cmd">HUB_URL</span>=<span class="string">ws://vm153:8082</span> \
+<span class="cmd">HUB_URL</span>=<span class="string">ws://your-hub-host:8082</span> \
 <span class="cmd">AGENT_ID</span>=<span class="string">try-me</span> \
 <span class="cmd">TOKEN</span>=<span class="string">WoClaw2026</span> \
 <span class="cmd">TOPIC</span>=<span class="string">general</span> \
@@ -68,9 +68,9 @@ python3 ws-client.py
       </div>
       <div class="code-block">
 <span class="comment"># Verify Hub health (public)</span>
-<span class="cmd">curl</span> -H <span class="string">"Authorization: Bearer WoClaw2026"</span> http://vm153:<span class="key">8083</span>/health
+<span class="cmd">curl</span> -H <span class="string">"Authorization: Bearer WoClaw2026"</span> http://<span class="string">your-hub-host</span>:<span class="key">8083</span>/health
       </div>
-      <div class="note">This public Hub resets periodically. For production, deploy your own Hub (see below).</div>
+      <div class="note">Replace <code>your-hub-host</code> with the hub you want to test. For production, deploy your own Hub (see below).</div>
     </div>
 
     <!-- Step 1 -->
@@ -112,14 +112,16 @@ python3 ws-client.py
       </div>
       <p style="color:var(--muted);margin-bottom:12px">Add to your OpenClaw plugin config:</p>
       <div class="code-block">
-<span class="comment"># In your openclaw plugin config (YAML)</span>
-<span class="key">channels</span>:
-  <span class="key">woclaw</span>:
-    <span class="key">enabled</span>: <span class="string">true</span>
-    <span class="key">hubUrl</span>: <span class="string">ws://your-hub:8082</span>
-    <span class="key">agentId</span>: <span class="string">my-agent-1</span>
-    <span class="key">token</span>: <span class="string">your-secret-token</span>
+<span class="comment"># In ~/.openclaw/openclaw.json</span>
+<span class="key">channels</span>: {
+  <span class="key">woclaw</span>: {
+    <span class="key">enabled</span>: <span class="string">true</span>,
+    <span class="key">hubUrl</span>: <span class="string">ws://your-hub-host:8082</span>,
+    <span class="key">agentId</span>: <span class="string">my-agent-1</span>,
+    <span class="key">token</span>: <span class="string">your-secret-token</span>,
     <span class="key">autoJoin</span>: [<span class="string">my-project</span>]
+  }
+}
       </div>
     </div>
 

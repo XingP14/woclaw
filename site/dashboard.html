@@ -99,7 +99,7 @@
       </div>
     </div>
     <div class="header-controls">
-      <input class="hub-input" id="hubInput" placeholder="http://hub:8083" value="http://vm153:8083" />
+      <input class="hub-input" id="hubInput" placeholder="http://hub:8083" />
       <button class="btn" onclick="changeHub()">Connect</button>
       <button class="btn btn-ghost" onclick="toggleAuto()" id="autoBtn" title="Auto-refresh every 30s">Auto: ON</button>
     </div>
@@ -143,7 +143,10 @@
 
 <script>
 // === CONFIG ===
-const DEFAULT_HUB = 'http://vm153:8083';
+const DEFAULT_HUB = (() => {
+  if (location.hostname.endsWith('github.io') || location.protocol === 'file:') return '';
+  return 'http://vm153:8083';
+})();
 const REFRESH_MS = 30000;
 let autoRefresh = true;
 let refreshTimer = null;
@@ -179,7 +182,9 @@ function esc(s) {
 }
 
 async function api(path) {
-  const r = await fetch(getHub() + path, { signal: AbortSignal.timeout(5000) });
+  const hub = getHub();
+  if (!hub) throw new Error('Set a Hub URL first.');
+  const r = await fetch(hub + path, { signal: AbortSignal.timeout(5000) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
@@ -193,6 +198,14 @@ async function loadHealth() {
   const el = document.getElementById('healthStats');
   const badge = document.getElementById('statusBadge');
   const footer = document.getElementById('footerHub');
+  const hub = getHub();
+  if (!hub) {
+    badge.className = 'badge badge-warn';
+    badge.textContent = 'Config needed';
+    footer.textContent = 'Set a Hub URL to load live data.';
+    el.innerHTML = `<div class="error-msg">⚠ Set a Hub URL first.</div>`;
+    return;
+  }
   try {
     const d = await api('/health');
     const uptime = fmtUptime(d.uptime);
@@ -227,6 +240,12 @@ async function loadHealth() {
 async function loadTopics() {
   const el = document.getElementById('topicsArea');
   const badge = document.getElementById('topicsCount');
+  const hub = getHub();
+  if (!hub) {
+    el.innerHTML = '<div class="empty-state">Set a Hub URL first.</div>';
+    badge.textContent = '—';
+    return;
+  }
   try {
     const d = await api('/topics');
     badge.textContent = (d.topics?.length || 0) + ' topic' + ((d.topics?.length||0)!==1?'s':'');
@@ -259,6 +278,12 @@ async function loadTopics() {
 async function loadMemory() {
   const el = document.getElementById('memoryArea');
   const badge = document.getElementById('memoryCount');
+  const hub = getHub();
+  if (!hub) {
+    el.innerHTML = '<div class="empty-state">Set a Hub URL first.</div>';
+    badge.textContent = '—';
+    return;
+  }
   try {
     const d = await api('/memory');
     badge.textContent = (d.memory?.length || 0) + ' key' + ((d.memory?.length||0)!==1?'s':'');

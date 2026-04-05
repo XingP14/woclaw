@@ -1,12 +1,12 @@
-FROM node:18-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (production only, no native deps needed)
-RUN npm install --omit=dev
+# Install dependencies (production only)
+RUN npm ci --omit=dev
 
 # Copy source (pre-built)
 COPY dist ./dist
@@ -19,7 +19,7 @@ EXPOSE 8082 8083
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8083/health || exit 1
+  CMD node -e "fetch('http://127.0.0.1:8083/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Run as non-root user
 USER node

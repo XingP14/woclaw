@@ -3,159 +3,362 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WoClaw Dashboard</title>
+  <title>WoClaw</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0f; color: #f0f0f5; min-height: 100vh; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; color: #a78bfa; }
-    .card { background: #1a1a25; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .card h2 { font-size: 0.85rem; text-transform: uppercase; color: #8888a0; letter-spacing: 0.05em; margin-bottom: 12px; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-    .stat { background: #12121a; border-radius: 8px; padding: 16px; }
-    .stat-value { font-size: 2rem; font-weight: 700; color: #a78bfa; }
-    .stat-label { font-size: 0.75rem; color: #555566; margin-top: 4px; }
-    .status-ok { color: #10b981; }
-    .status-error { color: #ef4444; }
+    :root {
+      --bg: #09090d;
+      --bg2: #10101a;
+      --card: #161622;
+      --card2: #1b1b2a;
+      --border: rgba(255,255,255,0.08);
+      --text: #f4f4f7;
+      --muted: #8c8ca4;
+      --accent: #9f7aea;
+      --accent2: #10b981;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(159,122,234,0.20), transparent 32%),
+        radial-gradient(circle at 80% 20%, rgba(16,185,129,0.12), transparent 30%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 24px; }
+    .hero {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
+      padding: 18px 0 28px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; gap: 14px; align-items: center; }
+    .brand-icon { font-size: 2.2rem; }
+    .eyebrow {
+      text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted);
+      font-size: 0.72rem; font-weight: 700; margin-bottom: 8px;
+    }
+    h1 { font-size: clamp(2.2rem, 5vw, 4rem); line-height: 0.98; letter-spacing: -0.04em; }
+    .lead { color: var(--muted); max-width: 720px; margin-top: 14px; font-size: 1rem; line-height: 1.7; }
+    .controls {
+      min-width: min(100%, 420px);
+      display: grid; gap: 10px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: rgba(22,22,34,0.9);
+      border-radius: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .controls label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    input, button {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      color: var(--text);
+      font: inherit;
+      padding: 12px 14px;
+    }
+    input { flex: 1 1 240px; }
+    input:focus { outline: none; border-color: rgba(159,122,234,0.6); box-shadow: 0 0 0 4px rgba(159,122,234,0.14); }
+    button { cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; }
+    button:hover { transform: translateY(-1px); }
+    .primary { background: linear-gradient(135deg, var(--accent), #7c3aed); border-color: transparent; }
+    .ghost { background: transparent; }
+    .subtle { color: var(--muted); font-size: 0.88rem; line-height: 1.55; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 20px 0; }
+    .card {
+      background: rgba(22,22,34,0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      min-height: 160px;
+    }
+    .card h2 {
+      font-size: 0.76rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .stat {
+      padding: 14px; border-radius: 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--accent); }
+    .stat-value.ok { color: var(--accent2); }
+    .stat-value.err { color: var(--err); }
+    .stat-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; }
+    .stat-sub { color: #a4a4be; font-size: 0.78rem; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.875rem; }
-    th { color: #8888a0; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
-    .refresh-btn { background: #7c3aed; color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.875rem; }
-    .refresh-btn:hover { background: #6d28d9; }
-    .error-msg { color: #ef4444; padding: 20px; text-align: center; }
-    .loading { color: #8888a0; padding: 20px; text-align: center; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .hub-url { font-size: 0.75rem; color: #555566; margin-top: 4px; }
-    .badge { display: inline-block; background: rgba(16,185,129,0.15); color: #10b981; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }
-    .badge-warn { background: rgba(239,68,68,0.15); color: #ef4444; }
-    #memoryTable td { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th, td {
+      text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.88rem;
+    }
+    th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    td:first-child { color: #cbb7ff; font-weight: 600; }
+    .badge {
+      display: inline-block; padding: 3px 8px; border-radius: 999px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(159,122,234,0.15); color: #cbb7ff;
+    }
+    .badge-ok { background: rgba(16,185,129,0.14); color: #6ee7b7; }
+    .badge-warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .notice, .error {
+      padding: 14px 16px; border-radius: 14px; margin-top: 10px;
+      font-size: 0.92rem;
+    }
+    .notice { background: rgba(159,122,234,0.09); border: 1px solid rgba(159,122,234,0.2); color: #ddd6fe; }
+    .error { background: rgba(239,68,68,0.09); border: 1px solid rgba(239,68,68,0.22); color: #fecaca; }
+    .muted-block { color: var(--muted); text-align: center; padding: 18px 10px; }
+    .footer {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      flex-wrap: wrap; color: var(--muted); font-size: 0.8rem;
+      padding: 20px 0 6px;
+    }
+    .footer-links { display: flex; gap: 14px; flex-wrap: wrap; }
+    @media (max-width: 720px) {
+      .wrap { padding: 16px; }
+      .stats { grid-template-columns: 1fr; }
+      .controls { min-width: 100%; }
+      .footer { align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
-  <nav style="padding:12px 24px;text-align:right;"><a href="quickstart.html" style="color:#a78bfa;text-decoration:none;font-size:0.875rem;">🚀 Quickstart →</a></nav>
-  <div class="container">
-    <div class="header">
+  <div class="wrap">
+    <section class="hero">
       <div>
-        <h1>🦞 WoClaw Dashboard</h1>
-        <div class="hub-url" id="hubUrl">—</div>
+        <div class="brand">
+          <div class="brand-icon">🦞</div>
+          <div>
+            <div class="eyebrow">WoClaw</div>
+            <h1>Shared memory and topic messaging for agent workflows.</h1>
+          </div>
+        </div>
+        <p class="lead">
+          Point this page at any accessible WoClaw Hub to inspect health, topics, and memory. The default is local-friendly, but on GitHub Pages you can enter your own hub URL before loading data.
+        </p>
       </div>
-      <button class="refresh-btn" onclick="refresh()">↻ Refresh</button>
-    </div>
 
-    <div class="card">
-      <h2>System Health</h2>
-      <div class="stats" id="healthStats">
-        <div class="loading">Loading...</div>
+      <div class="controls">
+        <label for="hubInput">Hub URL</label>
+        <div class="row">
+          <input id="hubInput" type="text" placeholder="http://hub-host:8083" />
+          <button class="primary" onclick="changeHub()">Connect</button>
+        </div>
+        <div class="row">
+          <button class="ghost" onclick="refresh()">Refresh</button>
+          <button class="ghost" onclick="clearHub()">Clear</button>
+        </div>
+        <div class="subtle" id="hubHelp">Set a Hub URL to load live data.</div>
       </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>System Health</h2>
+        <div class="stats" id="healthStats">
+          <div class="muted-block">Connect a Hub URL to begin.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Topics</h2>
+        <div id="topicsArea" class="muted-block">Connect a Hub URL to begin.</div>
+      </section>
+
+      <section class="card">
+        <h2>Shared Memory</h2>
+        <div id="memoryArea" class="muted-block">Connect a Hub URL to begin.</div>
+      </section>
     </div>
 
-    <div class="card">
-      <h2>Topics</h2>
-      <div id="topicsArea"><div class="loading">Loading...</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Shared Memory</h2>
-      <div id="memoryArea"><div class="loading">Loading...</div></div>
+    <div class="footer">
+      <div>GitHub Pages compatible landing page</div>
+      <div class="footer-links">
+        <a href="quickstart.html">Quickstart</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="https://github.com/XingP14/woclaw" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
     </div>
   </div>
 
 <script>
-const HUB_API = 'http://vm153:8083';
+const DEFAULT_HUB = (() => {
+  if (location.hostname.endsWith('github.io') || location.protocol === 'file:') return '';
+  return 'http://vm153:8083';
+})();
+
+const PARAM_HUB = new URLSearchParams(location.search).get('hub') || '';
+const REFRESH_MS = 30000;
+let refreshTimer = null;
+
+function getHub() {
+  return localStorage.getItem('woclaw_site_hub') || PARAM_HUB || DEFAULT_HUB;
+}
+
+function setHub(value) {
+  if (value) {
+    localStorage.setItem('woclaw_site_hub', value);
+  } else {
+    localStorage.removeItem('woclaw_site_hub');
+  }
+  document.getElementById('hubInput').value = value;
+  document.getElementById('hubHelp').textContent = value ? `Connected to ${value}` : 'Set a Hub URL to load live data.';
+}
+
+function esc(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function fmtUptime(s) {
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 function fmtAge(ms) {
   const s = Math.floor(ms / 1000);
-  if (s < 60) return s + 's ago';
+  if (s < 5) return 'just now';
+  if (s < 60) return `${s}s ago`;
   const m = Math.floor(s / 60);
-  if (m < 60) return m + 'm ago';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return h + 'h ago';
-  return Math.floor(h / 24) + 'd ago';
-}
-
-async function refresh() {
-  await Promise.all([loadHealth(), loadTopics(), loadMemory()]);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 async function api(path) {
-  const r = await fetch(HUB_API + path);
+  const hub = getHub();
+  if (!hub) throw new Error('Set a Hub URL first.');
+  const r = await fetch(hub + path, { signal: AbortSignal.timeout(6000) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
 
+function renderEmpty(el, msg) {
+  el.innerHTML = `<div class="muted-block">${esc(msg)}</div>`;
+}
+
 async function loadHealth() {
+  const el = document.getElementById('healthStats');
+  const hub = getHub();
+  if (!hub) {
+    renderEmpty(el, 'Set a Hub URL first.');
+    return;
+  }
   try {
     const d = await api('/health');
-    const uptimeDays = (d.uptime / 86400).toFixed(1);
-    document.getElementById('hubUrl').textContent = HUB_API;
-    document.getElementById('healthStats').innerHTML = `
+    el.innerHTML = `
       <div class="stat">
-        <div class="stat-value ${d.status === 'ok' ? 'status-ok' : 'status-error'}">${d.status}</div>
+        <div class="stat-value ${d.status === 'ok' ? 'ok' : 'err'}">${esc(d.status)}</div>
         <div class="stat-label">Status</div>
       </div>
       <div class="stat">
-        <div class="stat-value">${d.agents}</div>
+        <div class="stat-value">${esc(d.agents)}</div>
         <div class="stat-label">Connected Agents</div>
       </div>
       <div class="stat">
-        <div class="stat-value">${d.topics}</div>
+        <div class="stat-value">${esc(d.topics)}</div>
         <div class="stat-label">Topics</div>
       </div>
       <div class="stat">
-        <div class="stat-value">${uptimeDays}d</div>
+        <div class="stat-value">${fmtUptime(d.uptime)}</div>
         <div class="stat-label">Uptime</div>
+        <div class="stat-sub">${new Date(d.timestamp).toLocaleTimeString()}</div>
       </div>
     `;
   } catch (e) {
-    document.getElementById('healthStats').innerHTML = `<div class="error-msg">⚠ Cannot reach Hub: ${e.message}</div>`;
+    el.innerHTML = `<div class="error">Cannot reach Hub: ${esc(e.message)}</div>`;
   }
 }
 
 async function loadTopics() {
+  const el = document.getElementById('topicsArea');
+  const hub = getHub();
+  if (!hub) {
+    renderEmpty(el, 'Set a Hub URL first.');
+    return;
+  }
   try {
     const d = await api('/topics');
-    if (!d.topics || d.topics.length === 0) {
-      document.getElementById('topicsArea').innerHTML = '<div class="loading">No topics yet</div>';
+    const topics = d.topics || [];
+    if (!topics.length) {
+      renderEmpty(el, 'No topics yet.');
       return;
     }
-    let html = '<table><thead><tr><th>Topic Name</th><th>Agents</th><th>Messages</th></tr></thead><tbody>';
-    for (const t of d.topics) {
-      let msgCount = '—';
+    let html = '<table><thead><tr><th>Topic</th><th>Agents</th><th>Messages</th></tr></thead><tbody>';
+    for (const t of topics) {
+      let messageCount = '—';
       try {
         const md = await api('/topics/' + encodeURIComponent(t.name) + '?limit=1');
-        msgCount = md.count;
-      } catch(e) {}
-      html += `<tr><td><strong>${t.name}</strong></td><td>${t.agents}</td><td>${msgCount}</td></tr>`;
+        messageCount = md.count ?? md.messages?.length ?? '—';
+      } catch {}
+      html += `<tr><td>${esc(t.name)}</td><td>${esc(t.agents)}</td><td>${esc(messageCount)}</td></tr>`;
     }
-    html += '</tbody></table>';
-    document.getElementById('topicsArea').innerHTML = html;
+    el.innerHTML = html + '</tbody></table>';
   } catch (e) {
-    document.getElementById('topicsArea').innerHTML = `<div class="error-msg">${e.message}</div>`;
+    el.innerHTML = `<div class="error">${esc(e.message)}</div>`;
   }
 }
 
 async function loadMemory() {
+  const el = document.getElementById('memoryArea');
+  const hub = getHub();
+  if (!hub) {
+    renderEmpty(el, 'Set a Hub URL first.');
+    return;
+  }
   try {
     const d = await api('/memory');
-    if (!d.memory || d.memory.length === 0) {
-      document.getElementById('memoryArea').innerHTML = '<div class="loading">No memory entries</div>';
+    const entries = d.memory || [];
+    if (!entries.length) {
+      renderEmpty(el, 'No memory entries yet.');
       return;
     }
-    let html = '<table><thead><tr><th>Key</th><th>Value</th><th>Tags</th><th>Updated</th></tr></thead><tbody>';
-    for (const m of d.memory.slice(0, 50)) {
+    let html = '<table><thead><tr><th>Key</th><th>Value</th><th>Updated</th></tr></thead><tbody>';
+    for (const m of entries.slice(0, 20)) {
+      const value = typeof m.value === 'string' ? m.value : JSON.stringify(m.value);
       const age = m.updatedAt ? fmtAge(Date.now() - m.updatedAt) : '—';
-      const tags = (m.tags || []).map(t => `<span class="badge">${t}</span>`).join(' ');
-      html += `<tr id="memoryTable"><td><strong>${m.key}</strong></td><td>${m.value}</td><td>${tags}</td><td>${age}</td></tr>`;
+      html += `<tr><td>${esc(m.key)}</td><td>${esc(value).slice(0, 80)}</td><td>${esc(age)}</td></tr>`;
     }
-    html += '</tbody></table>';
-    document.getElementById('memoryArea').innerHTML = html;
+    el.innerHTML = html + '</tbody></table>';
   } catch (e) {
-    document.getElementById('memoryArea').innerHTML = `<div class="error-msg">${e.message}</div>`;
+    el.innerHTML = `<div class="error">${esc(e.message)}</div>`;
   }
 }
 
+async function refresh() {
+  await Promise.all([loadHealth(), loadTopics(), loadMemory()]);
+  scheduleRefresh();
+}
+
+function changeHub() {
+  const value = document.getElementById('hubInput').value.trim();
+  setHub(value);
+  refresh();
+}
+
+function clearHub() {
+  setHub('');
+  refresh();
+}
+
+function scheduleRefresh() {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  if (!getHub()) return;
+  refreshTimer = setTimeout(refresh, REFRESH_MS);
+}
+
+document.getElementById('hubInput').value = getHub();
+setHub(getHub());
 refresh();
-setInterval(refresh, 30000);
 </script>
 </body>
 </html>
