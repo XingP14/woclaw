@@ -327,7 +327,7 @@ export class WSServer {
   }
 
   private handleMemoryWrite(fromAgent: string, key: string, value: any, tags?: string[], ttl?: number): void {
-    const { mem } = this.memory.write(key, value, fromAgent, tags ?? [], ttl ?? 0);
+    const { mem, duplicate, conflict, previousValue } = this.memory.write(key, value, fromAgent, tags ?? [], ttl ?? 0);
 
     const notification: OutboundMessage = {
       type: 'memory_update',
@@ -338,6 +338,9 @@ export class WSServer {
       expireAt: mem.expireAt,
       from: fromAgent,
       timestamp: mem.updatedAt,
+      // v1.0: Deduplication — conflict type in WS notification
+      conflictType: duplicate ? 'DUPLICATE_WRITE' : conflict ? 'UPDATE_CONFLICT' : undefined,
+      previousValue: (duplicate || conflict) ? previousValue : undefined,
     };
     this.memory.notifySubscribers(notification);
 

@@ -466,7 +466,10 @@ const result = this.graph.findPath(from, to, maxDepth);
           return;
         }
         const { mem, duplicate, conflict, previousValue } = this.memory.write(key, value ?? '', 'rest-api', tags ?? [], ttl ?? 0);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (conflict) headers['X-WoClaw-Conflict'] = 'true';
+        if (duplicate) headers['X-WoClaw-Duplicate'] = 'true';
+        res.writeHead(200, headers);
         res.end(JSON.stringify({
           key: mem.key,
           value: mem.value,
