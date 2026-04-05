@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { WebSocket } from 'ws';
+import { hostname } from 'os';
 
 export interface WoClawConfig {
   hubUrl: string;
@@ -48,6 +49,7 @@ class WoClawChannelInstance {
   name = 'woclaw';
   private ws: WebSocket | null = null;
   private config: WoClawConfig | null = null;
+  private configSignature: string | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private pingTimer: NodeJS.Timeout | null = null;
   private startupTimer: NodeJS.Timeout | null = null;
@@ -57,22 +59,37 @@ class WoClawChannelInstance {
   private dispatchFn: ((msg: any) => void) | null = null;
   private logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, ...args: any[]) => void; debug: (msg: string) => void } | null = null;
 
-  initialize(config: WoClawConfig, dispatchFn: (msg: any) => void, logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, ...args: any[]) => void; debug: (msg: string) => void }): void {
+  initialize(config: Partial<WoClawConfig>, dispatchFn: (msg: any) => void, logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, ...args: any[]) => void; debug: (msg: string) => void }): void {
+    const resolvedConfig: WoClawConfig = {
+      hubUrl: config.hubUrl || process.env.WOCLAW_HUB_URL || 'ws://vm153:8082',
+      agentId: config.agentId || process.env.WOCLAW_AGENT_ID || `openclaw-${hostname().split('.')[0]}`,
+      token: config.token || process.env.WOCLAW_TOKEN || 'WoClaw2026',
+      autoJoin: config.autoJoin || config.topics || [],
+      topics: config.topics || config.autoJoin || [],
+    };
+    const nextSignature = JSON.stringify(resolvedConfig);
+
+    if (this.ws && this.configSignature === nextSignature && this.ws.readyState !== 3) {
+      this.logger?.debug('[WoClaw] initialize skipped: connection already active');
+      return;
+    }
+
     // Close existing connection before reconnecting
     if (this.ws) {
       try { this.ws.close(1000, 'Reconnecting'); } catch(e) {}
       this.ws = null;
     }
-    this.config = config;
+    this.config = resolvedConfig;
+    this.configSignature = nextSignature;
     this.dispatchFn = dispatchFn;
     this.logger = logger;
-    this.agentId = config.agentId;
+    this.agentId = this.config.agentId;
 
-    if (config.autoJoin) {
-      for (const topic of config.autoJoin) this.topics.add(topic);
+    if (this.config.autoJoin) {
+      for (const topic of this.config.autoJoin) this.topics.add(topic);
     }
-    if (config.topics) {
-      for (const topic of config.topics) this.topics.add(topic);
+    if (this.config.topics) {
+      for (const topic of this.config.topics) this.topics.add(topic);
     }
 
     this.connect();

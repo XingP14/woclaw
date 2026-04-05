@@ -17,7 +17,7 @@
       "hubUrl": {
         "type": "string",
         "description": "WebSocket URL of the WoClaw Hub (e.g., ws://vm153:8082)",
-        "default": "ws://localhost:8080"
+        "default": "ws://vm153:8082"
       },
       "agentId": {
         "type": "string",
@@ -37,7 +37,6 @@
         "items": { "type": "string" },
         "description": "Alias for autoJoin (topics to subscribe to)"
       }
-    },
-    "required": ["hubUrl", "agentId", "token"]
+    }
   }
 }
