@@ -685,4 +685,41 @@ Federation 架构：
   - `hub/test/federation.test.ts`
   - README 新增 Federation 章节
 
+
+### S25: Semantic Recall（Intent-Aware Retrieval）（v1.0）
+
+> 目标：在 recall 操作时支持意图识别和语义相似度搜索
+
+**设计：**
+```
+Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
+  • recall(keywords) — 基于 BM25 的关键词召回（现有）
+  • recall(keywords, intent) — 意图增强召回（新增）
+  • 意图类型：question / task / fact / opinion / context
+  • 语义相似度：基于 label/value 文本的 Jaccard 相似度
+```
+
+- [x] **S25-1（10min）：设计意图分类方案 + recall 接口扩展** ✅ 2026-04-05
+  -  ✅
+  -  intent-aware tag boost ✅
+  -  文本相似度搜索 ✅
+  - Build ✅ + All 92 tests pass ✅
+  - `hub/src/memory.ts` 扩展 `recall(intent?)` 接口
+  - `IntentType` enum: `question | task | fact | opinion | context`
+  - intent → 权重调整（question 优先返回 factual 记忆）
+
+- [x] **S25-2（10min）：实现语义相似度排序** ✅ 2026-04-05
+  -  — Jaccard 相似度搜索 ✅
+  -  ✅
+  - vm153 已部署验证 ✅
+  - recall 时对结果按 `computeTextSimilarity(query, memory.label + memory.value)` 排序
+  - 相似度 > threshold 的结果 boost 上浮
+
+- [x] **S25-3（10min）：测试 + 文档** ✅ 2026-04-05
+  - STOP_WORDS 修复（添加 the/is/a）✅
+  - All 91 unit tests pass ✅
+  - README 新增 Semantic Recall 章节 ✅
+  - `hub/test/semantic_recall.test.ts`
+  - README 新增 Semantic Recall 章节
+
 _Last updated:
