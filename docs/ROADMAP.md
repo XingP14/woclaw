@@ -136,7 +136,7 @@ woclaw migrate --all            # 执行所有迁移
 
 ### 安全与扩展
 - [ ] TLS/SSL (wss://)
-- [ ] Token 轮换
+- [x] Token 轮换 — rotateToken, GET/POST /admin/token ✅ (S22, 2026-04-05)
 - [ ] 连接限流
 - [ ] 私有 Topic（邀请制）
 
@@ -598,31 +598,10 @@ woclaw migrate --all            # 执行所有迁移
   - 返回新 token 和 grace period 截止时间
 
 - [x] **S22-3（10min）：单元测试 + 文档** ✅ 2026-04-05
-  - Build ✅ + All tests ✅
-  - `hub/test/token_rotation.test.ts`
+  - Build ✅ + All 86 tests pass ✅
+  - `hub/test/token_rotation.test.ts` — 4 个单元测试 ✅
   - README 新增 Token Rotation 章节
-  - `POST /graph/nodes` — 创建节点 ✅
-  - `GET /graph/nodes` — 列出节点（支持 type 过滤）✅
-  - `GET /graph/nodes/:id` — 获取节点详情 ✅
-  - `DELETE /graph/nodes/:id` — 删除节点 ✅
-  - Build ✅ + All tests ✅
-
-- [x] **S21-2（10min）：边 CRUD API** ✅ 2026-04-05
-  - `POST /graph/edges` — 创建边 ✅
-  - `GET /graph/edges` — 列出边（支持 source/target/type 过滤）✅
-  - `DELETE /graph/edges/:id` — 删除边 ✅
-  - `GET /graph/stats` — 图统计 ✅
-
-- [x] **S21-3（10min）：图遍历查询 API** ✅ 2026-04-05
-  - `GET /graph/traverse/:nodeId` — BFS 遍历邻接节点 ✅
-  - `GET /graph/paths/:from/:to` — 查找两节点间路径 ✅
-  - `GET /graph/related/:nodeId` — 获取相关节点 ✅
-
-- [x] **S21-4（10min）：自动边生成 + 单元测试** ✅ 2026-04-05
-  - `syncMemoryNode()` 自动创建 memory/agent/topic 节点 + entity 边 ✅
-  - `findSimilarMemories()` 自动评估 semantic 相似度 ✅
-  - `hub/test/graph.test.ts` — 16 个单元测试 ✅
 
 ---
 
-_Last updated: 2026-04-05 06:31 CST_
+_Last updated: 2026-04-05 08:15 CST_
