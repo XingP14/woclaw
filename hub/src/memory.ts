@@ -64,6 +64,48 @@ function tokenize(text: string): string[] {
     .filter(w => w.length > 1 && !STOP_WORDS.has(w));
 }
 
+function normalizeScope(scope?: string): 'all' | 'workspace' | 'session' {
+  if (scope === 'workspace' || scope === 'session') return scope;
+  return 'all';
+}
+
+function extractTitle(mem: DBMemory): string {
+  const titleFromKey = mem.key
+    .split(':')
+    .pop()
+    ?.replace(/[._-]+/g, ' ')
+    .trim();
+
+  const firstLine = mem.value
+    .split('\n')
+    .map(line => line.trim())
+    .find(line => line.length > 0);
+
+  if (firstLine) {
+    const heading = firstLine.match(/^#{1,6}\s+(.+)$/);
+    if (heading?.[1]) {
+      const candidate = heading[1].trim();
+      if (
+        !candidate.toLowerCase().includes('openclaw workspace memory') &&
+        !candidate.toLowerCase().includes('openclaw session store')
+      ) {
+        return candidate;
+      }
+    }
+  }
+
+  return titleFromKey || mem.key;
+}
+
+function isVisibleInScope(mem: DBMemory, scope: 'all' | 'workspace' | 'session'): boolean {
+  if (scope === 'all') return true;
+  const key = mem.key.toLowerCase();
+  if (scope === 'workspace') {
+    return key.includes('openclaw:workspace:') || mem.tags.some(tag => tag.toLowerCase().includes('workspace'));
+  }
+  return key.includes('openclaw:session:') || mem.tags.some(tag => tag.toLowerCase().includes('session'));
+}
+
 export class MemoryPool {
   private db: ClawDB;
   private subscribers: Map<string, (msg: OutboundMessage) => void> = new Map();
@@ -127,6 +169,48 @@ export class MemoryPool {
   // v0.4: query memory by tag
   async queryByTag(tag: string): Promise<DBMemory[]> {
     return (await this.getAll()).filter(m => m.tags.includes(tag));
+  }
+
+  async search(query: string, limit: number = 10, scope: string = 'all'): Promise<DBMemory[]> {
+    const keywords = tokenize(query);
+    if (keywords.length === 0) return [];
+
+    const normalizedScope = normalizeScope(scope);
+    const all = (await this.getAll()).filter(mem => isVisibleInScope(mem, normalizedScope));
+
+    const scored = all.map(mem => {
+      const title = extractTitle(mem);
+      const keyTokens = tokenize(mem.key);
+      const titleTokens = tokenize(title);
+      const tagTokens = mem.tags.flatMap(tag => tokenize(tag));
+      let score = 0;
+
+      for (const kw of keywords) {
+        if (mem.key.toLowerCase() === kw) score += 6;
+        if (keyTokens.includes(kw)) score += 5;
+        if (titleTokens.includes(kw)) score += 4;
+        if (mem.tags.some(tag => tag.toLowerCase() === kw)) score += 4;
+        if (tagTokens.includes(kw)) score += 3;
+        if (mem.key.toLowerCase().includes(kw)) score += 2;
+        if (title.toLowerCase().includes(kw)) score += 2;
+        if (mem.tags.some(tag => tag.toLowerCase().includes(kw))) score += 1;
+      }
+
+      const phrase = keywords.join(' ');
+      const keyTitle = `${mem.key} ${title}`.toLowerCase();
+      if (keyTitle.includes(phrase)) score += 3;
+
+      return { mem, score };
+    });
+
+    return scored
+      .filter(entry => entry.score >= 3)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.mem.updatedAt - a.mem.updatedAt;
+      })
+      .slice(0, limit)
+      .map(entry => entry.mem);
   }
 
   // v0.4: Memory Versioning - get all historical versions for a key

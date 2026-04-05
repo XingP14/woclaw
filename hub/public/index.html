@@ -32,9 +32,12 @@
     .badge-online { background: #238636; color: #fff; }
     .badge-offline { background: #6e7681; color: #fff; }
     .badge-private { background: #9e6a03; color: #fff; }
-    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-    .search-bar input { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #e6edf3; font-size: 14px; outline: none; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-bar input, .search-bar select { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #e6edf3; font-size: 14px; outline: none; }
+    .search-bar input { flex: 1; min-width: 220px; }
+    .search-bar select { min-width: 140px; }
     .search-bar input:focus { border-color: #58a6ff; }
+    .search-bar select:focus { border-color: #58a6ff; }
     .search-bar button { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 14px; }
     .search-bar button:hover { background: #2ea043; }
     .memory-result { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
@@ -112,6 +115,11 @@
       <div class="panel-title">Memory Search</div>
     </div>
     <div class="search-bar">
+      <select id="memScope" aria-label="Search scope">
+        <option value="all">All</option>
+        <option value="workspace">Workspace</option>
+        <option value="session">Session</option>
+      </select>
       <input type="text" id="memQuery" placeholder="Search memory (e.g. project config)..." onkeydown="if(event.key==='Enter')searchMemory()">
       <button onclick="searchMemory()">Search</button>
     </div>
@@ -295,22 +303,23 @@ async function loadFederation() {
 // Search memory
 async function searchMemory() {
   const q = document.getElementById('memQuery').value.trim();
+  const scope = document.getElementById('memScope').value || 'all';
   const results = document.getElementById('memResults');
   if (!q) { results.innerHTML = '<div class="empty">Enter a query to search</div>'; return; }
   results.innerHTML = '<div class="loading">Searching...</div>';
   try {
-    const r = await api('/memory/search?q=' + encodeURIComponent(q) + '&limit=20');
+    const r = await api('/memory/search?q=' + encodeURIComponent(q) + '&limit=20&scope=' + encodeURIComponent(scope));
     const memCount = r.count;
     document.getElementById('statMemory').textContent = memCount;
     if (!r.memories || r.memories.length === 0) {
-      results.innerHTML = '<div class="empty">No results for "' + esc(q) + '"</div>';
+      results.innerHTML = '<div class="empty">No results for "' + esc(q) + '" in ' + esc(scope) + '</div>';
       return;
     }
     results.innerHTML = r.memories.map(m => `
       <div class="memory-result clickable" onclick="showMemoryDetail(decodeURIComponent('${encodeURIComponent(m.key)}'))">
         <div class="key">${esc(m.key)}</div>
         <div class="value">${esc(String(m.value).substring(0, 300))}</div>
-        <div class="meta">by ${esc(m.updatedBy)} &middot; ${timeAgo(m.updatedAt)} &middot; tags: ${(m.tags || []).join(', ') || 'none'}</div>
+        <div class="meta">by ${esc(m.updatedBy)} &middot; ${timeAgo(m.updatedAt)} &middot; tags: ${(m.tags || []).join(', ') || 'none'} &middot; scope: ${esc(scope)}</div>
       </div>
     `).join('');
   } catch (e) {

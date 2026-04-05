@@ -87,6 +87,50 @@ describe('MemoryPool', () => {
     });
   });
 
+  describe('Precise Search', () => {
+    it('matches key and title, not body noise', async () => {
+      await mp.write(
+        'openclaw:workspace:workspace:memory:2026-03-07-vps-firewall.md',
+        '# OpenClaw Workspace Memory\nSome unrelated body text about notes.',
+        'a',
+        ['openclaw', 'workspace-memory'],
+      );
+      await mp.write(
+        'openclaw:session:main:agent:main:cron:abc123',
+        '# OpenClaw Session Store\nFirewall is mentioned only in the body.',
+        'a',
+        ['openclaw', 'session-store'],
+      );
+
+      const results = await mp.search('firewall');
+      expect(results.length).toBe(1);
+      expect(results[0].key).toContain('vps-firewall');
+    });
+
+    it('supports workspace and session scope filters', async () => {
+      await mp.write(
+        'openclaw:workspace:workspace:memory:2026-03-01.md',
+        '# OpenClaw Workspace Memory\nAlpha',
+        'a',
+        ['openclaw', 'workspace-memory'],
+      );
+      await mp.write(
+        'openclaw:session:main:agent:main:cron:abc123',
+        '# OpenClaw Session Store\nAlpha',
+        'a',
+        ['openclaw', 'session-store'],
+      );
+
+      const workspaceResults = await mp.search('openclaw', 10, 'workspace');
+      expect(workspaceResults.length).toBe(1);
+      expect(workspaceResults[0].key).toContain('workspace:memory');
+
+      const sessionResults = await mp.search('openclaw', 10, 'session');
+      expect(sessionResults.length).toBe(1);
+      expect(sessionResults[0].key).toContain('session:main');
+    });
+  });
+
   describe('cleanupExpired', () => {
     it('removes expired entries', async () => {
       await mp.write('expired', 'v', 'a', [], 1);
