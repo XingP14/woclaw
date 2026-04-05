@@ -157,10 +157,19 @@ export class RestServer {
         const topicName = decodeURIComponent(path.slice(8));
         if (method === 'GET') {
           this.handleTopicMessages(res, topicName, url.searchParams.get('limit'));
+        } else if (method === 'POST') {
+          this.handleTopicCreate(req, res, topicName);
         } else {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
+      // v1.0: Private topic invite/join
+      } else if (path.startsWith('/topics/') && path.endsWith('/invite') && method === 'POST') {
+        const name = decodeURIComponent(path.slice(8, -7));
+        this.handleTopicInvite(req, res, name);
+      } else if (path.startsWith('/topics/') && path.endsWith('/join') && method === 'POST') {
+        const name = decodeURIComponent(path.slice(8, -5));
+        this.handleTopicJoin(req, res, name);
       // v0.4: Delegation REST endpoints
       } else if (path === '/delegations' || path.startsWith('/delegations')) {
         this.handleDelegations(req, res, url, path, method);
@@ -836,4 +845,72 @@ const result = this.graph.findPath(from, to, maxDepth);
       console.log('[WoClaw] REST server closed');
     }
   }
+
+  // v1.0: Create a topic (optionally private)
+  private handleTopicCreate(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { isPrivate } = body ? JSON.parse(body) : {};
+        if (isPrivate) {
+          this.topics.createPrivateTopic(topicName);
+        } else {
+          this.topics.createTopic(topicName, false);
+        }
+        const topic = this.topics.getTopic(topicName)!;
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ topic: { name: topic.name, isPrivate: topic.isPrivate, agents: [...topic.agents] } }));
+      } catch (e: any) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+  }
+
+  // v1.0: Invite an agent to a private topic
+  private handleTopicInvite(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { agentId, ttlMs } = JSON.parse(body);
+        if (!agentId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required field: agentId' }));
+          return;
+        }
+        const token = this.topics.inviteToTopic(topicName, agentId, ttlMs);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, inviteToken: token, topic: topicName, invitedAgent: agentId }));
+      } catch (e: any) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+  }
+
+  // v1.0: Join a private topic with invite token
+  private handleTopicJoin(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { agentId, inviteToken } = JSON.parse(body);
+        if (!agentId || !inviteToken) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required fields: agentId, inviteToken' }));
+          return;
+        }
+        const topic = this.topics.joinPrivateTopic(agentId, topicName, inviteToken);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, topic: { name: topic.name, isPrivate: true, agents: [...topic.agents] } }));
+      } catch (e: any) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+  }
+
+
 }

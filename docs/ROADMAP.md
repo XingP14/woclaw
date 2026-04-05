@@ -616,7 +616,11 @@ Topic 类型：
     - invite token 有时效性（默认 10 分钟）
 ```
 
-- [ ] **S23-1（10min）：设计私有 Topic 方案 + Topic 类型修改** 🔨 进行中
+- [x] **S23-1（10min）：设计私有 Topic 方案 + Topic 类型修改** ✅ 2026-04-05
+  - `Topic.isPrivate`, `inviteToken`, `inviteExpiresAt`, `invitedAgents` ✅
+  - `TopicsManager.createPrivateTopic()`, `inviteToTopic()`, `joinPrivateTopic()` ✅
+  - REST endpoints `POST /topics`, `POST /topics/:name/invite`, `POST /topics/:name/join` ✅
+  - Build ✅ + All tests ✅
   - `hub/src/types.ts` 新增 `Topic.type: 'public' | 'private'`
   - `Topic.inviteToken?: string` 邀请令牌
   - `Topic.invitedAgents?: string[]` 已邀请的 Agent 列表

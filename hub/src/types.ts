@@ -66,6 +66,11 @@ export interface Topic {
   agents: Set<string>;
   messageCount: number;
   createdAt: number;
+  // v1.0: Private topics
+  isPrivate: boolean;            // true = private (invite-only), false = public
+  inviteToken?: string;          // one-time or time-limited invite token
+  inviteExpiresAt?: number;      // Unix timestamp when invite token expires
+  invitedAgents: Set<string>;    // agentIds that have been invited (can join with token)
 }
 
 export interface DBMessage {
