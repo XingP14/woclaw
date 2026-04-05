@@ -141,7 +141,7 @@ woclaw migrate --all            # 执行所有迁移
 - [ ] 私有 Topic（邀请制）— S23
 
 ### 联邦
-- [ ] Multi-Hub Federation — Hub 之间互联
+- [ ] Multi-Hub Federation — Hub 之间互联 (S24)
 - [ ] 官方托管服务
 
 ---
@@ -641,5 +641,36 @@ Topic 类型：
 
 
 ---
+
+
+### S24: Multi-Hub Federation（v1.0）
+
+> 目标：多个 WoClaw Hub 之间互联，形成分布式 agent 网络
+
+**设计：**
+```
+Federation 架构：
+  • 每个 Hub 有唯一 ID（hubId）和公钥
+  • Hub 之间通过 WebSocket 建立 federation 连接
+  • 消息路由：跨 Hub 消息通过 federation 隧道转发
+  • 信任模型：每个 Hub 需要预共享 federation token 才能连接
+```
+
+- [ ] **S24-1（10min）：设计 Federation 方案 + Hub 注册表** 🔨 进行中
+  - `hub/src/types.ts` 新增 `FederationConfig`, `HubPeer` 类型
+  - Hub 启动时注册到已知 peer Hub 列表
+  - `POST /federation/peers` — 添加 federation peer Hub
+
+- [ ] **S24-2（10min）：实现 Hub-to-Hub WebSocket 连接** ⏳ 待开始
+  - 定期 ping peer Hub 保持连接
+  - 跨 Hub 消息路由：agent 消息可发往其他 Hub 的 agent
+
+- [ ] **S24-3（10min）：实现跨 Hub 消息路由 REST API** ⏳ 待开始
+  - `POST /federation/send` — 向其他 Hub 的 agent 发送消息
+  - 在 ws_server.ts 处理 `federation_send` 消息类型
+
+- [ ] **S24-4（10min）：测试 + 文档** ⏳ 待开始
+  - `hub/test/federation.test.ts`
+  - README 新增 Federation 章节
 
 _Last updated:
