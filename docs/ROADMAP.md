@@ -196,6 +196,7 @@ woclaw migrate --all            # 执行所有迁移
 | S25 | Semantic Recall（意图感知检索）| v1.0 | 3 | ~30min | ✅ |
 | S26 | Deduplication | v1.0 | 3 | ~30min | ✅ |
 | S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | ✅ |
+| S28 | VS Code Extension | v1.0+ | 2 | ~20min | 🔨 进行中 |
 
 ---
 
