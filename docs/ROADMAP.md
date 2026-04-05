@@ -743,7 +743,10 @@ Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
   - DBMemory.conflictInfo?: { previousValue, timestamp, updatedBy }
   - REST API 返回冲突 header（X-WoClaw-Conflict: true）
 
-- [ ] **S26-2（10min）：REST API + WebSocket 冲突通知** :hourglass: 待开始
+- [x] **S26-2（10min）：REST API + WebSocket 冲突通知** :white_check_mark: 2026-04-05
+  - POST /memory 返回 X-WoClaw-Conflict/X-WoClaw-Duplicate header :white_check_mark:
+  - WebSocket memory_update 含 conflictType 字段 :white_check_mark:
+  - vm153 已部署验证 :white_check_mark:
   - GET /memory/:key 返回 X-WoClaw-Conflict 头
   - WebSocket 消息中增加 conflictType 字段
 
