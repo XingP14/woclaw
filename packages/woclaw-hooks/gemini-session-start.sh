@@ -28,28 +28,22 @@ RAW=$(curl -s \
   -H "Authorization: Bearer $WOCLAW_TOKEN" \
   "$WOCLAW_HUB_URL/memory?key=$WOCLAW_PROJECT_KEY")
 
-# Parse JSON: extract all .value fields and join with separators
-COUNT=$(echo "$RAW" | node -pe "
+# Parse JSON: extract all .value fields and join with separators.
+CONTEXT=$(printf '%s' "$RAW" | node -e "
+const fs = require('fs');
 try {
-  const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-  if (!data.memory) { process.stdout.write('0'); return; }
-  const count = data.memory.filter(m => m.value && m.value.trim()).length;
-  process.stdout.write(String(count));
-} catch(e) { process.stdout.write('0'); }
-" 2>/dev/null || echo "0")
-
-if [ "$COUNT" -gt 0 ]; then
-  echo ""
-  echo "=== WoClaw: Shared project context ($WOCLAW_PROJECT_KEY, $COUNT entries) ==="
-  echo "$RAW" | node -pe "
-try {
-  const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+  const data = JSON.parse(fs.readFileSync(0, 'utf8'));
   const entries = (data.memory || [])
     .filter(m => m.value && m.value.trim())
     .map(m => m.value);
-  console.log(entries.join('\n\n---\n\n'));
-} catch(e) {}
-"
+  process.stdout.write(entries.join('\n\n---\n\n'));
+} catch (e) {}
+" 2>/dev/null)
+
+if [ -n "$CONTEXT" ]; then
+  echo ""
+  echo "=== WoClaw: Shared project context ($WOCLAW_PROJECT_KEY) ==="
+  echo "$CONTEXT"
   echo "============================================================"
 else
   echo ""

@@ -79,15 +79,28 @@ export class WSServer {
     console.log(`[WoClaw] WebSocket server running on ${useTLS ? 'wss' : 'ws'}://${config.host}:${config.port}`);
   }
 
+  private expireTokenGracePeriodIfNeeded(): void {
+    if (this.gracePeriodEnd !== null && Date.now() >= this.gracePeriodEnd) {
+      this.config.nextAuthToken = undefined;
+      this.gracePeriodEnd = null;
+    }
+  }
+
+  isTokenAuthorized(token?: string): boolean {
+    if (!token) return false;
+
+    this.expireTokenGracePeriodIfNeeded();
+
+    if (token === this.config.authToken) return true;
+    return this.gracePeriodEnd !== null && token === this.config.nextAuthToken;
+  }
+
   private handleConnection(ws: WS, req: any): void {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const agentId = url.searchParams.get('agentId');
     const token = url.searchParams.get('token');
 
-    // v1.0: Token rotation — accept current or next token during grace period
-    const isValidToken = token === this.config.authToken ||
-      (this.config.nextAuthToken && token === this.config.nextAuthToken);
-    if (!agentId || !isValidToken) {
+    if (!agentId || !this.isTokenAuthorized(token ?? undefined)) {
       ws.close(4001, 'Unauthorized');
       return;
     }
@@ -765,6 +778,8 @@ export class WSServer {
   }
 
   getTokenStatus(): { currentTokenMasked: string; inGracePeriod: boolean; gracePeriodEnd: number | null } {
+    this.expireTokenGracePeriodIfNeeded();
+
     return {
       currentTokenMasked: this.config.authToken.slice(0, 8) + '...',
       inGracePeriod: this.gracePeriodEnd !== null && Date.now() < this.gracePeriodEnd,

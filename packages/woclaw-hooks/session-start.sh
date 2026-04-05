@@ -20,15 +20,16 @@ RAW=$(curl -s \
   -H "Authorization: Bearer $WOCLAW_TOKEN" \
   "$WOCLAW_HUB_URL/memory?key=$WOCLAW_PROJECT_KEY")
 
-# Parse JSON: extract all .value fields from the memory array
-# and join them with newlines
-CONTEXT=$(echo "$RAW" | node -pe "
-const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-if (!data.memory || data.memory.length === 0) process.exit(0);
-const entries = data.memory
-  .filter(m => m.value && m.value.trim())
-  .map(m => m.value);
-console.log(entries.join('\n\n---\n\n'));
+# Parse JSON: extract all .value fields from the memory array and join them.
+CONTEXT=$(printf '%s' "$RAW" | node -e "
+const fs = require('fs');
+try {
+  const data = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const entries = (data.memory || [])
+    .filter(m => m.value && m.value.trim())
+    .map(m => m.value);
+  process.stdout.write(entries.join('\n\n---\n\n'));
+} catch (e) {}
 " 2>/dev/null)
 
 if [ -n "$CONTEXT" ]; then

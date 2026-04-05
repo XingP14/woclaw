@@ -21,6 +21,7 @@ import sys
 import json
 import urllib.request
 import urllib.error
+from typing import Optional
 
 
 HUB_URL = os.environ.get("WOCLAW_HUB_URL", "http://vm153:8083")
@@ -28,7 +29,7 @@ TOKEN = os.environ.get("WOCLAW_TOKEN", "WoClaw2026")
 MEMORY_KEY = os.environ.get("WOCLAW_KEY", "codex:context")
 
 
-def read_memory(key: str) -> str | None:
+def read_memory(key: str) -> Optional[str]:
     """Read a value from WoClaw Hub REST API."""
     url = f"{HUB_URL}/memory/{key}"
     req = urllib.request.Request(

@@ -28,23 +28,20 @@ if [ ! -t 0 ]; then
 fi
 
 # Extract session_id if available
-SESSION_ID=$(echo "$STDIN_DATA" | node -pe "
+SESSION_ID=$(printf '%s' "$STDIN_DATA" | node -e "
+const fs = require('fs');
 try {
-  const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-  console.log(d.sessionId || '');
-} catch(e) { console.log(''); }
+  const d = JSON.parse(fs.readFileSync(0, 'utf8'));
+  process.stdout.write(d.sessionId || '');
+} catch (e) {}
 " 2>/dev/null || echo "")
 
 # Extract recentInteractions for session summary
-INTERACTIONS_SUMMARY=$(echo "$STDIN_DATA" | node -pe "
+INTERACTIONS_SUMMARY=$(printf '%s' "$STDIN_DATA" | node -e "
+const fs = require('fs');
 try {
-  const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-  const interactions = d.recentInteractions || [];
-  if (interactions.length === 0) {
-    console.log('');
-    return;
-  }
-  // Build a summary from last few interactions
+  const d = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const interactions = Array.isArray(d.recentInteractions) ? d.recentInteractions : [];
   const last5 = interactions.slice(-5);
   const lines = last5.map(i => {
     const role = i.role || 'unknown';
@@ -52,8 +49,8 @@ try {
     const truncated = content.length > 200 ? content.substring(0, 200) + '...' : content;
     return role + ': ' + truncated;
   });
-  console.log(lines.join('\\n'));
-} catch(e) { console.log(''); }
+  process.stdout.write(lines.join('\\n'));
+} catch (e) {}
 " 2>/dev/null || echo "")
 
 # Also check for CLAUDE.md or .gemini/sessions as fallback
@@ -69,9 +66,13 @@ fi
 
 # Determine what to write
 if [ -n "$INTERACTIONS_SUMMARY" ]; then
-  WRITE_VALUE=$(echo "$INTERACTIONS_SUMMARY" | node -pe "
-const lines = require('fs').readFileSync('/dev/stdin','utf8').split('\n').filter(l=>l.trim());
-console.log(JSON.stringify(lines.join('\n')));
+  WRITE_VALUE=$(printf '%s' "$INTERACTIONS_SUMMARY" | node -e "
+const fs = require('fs');
+try {
+  process.stdout.write(JSON.stringify(fs.readFileSync(0, 'utf8')));
+} catch (e) {
+  process.stdout.write('\"\"');
+}
 " 2>/dev/null || echo '""')
 elif [ -n "$FALLBACK_SUMMARY" ] && [ "$FALLBACK_SUMMARY" != '""' ]; then
   WRITE_VALUE="$FALLBACK_SUMMARY"

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { ChildProcess, spawn } from 'child_process';
 import WebSocket from 'ws';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Start the Hub server on a random available port
 const HUB_PORT = 18082;
@@ -10,33 +12,44 @@ const AUTH_TOKEN = 'test-token-123';
 const HUB_URL = `ws://127.0.0.1:${HUB_PORT}`;
 const REST_URL = `http://127.0.0.1:${REST_PORT}`;
 const DATA_DIR = `/tmp/woclaw-integration-test-${Date.now()}`;
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(TEST_DIR, '..');
+const HUB_DIR = path.join(ROOT_DIR, 'hub');
+const TSC_BIN = path.join(ROOT_DIR, 'node_modules', 'typescript', 'bin', 'tsc');
 
 let hubProcess: ChildProcess;
 
 function startHub(): Promise<void> {
-  return new Promise((resolve) => {
-    hubProcess = spawn('node', ['dist/index.js'], {
-      cwd: '/home/node/.openclaw/workspace/woclaw/hub',
-      env: {
-        ...process.env,
-        PORT: String(HUB_PORT),
-        REST_PORT: String(REST_PORT),
-        AUTH_TOKEN,
-        HOST: '0.0.0.0',
-        DATA_DIR,
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
+  return new Promise((resolve, reject) => {
+    const build = spawn('/bin/bash', ['-lc', `node "${TSC_BIN}" -p tsconfig.json`], {
+      cwd: HUB_DIR,
+      env: process.env,
+      stdio: 'inherit',
     });
 
-    hubProcess.stderr?.on('data', (chunk: Buffer) => {
-      const line = chunk.toString();
-      if (line.includes('listening') || line.includes('started')) {
-        resolve();
+    build.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Build failed: ${code}`));
+        return;
       }
+      hubProcess = spawn('/bin/bash', ['-lc', 'node dist/index.js'], {
+        cwd: HUB_DIR,
+        env: {
+          ...process.env,
+          PORT: String(HUB_PORT),
+          REST_PORT: String(REST_PORT),
+          AUTH_TOKEN,
+          HOST: '0.0.0.0',
+          DATA_DIR,
+        },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      resolve();
     });
 
-    // Timeout fallback
-    setTimeout(resolve, 3000);
+    build.on('error', (error) => {
+      reject(error);
+    });
   });
 }
 
@@ -71,17 +84,9 @@ async function waitForHub(ms = 5000): Promise<void> {
 
 describe('WoClaw Hub Integration Tests', () => {
   beforeAll(async () => {
-    // Build hub first
-    const build = spawn('npm', ['run', 'build'], {
-      cwd: '/home/node/.openclaw/workspace/woclaw/hub',
-    });
-    await new Promise<void>((resolve, reject) => {
-      build.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Build failed: ${code}`)));
-    });
-
     await startHub();
     await waitForHub();
-  }, 30000);
+  }, 60000);
 
   afterAll(async () => {
     await stopHub();
@@ -200,6 +205,13 @@ describe('WoClaw Hub Integration Tests', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'k', value: 'v' }),
       });
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('REST API - Admin', () => {
+    it('GET /admin/token/status rejects requests without token', async () => {
+      const res = await fetch(`${REST_URL}/admin/token/status`);
       expect(res.status).toBe(401);
     });
   });
@@ -334,6 +346,50 @@ describe('WoClaw Hub Integration Tests', () => {
         ws.on('error', reject);
       });
     });
+  });
+
+  describe('REST API - Delegations', () => {
+    it('POST /delegations auto-generates an id and delivers to connected agents', async () => {
+      await new Promise((resolve, reject) => {
+        const target = new WebSocket(`${HUB_URL}?agentId=delegate-target&token=${AUTH_TOKEN}`);
+        target.on('message', async (data) => {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'delegate_incoming') {
+            try {
+              expect(msg.fromAgent).toBe('rest-api');
+              expect(msg.task?.description).toBe('generated-id test');
+              target.close();
+              resolve(undefined);
+            } catch (error) {
+              reject(error);
+            }
+          }
+        });
+        target.on('error', reject);
+        target.on('open', async () => {
+          try {
+            const res = await fetch(`${REST_URL}/delegations`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${AUTH_TOKEN}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                toAgent: 'delegate-target',
+                task: { description: 'generated-id test' },
+              }),
+            });
+            expect(res.status).toBe(200);
+            const body = await res.json() as any;
+            expect(typeof body.id).toBe('string');
+            expect(body.id.length).toBeGreaterThan(0);
+            expect(body.status).toBe('requested');
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+    }, 20000);
   });
 
   // ─── Multi-Agent Tests ────────────────────────────────────────────

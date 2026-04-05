@@ -24,8 +24,14 @@ npm run vscode:prepublish
 | `woclaw.hubUrl` | `http://localhost:8083` | WoClaw Hub REST API 地址 |
 | `woclaw.statusBar` | `true` | 是否在状态栏显示 |
 
-## 发布（TODO）
+## 发布
 
 ```bash
-vsce publish --publisher XingP14
+cd packages/woclaw-vscode
+npm install
+npm run compile
+vsce package
+vsce publish  # 需要 VS Code Token（在 https://marketplace.visualstudio.com/manage 创建）
 ```
+
+发布后可在 [VS Code Marketplace](https://marketplace.visualstudio.com) 搜索 "WoClaw" 安装。

@@ -20,6 +20,7 @@ import json
 import urllib.request
 import urllib.error
 from datetime import datetime
+from typing import Optional
 
 
 HUB_URL = os.environ.get("WOCLAW_HUB_URL", "http://vm153:8083")
@@ -53,7 +54,7 @@ def write_memory(key: str, value: str, hostname: str) -> bool:
         return False
 
 
-def read_transcript(path: str | None, max_lines: int = 80) -> str | None:
+def read_transcript(path: Optional[str], max_lines: int = 80) -> Optional[str]:
     """Read the last lines of the session transcript."""
     if not path:
         return None

@@ -115,7 +115,11 @@
 </div>
 
 <script>
-const API = ''; // Use same origin - Hub serves UI on REST port
+const API = (() => {
+  const url = new URL(window.location.href);
+  url.port = '8083';
+  return url.origin;
+})();
 
 function api(path) {
   return fetch(API + path, { headers: { 'Authorization': 'Bearer ' + getToken() } })
@@ -180,7 +184,8 @@ async function loadTopics() {
   const tb = document.getElementById('topicsBody');
   tb.innerHTML = '<tr><td colspan="4" class="loading">Loading...</td></tr>';
   try {
-    const topics = await api('/topics');
+    const payload = await api('/topics');
+    const topics = Array.isArray(payload) ? payload : (payload.topics || []);
     if (!topics || topics.length === 0) {
       tb.innerHTML = '<tr><td colspan="4" class="empty">No topics yet</td></tr>';
       document.getElementById('statTopics').textContent = '0';
@@ -192,7 +197,7 @@ async function loadTopics() {
       return `<tr>
         <td><strong>${esc(t.name)}</strong></td>
         <td>${priv}</td>
-        <td>${t.agents ? t.agents.length : 0}</td>
+        <td>${typeof t.agents === 'number' ? t.agents : (t.agents?.length || 0)}</td>
         <td>${t.inviteToken || '-'}</td>
       </tr>`;
     }).join('');
@@ -206,14 +211,15 @@ async function loadAgents() {
   const tb = document.getElementById('agentsBody');
   tb.innerHTML = '<tr><td colspan="3" class="loading">Loading...</td></tr>';
   try {
-    const agents = await api('/agents');
+    const payload = await api('/agents');
+    const agents = Array.isArray(payload) ? payload : (payload.agents || []);
     if (!agents || agents.length === 0) {
       tb.innerHTML = '<tr><td colspan="3" class="empty">No agents connected</td></tr>';
       return;
     }
     tb.innerHTML = agents.map(a => {
       const topics = (a.topics || []).join(', ') || '-';
-      const connected = a.connectedAt ? timeAgo(a.connectedAt * 1000) : '-';
+      const connected = a.connectedAt ? timeAgo(a.connectedAt) : '-';
       return `<tr>
         <td><strong>${esc(a.agentId)}</strong></td>
         <td>${esc(topics)}</td>
@@ -230,7 +236,8 @@ async function loadFederation() {
   const tb = document.getElementById('fedBody');
   tb.innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
   try {
-    const peers = await api('/federation/peers');
+    const payload = await api('/federation/peers');
+    const peers = Array.isArray(payload) ? payload : (payload.peers || []);
     if (!peers || peers.length === 0) {
       tb.innerHTML = '<tr><td colspan="5" class="empty">No federation peers configured</td></tr>';
       return;
