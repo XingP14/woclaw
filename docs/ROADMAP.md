@@ -138,7 +138,7 @@ woclaw migrate --all            # 执行所有迁移
 - [ ] TLS/SSL (wss://)
 - [x] Token 轮换 — rotateToken, GET/POST /admin/token ✅ (S22, 2026-04-05)
 - [ ] 连接限流
-- [ ] 私有 Topic（邀请制）
+- [ ] 私有 Topic（邀请制）— S23
 
 ### 联邦
 - [ ] Multi-Hub Federation — Hub 之间互联
@@ -602,6 +602,36 @@ woclaw migrate --all            # 执行所有迁移
   - `hub/test/token_rotation.test.ts` — 4 个单元测试 ✅
   - README 新增 Token Rotation 章节
 
+### S23: 私有 Topic（邀请制）（v1.0）
+
+> 目标：支持创建私有 Topic，只有被邀请的 Agent 才能加入
+
+**设计：**
+```
+Topic 类型：
+  • public — 任何已认证 Agent 都可以订阅（现有行为）
+  • private — 需要邀请才能加入
+    - creator 邀请时生成 invite token
+    - 被邀请的 agent 凭 invite token join
+    - invite token 有时效性（默认 10 分钟）
+```
+
+- [ ] **S23-1（10min）：设计私有 Topic 方案 + Topic 类型修改** 🔨 进行中
+  - `hub/src/types.ts` 新增 `Topic.type: 'public' | 'private'`
+  - `Topic.inviteToken?: string` 邀请令牌
+  - `Topic.invitedAgents?: string[]` 已邀请的 Agent 列表
+  - `Topic.inviteExpiresAt?: number` 邀请过期时间
+
+- [ ] **S23-2（10min）：实现邀请机制 API** ⏳ 待开始
+  - `POST /topics/:name/invite` — 邀请 Agent（生成 invite token）
+  - `POST /topics/:name/join` — Agent 凭 invite token 加入私有 Topic
+  - ws_server.ts 在 `topic_join` 处理中验证 private Topic 邀请
+
+- [ ] **S23-3（10min）：测试 + 文档** ⏳ 待开始
+  - `hub/test/private_topics.test.ts`
+  - README 新增 Private Topics 章节
+
+
 ---
 
-_Last updated: 2026-04-05 08:15 CST_
+_Last updated:
