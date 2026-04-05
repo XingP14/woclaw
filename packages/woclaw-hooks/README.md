@@ -101,6 +101,15 @@ export WOCLAW_TOKEN=your-token
 2. **Session Stop Hook** writes the agent's session summary back to WoClaw Hub
 3. **PreCompact Hook** saves recent context before compression
 
+## Migration Sources
+
+The migration CLI imports the real persisted context for each framework:
+
+- **OpenClaw**: `~/.openclaw/workspace/MEMORY.md`, `~/.openclaw/workspace/memory/*.md`, and `~/.openclaw/agents/*/sessions/sessions.json`
+- **Claude Code**: `~/.claude/history.jsonl`
+- **Gemini CLI**: `~/.gemini/tmp/**/chats/*.json`
+- **Codex**: `~/.codex/history.jsonl`
+
 ## WoClaw Hub
 
 Requires a running WoClaw Hub. See [WoClaw](https://github.com/XingP14/woclaw) for setup.

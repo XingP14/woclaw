@@ -81,7 +81,10 @@ async function main() {
       extraEnv.GEMINI_HOME = process.env.GEMINI_HOME || join(process.env.HOME || '/root', '.gemini');
     }
     if (framework === 'openclaw') {
-      extraEnv.OPENCLAW_CONFIG = process.env.OPENCLAW_CONFIG || join(process.env.HOME || '/root', '.openclaw', 'openclaw.json');
+      const stateDir = process.env.OPENCLAW_STATE_DIR || join(process.env.HOME || '/root', '.openclaw');
+      extraEnv.OPENCLAW_STATE_DIR = stateDir;
+      extraEnv.OPENCLAW_CONFIG = process.env.OPENCLAW_CONFIG || join(stateDir, 'openclaw.json');
+      extraEnv.OPENCLAW_WORKSPACE = process.env.OPENCLAW_WORKSPACE || join(stateDir, 'workspace');
     }
 
     await new Promise((resolve) => {

@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * WoClaw Claude Code Session Migrate Parser
- * 
+ * WoClaw Claude Code Migration Tool
+ *
+ * Imports Claude Code history.jsonl into WoClaw Hub.
+ *
  * Usage:
- *   node claude-migrate.js --session-dir <path> [--list] [--dry-run]
+ *   node claude-migrate.js --list
+ *   node claude-migrate.js --session-id <id>
  *   node claude-migrate.js --all [--limit <n>]
- * 
+ *
  * Environment:
- *   CODEX_HOME        - (not used for Claude Code)
- *   WOCLAW_HUB_URL   - Hub REST URL (default: http://vm153:8083)
- *   WOCLAW_TOKEN     - Auth token (default: WoClaw2026)
+ *   CLAUDE_HISTORY_FILE - Claude history file (default: ~/.claude/history.jsonl)
+ *   WOCLAW_HUB_URL      - Hub REST URL (default: http://vm153:8083)
+ *   WOCLAW_TOKEN        - Auth token (default: WoClaw2026)
  */
 
 const fs = require('fs');
@@ -17,208 +20,197 @@ const path = require('path');
 const readline = require('readline');
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
+const CLAUDE_HISTORY_FILE = process.env.CLAUDE_HISTORY_FILE || path.join(HOME, '.claude', 'history.jsonl');
 const WOCLAW_HUB_URL = process.env.WOCLAW_HUB_URL || 'http://vm153:8083';
 const WOCLAW_TOKEN = process.env.WOCLAW_TOKEN || 'WoClaw2026';
-
-// ─── CLI ─────────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 let mode = null;
 let targetValue = null;
 let limitCount = 10;
-let dryRun = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--list') mode = 'list';
   else if (arg === '--all') mode = 'all';
-  else if (arg === '--session-dir' && i + 1 < args.length) {
-    mode = 'session-dir';
+  else if (arg === '--session-id' && i + 1 < args.length) {
+    mode = 'session-id';
     targetValue = args[++i];
   } else if (arg === '--limit' && i + 1 < args.length) {
     limitCount = parseInt(args[++i], 10) || 10;
-  } else if (arg === '--dry-run') dryRun = true;
-  else if (arg === '--help' || arg === '-h') {
+  } else if (arg === '--help' || arg === '-h') {
     printHelp();
     process.exit(0);
   }
 }
 
-if (!mode) { printHelp(); process.exit(1); }
+if (!mode) {
+  printHelp();
+  process.exit(1);
+}
 
 function printHelp() {
   console.log(`
-WoClaw Claude Code Session Migrate Parser
+WoClaw Claude Code Migration Tool
 
 Usage:
-  node claude-migrate.js --list                    List available sessions
-  node claude-migrate.js --session-dir <path>     Parse session directory
-  node claude-migrate.js --all [--limit <n>]      Migrate all sessions
+  node claude-migrate.js --list                    List available history sessions
+  node claude-migrate.js --session-id <id>         Import a specific history session
+  node claude-migrate.js --all [--limit <n>]       Import all sessions (default: 10)
 
 Environment:
-  WOCLAW_HUB_URL   - Hub REST URL (default: http://vm153:8083)
-  WOCLAW_TOKEN     - Auth token (default: WoClaw2026)
+  CLAUDE_HISTORY_FILE - history.jsonl path (default: ~/.claude/history.jsonl)
+  WOCLAW_HUB_URL      - Hub REST URL (default: http://vm153:8083)
+  WOCLAW_TOKEN        - Auth token (default: WoClaw2026)
 `);
 }
 
-// ─── Claude Code Session Format ──────────────────────────────────────────────
-
-/**
- * Claude Code stores sessions under ~/.claude/sessions/
- * Format: sessions/<date>/<session-id>.jsonl
- */
-function getSessionsDir() {
-  return path.join(HOME, '.claude', 'sessions');
-}
-
-/**
- * List all Claude Code sessions
- */
-async function listSessions(limit = 20) {
-  const sessionsDir = getSessionsDir();
-  if (!fs.existsSync(sessionsDir)) {
-    console.log('No sessions directory found. Claude Code may not be installed.');
-    return;
-  }
-
-  console.log(`\n📋 Available Claude Code Sessions (${sessionsDir})\n`);
-  let count = 0;
-
-  const entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const dateDir = path.join(sessionsDir, entry.name);
-    const files = fs.readdirSync(dateDir).filter(f => f.endsWith('.jsonl')).slice(0, 3);
-    for (const file of files) {
-      if (count >= limit) break;
-      const filePath = path.join(dateDir, file);
-      const stats = fs.statSync(filePath);
-      const sessionId = file.replace('.jsonl', '');
-      console.log(`  ${entry.name}/${file}  (${Math.round(stats.size / 1024)}KB)  ${sessionId}`);
-      count++;
+function extractEntryText(entry) {
+  const parts = [];
+  if (entry.display) parts.push(entry.display);
+  if (entry.pastedContents && typeof entry.pastedContents === 'object') {
+    for (const pasted of Object.values(entry.pastedContents)) {
+      if (pasted?.content) parts.push(pasted.content);
     }
   }
-  if (count === 0) console.log('  (no sessions found)');
-  console.log('');
+  return parts.filter(Boolean).join('\n');
 }
 
-/**
- * Parse a Claude Code session file
- */
-async function parseSessionFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    console.error(`File not found: ${filePath}`);
-    return null;
-  }
+async function loadHistorySessions() {
+  if (!fs.existsSync(CLAUDE_HISTORY_FILE)) return new Map();
 
-  const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
-  const messages = [];
-  let sessionMeta = {};
+  const rl = readline.createInterface({ input: fs.createReadStream(CLAUDE_HISTORY_FILE) });
+  const sessions = new Map();
 
   for await (const line of rl) {
     if (!line.trim()) continue;
     try {
       const entry = JSON.parse(line.trim());
-      if (entry.type === 'session') {
-        sessionMeta = entry;
-      } else {
-        messages.push(entry);
-      }
-    } catch { /* skip */ }
+      const sessionId = entry.sessionId || 'unknown';
+      const existing = sessions.get(sessionId) || {
+        sessionId,
+        project: entry.project || null,
+        firstTimestamp: entry.timestamp || null,
+        lastTimestamp: entry.timestamp || null,
+        entries: [],
+      };
+
+      if (!existing.project && entry.project) existing.project = entry.project;
+      if (!existing.firstTimestamp && entry.timestamp) existing.firstTimestamp = entry.timestamp;
+      if (entry.timestamp) existing.lastTimestamp = entry.timestamp;
+      existing.entries.push({
+        timestamp: entry.timestamp || null,
+        display: entry.display || '',
+        text: extractEntryText(entry),
+      });
+      sessions.set(sessionId, existing);
+    } catch {
+      // skip malformed lines
+    }
   }
 
-  const insights = {
-    session_id: path.basename(filePath, '.jsonl'),
-    date: path.dirname(filePath).split('/').pop(),
-    stats: { messages: messages.length },
-    tools_used: [],
-    files_modified: [],
-    key_findings: [],
-  };
-
-  return insights;
+  return sessions;
 }
 
-/**
- * Build markdown summary from insights
- */
-function buildSummary(insights) {
-  return [
-    `# Claude Code Session: ${insights.session_id}`,
-    `**Date**: ${insights.date}`,
-    `**Messages**: ${insights.stats.messages}`,
-    insights.tools_used.length > 0 ? `**Tools**: ${insights.tools_used.join(', ')}` : '',
-  ].filter(Boolean).join('\n');
+function buildSummary(session) {
+  const lines = [
+    `# Claude Code Session: ${session.sessionId}`,
+    `- History file: ${CLAUDE_HISTORY_FILE}`,
+    `- Project: ${session.project || 'unknown'}`,
+    `- Entries: ${session.entries.length}`,
+    `- First seen: ${session.firstTimestamp || 'unknown'}`,
+    `- Last seen: ${session.lastTimestamp || 'unknown'}`,
+    '',
+    '## Timeline',
+  ];
+
+  for (const entry of session.entries) {
+    lines.push(`### ${entry.timestamp || 'unknown'}`);
+    if (entry.display) lines.push(`- Display: ${entry.display}`);
+    if (entry.text) {
+      lines.push('```text');
+      lines.push(entry.text);
+      lines.push('```');
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
-/**
- * Write session summary to WoClaw Hub
- */
 async function writeToHub(sessionId, summary) {
-  if (dryRun) {
-    console.log(`  [dry-run] Would write: codex:session:${sessionId}`);
-    return;
-  }
   const payload = JSON.stringify({
     key: `claude:session:${sessionId}`,
     value: summary,
-    tags: ['claude-code', 'migrated'],
+    tags: ['claude-code', 'migrated', 'history'],
     updatedBy: 'claude-migrate',
   });
   try {
     const res = await fetch(`${WOCLAW_HUB_URL}/memory`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${WOCLAW_TOKEN}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${WOCLAW_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
       body: payload,
     });
-    if (res.ok) console.log(`  ✅ codex:session:${sessionId}`);
-    else console.log(`  ⚠️  ${res.status}`);
+    console.log(res.ok ? `  ✅ claude:session:${sessionId}` : `  ⚠️  claude:session:${sessionId} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  ${e.message}`);
+    console.log(`  ⚠️  claude:session:${sessionId} -> ${e.message}`);
   }
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+async function listSessions(limit = 20) {
+  const sessions = await loadHistorySessions();
+  console.log(`\n📋 Available Claude Code Sessions (${CLAUDE_HISTORY_FILE})\n`);
+  if (sessions.size === 0) {
+    console.log('  No sessions found.');
+    console.log('');
+    return;
+  }
+
+  const ordered = [...sessions.values()].sort((a, b) => String(b.lastTimestamp || '').localeCompare(String(a.lastTimestamp || '')));
+  for (const session of ordered.slice(0, limit)) {
+    console.log(`  - ${session.sessionId}  (${session.entries.length} entries)  ${session.project || 'no-project'}`);
+  }
+  console.log('');
+}
 
 async function main() {
+  const sessions = await loadHistorySessions();
+
   if (mode === 'list') {
     await listSessions(limitCount);
     return;
   }
 
-  if (mode === 'session-dir') {
-    const insights = await parseSessionFile(targetValue);
-    if (insights) {
-      console.log(buildSummary(insights));
-      await writeToHub(insights.session_id, buildSummary(insights));
+  if (mode === 'session-id') {
+    const session = [...sessions.values()].find((s) => s.sessionId.includes(targetValue) || targetValue.includes(s.sessionId));
+    if (!session) {
+      console.log(`Session not found: ${targetValue}`);
+      return;
     }
+    const summary = buildSummary(session);
+    console.log(summary);
+    await writeToHub(session.sessionId, summary);
     return;
   }
 
   if (mode === 'all') {
-    const sessionsDir = getSessionsDir();
-    if (!fs.existsSync(sessionsDir)) {
-      console.log('Claude Code sessions directory not found.');
-      return;
-    }
-    console.log(`\n🔄 Migrating Claude Code sessions...\n`);
+    const ordered = [...sessions.values()].sort((a, b) => String(b.lastTimestamp || '').localeCompare(String(a.lastTimestamp || '')));
+    console.log(`\n🔄 Migrating Claude Code sessions from ${CLAUDE_HISTORY_FILE}...\n`);
     let migrated = 0;
-    const entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const dateDir = path.join(sessionsDir, entry.name);
-      const files = fs.readdirSync(dateDir).filter(f => f.endsWith('.jsonl')).slice(0, limitCount);
-      for (const file of files) {
-        const insights = await parseSessionFile(path.join(dateDir, file));
-        if (insights && insights.stats.messages > 0) {
-          console.log(`  → ${insights.session_id} (${insights.stats.messages} msgs)`);
-          await writeToHub(insights.session_id, buildSummary(insights));
-          migrated++;
-        }
-      }
+    for (const session of ordered.slice(0, limitCount)) {
+      const summary = buildSummary(session);
+      console.log(`  → ${session.sessionId} (${session.entries.length} entries)`);
+      await writeToHub(session.sessionId, summary);
+      migrated++;
     }
     console.log(`\n✅ Migrated ${migrated} Claude Code sessions\n`);
   }
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

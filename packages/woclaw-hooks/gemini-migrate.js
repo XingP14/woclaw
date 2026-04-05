@@ -1,28 +1,27 @@
 #!/usr/bin/env node
 /**
- * WoClaw Gemini CLI Session Migrate Parser
- * 
+ * WoClaw Gemini CLI Migration Tool
+ *
+ * Imports Gemini chat files from ~/.gemini/tmp/<project>/chats/*.json into WoClaw Hub.
+ *
  * Usage:
  *   node gemini-migrate.js --list
  *   node gemini-migrate.js --session-id <id>
  *   node gemini-migrate.js --all [--limit <n>]
- * 
+ *
  * Environment:
- *   GEMINI_HOME        - Gemini CLI config dir (default: ~/.gemini)
- *   WOCLAW_HUB_URL    - Hub REST URL (default: http://vm153:8083)
- *   WOCLAW_TOKEN      - Auth token (default: WoClaw2026)
+ *   GEMINI_HOME     - Gemini home dir (default: ~/.gemini)
+ *   WOCLAW_HUB_URL  - Hub REST URL (default: http://vm153:8083)
+ *   WOCLAW_TOKEN    - Auth token (default: WoClaw2026)
  */
 
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const GEMINI_HOME = process.env.GEMINI_HOME || path.join(HOME, '.gemini');
 const WOCLAW_HUB_URL = process.env.WOCLAW_HUB_URL || 'http://vm153:8083';
 const WOCLAW_TOKEN = process.env.WOCLAW_TOKEN || 'WoClaw2026';
-
-// ─── CLI ─────────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 let mode = null;
@@ -44,182 +43,204 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-if (!mode) { printHelp(); process.exit(1); }
+if (!mode) {
+  printHelp();
+  process.exit(1);
+}
 
 function printHelp() {
   console.log(`
-WoClaw Gemini CLI Session Migrate Parser
+WoClaw Gemini CLI Migration Tool
 
 Usage:
-  node gemini-migrate.js --list                    List available sessions
-  node gemini-migrate.js --session-id <id>        Parse specific session
-  node gemini-migrate.js --all [--limit <n>]       Migrate all sessions
+  node gemini-migrate.js --list                    List available Gemini chat sessions
+  node gemini-migrate.js --session-id <id>         Import a specific Gemini session
+  node gemini-migrate.js --all [--limit <n>]       Import all Gemini sessions (default: 10)
 
 Environment:
-  GEMINI_HOME        - Gemini CLI config (default: ~/.gemini)
-  WOCLAW_HUB_URL    - Hub REST URL (default: http://vm153:8083)
-  WOCLAW_TOKEN      - Auth token (default: WoClaw2026)
+  GEMINI_HOME     - Gemini home dir (default: ~/.gemini)
+  WOCLAW_HUB_URL  - Hub REST URL (default: http://vm153:8083)
+  WOCLAW_TOKEN    - Auth token (default: WoClaw2026)
 `);
 }
 
-// ─── Gemini CLI Session Format ────────────────────────────────────────────────
-
-/**
- * Gemini CLI session storage:
- * - ~/.gemini/sessions/  (per-session JSON files)
- * - ~/.gemini/history.jsonl  (global history)
- * 
- * Ref: S15-1 research doc when available
- */
-function getSessionsDir() {
-  return path.join(GEMINI_HOME, 'sessions');
-}
-
-function getHistoryFile() {
-  return path.join(GEMINI_HOME, 'history.jsonl');
-}
-
-/**
- * List available Gemini CLI sessions
- */
-async function listSessions(limit = 20) {
-  const sessionsDir = getSessionsDir();
-  const historyFile = getHistoryFile();
-
-  console.log(`\n📋 Available Gemini CLI Sessions\n`);
-  console.log(`  Sessions dir: ${sessionsDir}`);
-  console.log(`  History file: ${historyFile}`);
-  console.log('');
-
-  if (fs.existsSync(historyFile)) {
-    let count = 0;
-    const rl = readline.createInterface({ input: fs.createReadStream(historyFile) });
-    for await (const line of rl) {
-      if (!line.trim() || count >= limit) break;
-      try {
-        const entry = JSON.parse(line.trim());
-        const id = entry.session_id || entry.id || 'unknown';
-        const date = entry.created_at || entry.timestamp || 'unknown';
-        console.log(`  ${id}  ${date}`);
-        count++;
-      } catch { /* skip */ }
-    }
+function normalizeText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        if (typeof item.text === 'string') return item.text;
+        if (typeof item.content === 'string') return item.content;
+        if (typeof item.description === 'string') return item.description;
+        return JSON.stringify(item);
+      })
+      .filter(Boolean)
+      .join('\n');
   }
-
-  if (fs.existsSync(sessionsDir)) {
-    const entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (limit <= 0) break;
-      console.log(`  [dir] ${entry.name}`);
-      limit--;
-    }
-  }
-
-  console.log('');
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
 }
 
-/**
- * Parse a Gemini CLI session
- */
-async function parseSession(sessionId) {
-  // Try history file first
-  const historyFile = getHistoryFile();
-  if (fs.existsSync(historyFile)) {
-    const rl = readline.createInterface({ input: fs.createReadStream(historyFile) });
-    for await (const line of rl) {
-      if (!line.trim()) continue;
-      try {
-        const entry = JSON.parse(line.trim());
-        const id = entry.session_id || entry.id || '';
-        if (id.includes(sessionId) || sessionId.includes(id)) {
-          return extractInsights(entry);
-        }
-      } catch { /* skip */ }
+function discoverSessionFiles() {
+  const files = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile() && full.endsWith('.json') && path.basename(path.dirname(full)) === 'chats') {
+        files.push(full);
+      }
     }
-  }
-  return null;
-}
-
-function extractInsights(entry) {
-  return {
-    session_id: entry.session_id || entry.id || 'unknown',
-    created_at: entry.created_at || entry.timestamp || null,
-    stats: { messages: entry.messages?.length || 0 },
-    tools_used: [],
-    key_findings: [],
   };
+
+  walk(path.join(GEMINI_HOME, 'tmp'));
+  return files.sort((a, b) => a.localeCompare(b));
 }
 
-function buildSummary(insights) {
-  return [
-    `# Gemini CLI Session: ${insights.session_id}`,
-    `**Created**: ${insights.created_at || 'unknown'}`,
-    `**Messages**: ${insights.stats.messages}`,
-    insights.tools_used.length > 0 ? `**Tools**: ${insights.tools_used.join(', ')}` : '',
-  ].filter(Boolean).join('\n');
+function loadSession(filePath) {
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    return {
+      sessionId: data.sessionId || path.basename(filePath, '.json'),
+      projectHash: data.projectHash || null,
+      startTime: data.startTime || null,
+      lastUpdated: data.lastUpdated || null,
+      kind: data.kind || 'unknown',
+      filePath,
+      messages: messages.map((message) => ({
+        id: message.id || null,
+        timestamp: message.timestamp || null,
+        type: message.type || 'unknown',
+        text: normalizeText(message.content),
+        thoughts: Array.isArray(message.thoughts) ? message.thoughts.map((t) => ({
+          subject: t.subject || null,
+          description: t.description || null,
+          timestamp: t.timestamp || null,
+        })) : [],
+        tokens: message.tokens || null,
+        model: message.model || null,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function loadAllSessions() {
+  return discoverSessionFiles()
+    .map(loadSession)
+    .filter(Boolean);
+}
+
+function buildSummary(session) {
+  const lines = [
+    `# Gemini CLI Session: ${session.sessionId}`,
+    `- File: ${session.filePath}`,
+    `- Project hash: ${session.projectHash || 'unknown'}`,
+    `- Kind: ${session.kind}`,
+    `- Start: ${session.startTime || 'unknown'}`,
+    `- Last updated: ${session.lastUpdated || 'unknown'}`,
+    `- Messages: ${session.messages.length}`,
+    '',
+    '## Transcript',
+  ];
+
+  for (const message of session.messages) {
+    lines.push(`### ${message.timestamp || 'unknown'} · ${message.type}`);
+    if (message.model) lines.push(`- Model: ${message.model}`);
+    if (message.text) {
+      lines.push('```text');
+      lines.push(message.text);
+      lines.push('```');
+    }
+    if (message.thoughts.length > 0) {
+      lines.push('- Thoughts:');
+      for (const thought of message.thoughts) {
+        lines.push(`  - ${thought.timestamp || 'unknown'} · ${thought.subject || 'thought'}: ${thought.description || ''}`);
+      }
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
 async function writeToHub(sessionId, summary) {
   const payload = JSON.stringify({
     key: `gemini:session:${sessionId}`,
     value: summary,
-    tags: ['gemini-cli', 'migrated'],
+    tags: ['gemini-cli', 'migrated', 'history'],
     updatedBy: 'gemini-migrate',
   });
   try {
     const res = await fetch(`${WOCLAW_HUB_URL}/memory`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${WOCLAW_TOKEN}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${WOCLAW_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
       body: payload,
     });
-    console.log(res.ok ? `  ✅ gemini:session:${sessionId}` : `  ⚠️  ${res.status}`);
+    console.log(res.ok ? `  ✅ gemini:session:${sessionId}` : `  ⚠️  gemini:session:${sessionId} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  ${e.message}`);
+    console.log(`  ⚠️  gemini:session:${sessionId} -> ${e.message}`);
   }
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+async function listSessions(limit = 20) {
+  const sessions = loadAllSessions();
+  console.log(`\n📋 Available Gemini CLI Sessions (${GEMINI_HOME})\n`);
+  if (sessions.length === 0) {
+    console.log('  No Gemini sessions found.');
+    console.log('');
+    return;
+  }
+
+  for (const session of sessions.slice(0, limit)) {
+    console.log(`  - ${session.sessionId}  (${session.messages.length} messages)  ${session.startTime || 'unknown'}`);
+  }
+  console.log('');
+}
 
 async function main() {
+  const sessions = loadAllSessions();
+
   if (mode === 'list') {
     await listSessions(limitCount);
     return;
   }
 
   if (mode === 'session-id') {
-    const insights = await parseSession(targetValue);
-    if (insights) {
-      console.log(buildSummary(insights));
-      await writeToHub(insights.session_id, buildSummary(insights));
-    } else {
+    const session = sessions.find((s) => s.sessionId.includes(targetValue) || targetValue.includes(s.sessionId));
+    if (!session) {
       console.log(`Session not found: ${targetValue}`);
+      return;
     }
+    const summary = buildSummary(session);
+    console.log(summary);
+    await writeToHub(session.sessionId, summary);
     return;
   }
 
   if (mode === 'all') {
-    console.log('\n🔄 Migrating Gemini CLI sessions...\n');
-    const historyFile = getHistoryFile();
-    if (!fs.existsSync(historyFile)) {
-      console.log('No history file found. Gemini CLI may not be installed.');
-      return;
-    }
+    console.log(`\n🔄 Migrating Gemini CLI sessions from ${GEMINI_HOME}...\n`);
     let migrated = 0;
-    const rl = readline.createInterface({ input: fs.createReadStream(historyFile) });
-    for await (const line of rl) {
-      if (!line.trim() || migrated >= limitCount) continue;
-      try {
-        const entry = JSON.parse(line.trim());
-        const insights = extractInsights(entry);
-        if (insights.stats.messages > 0) {
-          console.log(`  → ${insights.session_id} (${insights.stats.messages} msgs)`);
-          await writeToHub(insights.session_id, buildSummary(insights));
-          migrated++;
-        }
-      } catch { /* skip */ }
+    for (const session of sessions.slice(0, limitCount)) {
+      const summary = buildSummary(session);
+      console.log(`  → ${session.sessionId} (${session.messages.length} messages)`);
+      await writeToHub(session.sessionId, summary);
+      migrated++;
     }
     console.log(`\n✅ Migrated ${migrated} Gemini CLI sessions\n`);
   }
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -1,33 +1,37 @@
 #!/usr/bin/env node
 /**
- * WoClaw OpenClaw Agent Migration Tool
- * 
- * Reads OpenClaw agent memory/sessions and migrates to WoClaw Hub.
- * 
+ * WoClaw OpenClaw Migration Tool
+ *
+ * Imports OpenClaw workspace memory files and session-store metadata into
+ * WoClaw Hub.
+ *
  * Usage:
- *   node openclaw-migrate.js --agent-id <id>       Migrate specific agent
- *   node openclaw-migrate.js --list                List OpenClaw agents
- *   node openclaw-migrate.js --all                 Migrate all accessible agents
- * 
+ *   node openclaw-migrate.js --list
+ *   node openclaw-migrate.js --agent-id <id>
+ *   node openclaw-migrate.js --all
+ *
  * Environment:
- *   OPENCLAW_CONFIG   - Path to openclaw.json (default: ~/.openclaw/openclaw.json)
- *   WOCLAW_HUB_URL  - WoClaw Hub REST URL (default: http://vm153:8083)
- *   WOCLAW_TOKEN    - Auth token (default: WoClaw2026)
+ *   OPENCLAW_STATE_DIR   - OpenClaw state dir (default: ~/.openclaw)
+ *   OPENCLAW_CONFIG      - Path to openclaw.json
+ *   OPENCLAW_WORKSPACE   - Override workspace root
+ *   WOCLAW_HUB_URL       - WoClaw Hub REST URL (default: http://vm153:8083)
+ *   WOCLAW_TOKEN         - Auth token (default: WoClaw2026)
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
-const OPENCLAW_CONFIG = process.env.OPENCLAW_CONFIG || path.join(HOME, '.openclaw', 'openclaw.json');
+const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME, '.openclaw');
+const OPENCLAW_CONFIG = process.env.OPENCLAW_CONFIG || path.join(STATE_DIR, 'openclaw.json');
+const WORKSPACE_OVERRIDE = process.env.OPENCLAW_WORKSPACE || null;
+const PROFILE = process.env.OPENCLAW_PROFILE || '';
 const WOCLAW_HUB_URL = process.env.WOCLAW_HUB_URL || 'http://vm153:8083';
 const WOCLAW_TOKEN = process.env.WOCLAW_TOKEN || 'WoClaw2026';
 
-// ─── CLI ─────────────────────────────────────────────────────────────────────
-
 const args = process.argv.slice(2);
 let mode = null;
-let targetValue = null;
+let targetAgent = null;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -35,175 +39,260 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--all') mode = 'all';
   else if (arg === '--agent-id' && i + 1 < args.length) {
     mode = 'agent-id';
-    targetValue = args[++i];
+    targetAgent = args[++i];
   } else if (arg === '--help' || arg === '-h') {
     printHelp();
     process.exit(0);
   }
 }
 
-if (!mode) { printHelp(); process.exit(1); }
+if (!mode) {
+  printHelp();
+  process.exit(1);
+}
 
 function printHelp() {
   console.log(`
-WoClaw OpenClaw Agent Migration Tool
+WoClaw OpenClaw Migration Tool
 
 Usage:
-  node openclaw-migrate.js --list             List OpenClaw agents from config
-  node openclaw-migrate.js --agent-id <id>   Migrate specific agent memory
-  node openclaw-migrate.js --all             Migrate all accessible agents
+  node openclaw-migrate.js --list             Inspect discovered workspace memory
+  node openclaw-migrate.js --agent-id <id>    Migrate workspace memory and session store for one agent
+  node openclaw-migrate.js --all              Migrate all discovered workspace memory + session stores
 
 Environment:
-  OPENCLAW_CONFIG  - openclaw.json path (default: ~/.openclaw/openclaw.json)
-  WOCLAW_HUB_URL  - Hub REST URL (default: http://vm153:8083)
-  WOCLAW_TOKEN    - Auth token (default: WoClaw2026)
+  OPENCLAW_STATE_DIR  - OpenClaw state dir (default: ~/.openclaw)
+  OPENCLAW_CONFIG     - openclaw.json path (default: <state-dir>/openclaw.json)
+  OPENCLAW_WORKSPACE  - workspace root override
+  WOCLAW_HUB_URL      - Hub REST URL (default: http://vm153:8083)
+  WOCLAW_TOKEN        - Auth token (default: WoClaw2026)
 `);
 }
 
-// ─── OpenClaw Config ──────────────────────────────────────────────────────────
-
-/**
- * Read OpenClaw agent config to discover agents
- */
-function listAgents() {
-  if (!fs.existsSync(OPENCLAW_CONFIG)) {
-    console.log(`OpenClaw config not found: ${OPENCLAW_CONFIG}`);
-    return [];
-  }
-  try {
-    const config = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG, 'utf8'));
-    const agents = [];
-    
-    // Check agents section
-    if (config.agents) {
-      for (const [id, agent] of Object.entries(config.agents)) {
-        agents.push({ id, ...agent });
-      }
-    }
-    
-    // Check memory entries
-    if (config.memory?.entries) {
-      const memCount = Object.keys(config.memory.entries).length;
-      if (memCount > 0) console.log(`Memory entries: ${memCount}`);
-    }
-    
-    return agents;
-  } catch (e) {
-    console.error(`Failed to read config: ${e.message}`);
-    return [];
-  }
+function expandHome(p) {
+  if (!p) return p;
+  if (p.startsWith('~/')) return path.join(HOME, p.slice(2));
+  return p;
 }
 
-/**
- * Read memory entries from OpenClaw config
- */
-function getMemoryEntries() {
-  if (!fs.existsSync(OPENCLAW_CONFIG)) return {};
+function loadJson(filePath) {
   try {
-    const config = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG, 'utf8'));
-    return config.memory?.entries || {};
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch {
-    return {};
+    return null;
   }
 }
 
-/**
- * Extract agent insights from OpenClaw config
- */
-function extractAgentInsights(agentId) {
-  const entries = getMemoryEntries();
-  const agentEntries = {};
-  
-  for (const [key, val] of Object.entries(entries)) {
-    if (key.includes(agentId) || key.startsWith('agent:')) {
-      agentEntries[key] = val;
+function resolveWorkspaceRoot() {
+  const config = loadJson(OPENCLAW_CONFIG);
+  const cfgWorkspace = config?.agents?.defaults?.workspace;
+  const defaultWorkspace = PROFILE && PROFILE !== 'default'
+    ? `workspace-${PROFILE}`
+    : 'workspace';
+  return expandHome(WORKSPACE_OVERRIDE || cfgWorkspace || path.join(STATE_DIR, defaultWorkspace));
+}
+
+function readText(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+function isMarkdownFile(filePath) {
+  return filePath.endsWith('.md') || filePath.endsWith('.markdown');
+}
+
+function walkFiles(rootDir, predicate, out = []) {
+  if (!fs.existsSync(rootDir)) return out;
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const full = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      walkFiles(full, predicate, out);
+    } else if (!predicate || predicate(full)) {
+      out.push(full);
     }
   }
-  
+  return out;
+}
+
+function getWorkspaceMemoryFiles(workspaceRoot) {
+  const files = [];
+  for (const candidate of ['MEMORY.md', 'memory.md']) {
+    const p = path.join(workspaceRoot, candidate);
+    if (fs.existsSync(p) && fs.statSync(p).isFile()) files.push(p);
+  }
+
+  const memoryDir = path.join(workspaceRoot, 'memory');
+  if (fs.existsSync(memoryDir) && fs.statSync(memoryDir).isDirectory()) {
+    walkFiles(memoryDir, (filePath) => fs.statSync(filePath).isFile() && isMarkdownFile(filePath), files);
+  }
+
+  return files
+    .filter((file, idx, arr) => arr.indexOf(file) === idx)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function findSessionStores() {
+  const agentRoot = path.join(STATE_DIR, 'agents');
+  const stores = [];
+  if (!fs.existsSync(agentRoot)) return stores;
+
+  for (const agentDir of fs.readdirSync(agentRoot, { withFileTypes: true })) {
+    if (!agentDir.isDirectory()) continue;
+    const sessionStore = path.join(agentRoot, agentDir.name, 'sessions', 'sessions.json');
+    if (fs.existsSync(sessionStore)) {
+      stores.push({ agentId: agentDir.name, path: sessionStore });
+    }
+  }
+  const legacyStore = path.join(STATE_DIR, 'sessions', 'sessions.json');
+  if (fs.existsSync(legacyStore)) {
+    stores.push({ agentId: 'legacy', path: legacyStore });
+  }
+  return stores.sort((a, b) => a.agentId.localeCompare(b.agentId));
+}
+
+function summarizeWorkspaceFile(workspaceRoot, filePath) {
+  const relPath = path.relative(workspaceRoot, filePath).split(path.sep).join(':');
+  const content = readText(filePath).trimEnd();
+  const stat = fs.statSync(filePath);
+  const header = [
+    `# OpenClaw Workspace Memory`,
+    `- Source: ${path.relative(HOME, filePath).startsWith('..') ? filePath : path.relative(HOME, filePath)}`,
+    `- Workspace: ${workspaceRoot}`,
+    `- Updated: ${stat.mtime.toISOString()}`,
+    '',
+  ].join('\n');
+
   return {
-    agent_id: agentId,
-    memory_entries: Object.keys(agentEntries).length,
-    entries: agentEntries,
+    key: `openclaw:workspace:${relPath}`,
+    value: `${header}${content ? `${content}\n` : ''}`,
+    tags: ['openclaw', 'migrated', 'workspace-memory'],
+    updatedBy: 'openclaw-migrate',
   };
 }
 
-function buildSummary(insights) {
-  const lines = [
-    `# OpenClaw Agent: ${insights.agent_id}`,
-    `**Memory Entries**: ${insights.memory_entries}`,
-    '',
-  ];
-  
-  for (const [key, val] of Object.entries(insights.entries)) {
-    const snippet = typeof val === 'string' ? val.slice(0, 100) : JSON.stringify(val).slice(0, 100);
-    lines.push(`**${key}**: ${snippet}...`);
+function summarizeSessionStore(agentId, storePath, filterSessionId = null) {
+  const store = loadJson(storePath);
+  if (!store || typeof store !== 'object') return [];
+
+  const entries = [];
+  for (const [sessionKey, data] of Object.entries(store)) {
+    if (filterSessionId && !sessionKey.includes(filterSessionId) && !agentId.includes(filterSessionId)) continue;
+
+    const lines = [
+      `# OpenClaw Session Store`,
+      `- Agent: ${agentId}`,
+      `- Session Key: ${sessionKey}`,
+      `- Session ID: ${data.sessionId || 'unknown'}`,
+      `- Chat Type: ${data.chatType || 'unknown'}`,
+      `- Status: ${data.status || 'unknown'}`,
+      `- Updated: ${data.updatedAt ? new Date(data.updatedAt).toISOString() : 'unknown'}`,
+      `- Compactions: ${data.compactionCount ?? 0}`,
+      `- Context Tokens: ${data.contextTokens ?? 'unknown'}`,
+    ];
+
+    if (data.lastTo) lines.push(`- Last To: ${data.lastTo}`);
+    if (data.sessionFile) lines.push(`- Transcript: ${data.sessionFile}`);
+    if (data.model) lines.push(`- Model: ${data.model}`);
+    if (data.provider) lines.push(`- Provider: ${data.provider}`);
+    lines.push('');
+
+    entries.push({
+      key: `openclaw:session:${agentId}:${sessionKey.replace(/[\\/]/g, ':')}`,
+      value: lines.join('\n'),
+      tags: ['openclaw', 'migrated', 'session-store'],
+      updatedBy: 'openclaw-migrate',
+    });
   }
-  
-  return lines.join('\n');
+
+  return entries;
 }
 
-async function writeToHub(agentId, summary, entries) {
-  const payload = JSON.stringify({
-    key: `openclaw:agent:${agentId}`,
-    value: summary,
-    tags: ['openclaw', 'migrated', 'agent-memory'],
-    updatedBy: 'openclaw-migrate',
-  });
+async function writeToHub(entry) {
+  const payload = JSON.stringify(entry);
   try {
     const res = await fetch(`${WOCLAW_HUB_URL}/memory`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${WOCLAW_TOKEN}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${WOCLAW_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
       body: payload,
     });
-    console.log(res.ok ? `  ✅ openclaw:agent:${agentId}` : `  ⚠️  ${res.status}`);
+    console.log(res.ok ? `  ✅ ${entry.key}` : `  ⚠️  ${entry.key} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  ${e.message}`);
+    console.log(`  ⚠️  ${entry.key} -> ${e.message}`);
   }
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+function printList(workspaceRoot, files, stores) {
+  console.log(`\n📋 OpenClaw Workspace (${workspaceRoot})\n`);
+  if (files.length === 0) {
+    console.log('  No workspace memory files found.');
+  } else {
+    console.log('  Workspace memory files:');
+    for (const file of files) {
+      console.log(`    - ${path.relative(workspaceRoot, file)}`);
+    }
+  }
+
+  if (stores.length === 0) {
+    console.log('\n  No session stores found.');
+  } else {
+    console.log('\n  Session stores:');
+    for (const store of stores) {
+      const data = loadJson(store.path) || {};
+      const count = Object.keys(data).length;
+      console.log(`    - ${store.agentId} (${count} session key(s))`);
+    }
+  }
+  console.log('');
+}
 
 async function main() {
+  const workspaceRoot = resolveWorkspaceRoot();
+  const workspaceFiles = getWorkspaceMemoryFiles(workspaceRoot);
+  const sessionStores = findSessionStores();
+
   if (mode === 'list') {
-    const agents = listAgents();
-    console.log(`\n📋 OpenClaw Agents (${OPENCLAW_CONFIG})\n`);
-    if (agents.length === 0) {
-      console.log('  No agents found in config.');
-    } else {
-      for (const agent of agents) {
-        console.log(`  - ${agent.id}${agent.name ? ' (' + agent.name + ')' : ''}`);
-      }
-    }
-    console.log('');
+    printList(workspaceRoot, workspaceFiles, sessionStores);
     return;
   }
 
+  const fileEntries = workspaceFiles.map((filePath) => summarizeWorkspaceFile(workspaceRoot, filePath));
+  const storeEntries = [];
+  for (const store of sessionStores) {
+    if (mode === 'agent-id' && targetAgent && store.agentId !== targetAgent) continue;
+    storeEntries.push(...summarizeSessionStore(store.agentId, store.path, mode === 'agent-id' ? targetAgent : null));
+  }
+
+  const entries = [...fileEntries, ...storeEntries];
   if (mode === 'agent-id') {
-    const insights = extractAgentInsights(targetValue);
-    console.log(`\n🔄 Migrating OpenClaw agent: ${targetValue}\n`);
-    if (insights.memory_entries === 0) {
-      console.log('  No memory entries found for this agent.');
-      return;
-    }
-    console.log(buildSummary(insights));
-    await writeToHub(targetValue, buildSummary(insights), insights.entries);
+    console.log(`\n🔄 Migrating OpenClaw agent scope: ${targetAgent}\n`);
+  } else {
+    console.log(`\n🔄 Migrating OpenClaw workspace memory and session stores...\n`);
+  }
+
+  if (entries.length === 0) {
+    console.log('  No OpenClaw workspace memory or session data found.');
     return;
   }
 
-  if (mode === 'all') {
-    const agents = listAgents();
-    console.log(`\n🔄 Migrating ${agents.length} OpenClaw agents...\n`);
-    let migrated = 0;
-    for (const agent of agents) {
-      const insights = extractAgentInsights(agent.id);
-      if (insights.memory_entries > 0) {
-        console.log(`  → ${agent.id} (${insights.memory_entries} entries)`);
-        await writeToHub(agent.id, buildSummary(insights), insights.entries);
-        migrated++;
-      }
-    }
-    console.log(`\n✅ Migrated ${migrated} agents\n`);
+  let migrated = 0;
+  for (const entry of entries) {
+    const shortValue = entry.value.length > 140 ? `${entry.value.slice(0, 140)}...` : entry.value;
+    console.log(`  → ${entry.key}`);
+    console.log(`    ${shortValue.split('\n')[0] || ''}`);
+    await writeToHub(entry);
+    migrated++;
   }
+
+  console.log(`\n✅ Migrated ${migrated} OpenClaw memory entries\n`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

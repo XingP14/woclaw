@@ -181,6 +181,7 @@ function extractSessionInsights(session) {
     session_id: session.session_id,
     created_at: session.created_at,
     model: session.model,
+    messages,
     stats: {
       messages: messages.length,
       tools_used: insights.tools_used.size,
@@ -252,6 +253,20 @@ function buildSessionSummary(insights) {
     }
     lines.push('```');
     lines.push('');
+  }
+
+  if (insights.messages && insights.messages.length > 0) {
+    lines.push('## Transcript');
+    for (const msg of insights.messages) {
+      const ts = msg.ts ? new Date(normalizeTimestampMs(msg.ts) || Date.now()).toISOString() : 'unknown';
+      lines.push(`### ${ts} · ${msg.role || 'user'}`);
+      if (msg.content) {
+        lines.push('```text');
+        lines.push(msg.content);
+        lines.push('```');
+      }
+      lines.push('');
+    }
   }
 
   return lines.join('\n');
