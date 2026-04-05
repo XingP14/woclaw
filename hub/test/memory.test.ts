@@ -88,7 +88,7 @@ describe('MemoryPool', () => {
   });
 
   describe('Precise Search', () => {
-    it('matches key and title, not body noise', async () => {
+    it('matches body keywords while keeping key/title hits first', async () => {
       await mp.write(
         'openclaw:workspace:workspace:memory:2026-03-07-vps-firewall.md',
         '# OpenClaw Workspace Memory\nSome unrelated body text about notes.',
@@ -103,8 +103,28 @@ describe('MemoryPool', () => {
       );
 
       const results = await mp.search('firewall');
-      expect(results.length).toBe(1);
+      expect(results.length).toBe(2);
       expect(results[0].key).toContain('vps-firewall');
+      expect(results[1].key).toContain('cron:abc123');
+    });
+
+    it('searches for keywords that appear only in body text', async () => {
+      await mp.write(
+        'project-note',
+        '# OpenClaw Workspace Memory\n\n这是一段正文，包含排查步骤和解决方案。',
+        'a',
+        ['openclaw', 'workspace-memory'],
+      );
+      await mp.write(
+        'other-note',
+        '# OpenClaw Workspace Memory\n\n这里没有目标关键词。',
+        'a',
+        ['openclaw', 'workspace-memory'],
+      );
+
+      const results = await mp.search('排查步骤');
+      expect(results.length).toBe(1);
+      expect(results[0].key).toBe('project-note');
     });
 
     it('supports workspace and session scope filters', async () => {

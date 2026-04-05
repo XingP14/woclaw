@@ -97,6 +97,14 @@ function extractTitle(mem: DBMemory): string {
   return titleFromKey || mem.key;
 }
 
+function extractSearchBody(value: string): string {
+  const lines = value.split('\n');
+  const blankIndex = lines.findIndex((line, index) => index > 0 && line.trim() === '');
+  if (blankIndex < 0) return value;
+  const body = lines.slice(blankIndex + 1).join('\n').trim();
+  return body || value;
+}
+
 function isVisibleInScope(mem: DBMemory, scope: 'all' | 'workspace' | 'session'): boolean {
   if (scope === 'all') return true;
   const key = mem.key.toLowerCase();
@@ -172,33 +180,51 @@ export class MemoryPool {
   }
 
   async search(query: string, limit: number = 10, scope: string = 'all'): Promise<DBMemory[]> {
+    const rawQuery = query.trim().toLowerCase();
     const keywords = tokenize(query);
-    if (keywords.length === 0) return [];
+    if (keywords.length === 0 && rawQuery.length === 0) return [];
 
     const normalizedScope = normalizeScope(scope);
     const all = (await this.getAll()).filter(mem => isVisibleInScope(mem, normalizedScope));
 
     const scored = all.map(mem => {
       const title = extractTitle(mem);
+      const body = extractSearchBody(mem.value).toLowerCase();
+      const key = mem.key.toLowerCase();
+      const lowerTitle = title.toLowerCase();
+      const lowerTags = mem.tags.map(tag => tag.toLowerCase());
       const keyTokens = tokenize(mem.key);
       const titleTokens = tokenize(title);
       const tagTokens = mem.tags.flatMap(tag => tokenize(tag));
       let score = 0;
 
+      if (rawQuery.length > 0 && body.includes(rawQuery)) {
+        score += 3;
+      }
+      if (rawQuery.length > 0) {
+        if (key.includes(rawQuery)) score += 2;
+        if (lowerTitle.includes(rawQuery)) score += 2;
+        if (lowerTags.some(tag => tag.includes(rawQuery))) score += 1;
+      }
+
       for (const kw of keywords) {
-        if (mem.key.toLowerCase() === kw) score += 6;
+        if (key === kw) score += 6;
         if (keyTokens.includes(kw)) score += 5;
         if (titleTokens.includes(kw)) score += 4;
-        if (mem.tags.some(tag => tag.toLowerCase() === kw)) score += 4;
+        if (lowerTags.some(tag => tag === kw)) score += 4;
         if (tagTokens.includes(kw)) score += 3;
-        if (mem.key.toLowerCase().includes(kw)) score += 2;
-        if (title.toLowerCase().includes(kw)) score += 2;
-        if (mem.tags.some(tag => tag.toLowerCase().includes(kw))) score += 1;
+        if (key.includes(kw)) score += 2;
+        if (lowerTitle.includes(kw)) score += 2;
+        if (lowerTags.some(tag => tag.includes(kw))) score += 1;
+        if (body.includes(kw)) score += 3;
       }
 
       const phrase = keywords.join(' ');
-      const keyTitle = `${mem.key} ${title}`.toLowerCase();
-      if (keyTitle.includes(phrase)) score += 3;
+      if (phrase.length > 0) {
+        const keyTitle = `${key} ${lowerTitle}`;
+        if (keyTitle.includes(phrase)) score += 3;
+        if (body.includes(phrase)) score += 1;
+      }
 
       return { mem, score };
     });
