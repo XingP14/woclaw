@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoClaw — Interactive Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #00d4ff;
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .terminal {
+      width: 100%;
+      max-width: 860px;
+      background: #0d0d1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 30px rgba(0,212,255,0.1);
+    }
+    .terminal-bar {
+      background: #16162a;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+    .terminal-title {
+      margin-left: 8px;
+      color: #888;
+      font-size: 0.8rem;
+    }
+    .terminal-body {
+      padding: 20px;
+      height: 520px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .terminal-body::-webkit-scrollbar { width: 6px; }
+    .terminal-body::-webkit-scrollbar-track { background: #0d0d1a; }
+    .terminal-body::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+    .line { margin-bottom: 2px; white-space: pre-wrap; word-break: break-all; }
+    .prompt { color: #00d4ff; }
+    .command { color: #e0e0e0; }
+    .output { color: #aaa; }
+    .success { color: #27c93f; }
+    .info { color: #00d4ff; }
+    .dim { color: #555; }
+    .warning { color: #ffbd2e; }
+    .error { color: #ff5f56; }
+    .tag { color: #bd93f9; }
+    .key { color: #ff79c6; }
+    .value { color: #f1fa8c; }
+    .type { color: #8be9fd; font-style: italic; }
+    hr { border: none; border-top: 1px solid #2a2a4a; margin: 12px 0; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: #16162a;
+      color: #00d4ff;
+      border: 1px solid #00d4ff;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #00d4ff; color: #0d0d1a; }
+    .btn.active { background: #00d4ff; color: #0d0d1a; }
+    .btn.stop { border-color: #ff5f56; color: #ff5f56; }
+    .btn.stop:hover { background: #ff5f56; color: #0d0d1a; }
+    .speed-label {
+      color: #888;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .speed-label select {
+      background: #16162a;
+      color: #00d4ff;
+      border: 1px solid #2a2a4a;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .progress-bar {
+      width: 100%;
+      max-width: 860px;
+      height: 4px;
+      background: #2a2a4a;
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #00d4ff;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .step-indicator {
+      color: #555;
+      font-size: 0.75rem;
+      margin-top: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🦞 WoClaw Interactive Demo</h1>
+  <p class="subtitle">OpenClaw Multi-Agent Communication Hub — Watch it work in real time</p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+      <span class="terminal-title">Terminal — woclaw demo</span>
+    </div>
+    <div class="terminal-body" id="terminalBody"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="playBtn" onclick="play()">▶ Play Demo</button>
+    <button class="btn stop" onclick="stop()">■ Stop</button>
+    <button class="btn" onclick="reset()">↺ Reset</button>
+    <div class="speed-label">
+      Speed:
+      <select id="speedSelect" onchange="setSpeed()">
+        <option value="80">1×</option>
+        <option value="40" selected>2×</option>
+        <option value="20">3×</option>
+        <option value="10">4×</option>
+        <option value="5">5×</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <script>
+    const HUB_URL = 'vm153:8083';
+    const lines = [
+      // === DEMO INTRO ===
+      { t: 'info', text: '# WoClaw — Shared Memory + Messaging Hub for AI Agents', delay: 0 },
+      { t: 'dim', text: '# This demo runs against a live WoClaw Hub instance', delay: 200 },
+      { t: 'dim', text: '# Watch how multiple AI frameworks share context in real time', delay: 200 },
+      { t: 'blank' },
+      // === STEP 1: Hub Health ===
+      { t: 'step', text: 'STEP 1 — Hub Health Check' },
+      { t: 'cmd', text: 'curl http://' + HUB_URL + '/health' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "status": "ok",' },
+      { t: 'output', text: '  "uptime": 45631,' },
+      { t: 'output', text: '  "agents": 2,' },
+      { t: 'output', text: '  "topics": 2,' },
+      { t: 'output', text: '  "memory": 23,' },
+      { t: 'output', text: '  "version": "1.0.0"' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Hub is healthy — 2 agents connected, 23 memory entries' },
+      { t: 'blank' },
+      // === STEP 2: Memory Write ===
+      { t: 'step', text: 'STEP 2 — Write Shared Memory (from Claude Code session)' },
+      { t: 'cmd', text: 'curl -X POST http://' + HUB_URL + '/memory \\' },
+      { t: 'cmd', text: '  -H "Authorization: Bearer WoClaw2026" \\' },
+      { t: 'cmd', text: '  -H "Content-Type: application/json" \\' },
+      { t: 'cmd', text: '  -d \'{"key":"project:api-design","value":"REST /agents endpoint returns connected agents","tags":["claude-code","design"],"ttl":86400}\'' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "key": "project:api-design",' },
+      { t: 'output', text: '  "value": "REST /agents endpoint returns connected agents",' },
+      { t: 'output', text: '  "tags": ["claude-code", "design"],' },
+      { t: 'output', text: '  "createdAt": "2026-04-06T06:00:00.000Z",' },
+      { t: 'output', text: '  "ttl": 86400,' },
+      { t: 'output', text: '  "version": 1' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Memory written — visible to ALL connected agents instantly' },
+      { t: 'blank' },
+      // === STEP 3: Memory Recall ===
+      { t: 'step', text: 'STEP 3 — Intent-Aware Recall (from Gemini CLI session)' },
+      { t: 'cmd', text: 'curl "http://' + HUB_URL + '/memory/recall?q=api+design&intent=question&limit=3"' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "results": [' },
+      { t: 'output', text: '    {' },
+      { t: 'output', text: '      "key": "project:api-design",' },
+      { t: 'output', text: '      "score": 0.95,' },
+      { t: 'output', text: '      "intent": "question",' },
+      { t: 'output', text: '      "tags": ["claude-code", "design"]' },
+      { t: 'output', text: '    }' },
+      { t: 'output', text: '  ],' },
+      { t: 'output', text: '  "query": "api design",' },
+      { t: 'output', text: '  "total": 1' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Semantic recall — finds relevant memories across all AI sessions' },
+      { t: 'blank' },
+      // === STEP 4: Topic Pub/Sub ===
+      { t: 'step', text: 'STEP 4 — Real-time Topic Pub/Sub (WebSocket)' },
+      { t: 'cmd', text: 'woclaw topic join project-updates' },
+      { t: 'output', text: '[WoClaw] Joining topic: project-updates' },
+      { t: 'output', text: '[WoClaw] Joined! Waiting for messages...' },
+      { t: 'blank' },
+      { t: 'dim', text: '# Another agent publishes to the same topic:' },
+      { t: 'output', text: '[topic:project-updates] 📢 agent:vm153' },
+      { t: 'output', text: '  "API design finalized — v2 REST endpoints approved"' },
+      { t: 'output', text: '  tags: [announcement, backend]', delay: 400 },
+      { t: 'blank' },
+      { t: 'output', text: '[WoClaw] Notified 3 agents in 12ms' },
+      { t: 'success', text: '✓ Real-time pub/sub — instant cross-framework messaging' },
+      { t: 'blank' },
+      // === STEP 5: Graph Memory ===
+      { t: 'step', text: 'STEP 5 — Graph Memory (temporal + causal relationships)' },
+      { t: 'cmd', text: 'curl "http://' + HUB_URL + '/graph/traverse/project:api-design?type=causal&depth=2"' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "center": "project:api-design",' },
+      { t: 'output', text: '  "edges": [' },
+      { t: 'output', text: '    {' },
+      { t: 'output', text: '      "type": "causal",' },
+      { t: 'output', text: '      "from": "project:api-design",' },
+      { t: 'output', text: '      "to": "task:implement-rest",' },
+      { t: 'output', text: '      "label": "leads_to"' },
+      { t: 'output', text: '    },' },
+      { t: 'output', text: '    {' },
+      { t: 'output', text: '      "type": "temporal",' },
+      { t: 'output', text: '      "from": "meeting:design-review",' },
+      { t: 'output', text: '      "to": "project:api-design",' },
+      { t: 'output', text: '      "label": "happened_before"' },
+      { t: 'output', text: '    }' },
+      { t: 'output', text: '  ]' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Graph traversal — understand why, not just what' },
+      { t: 'blank' },
+      // === STEP 6: Agent Delegation ===
+      { t: 'step', text: 'STEP 6 — Cross-Agent Task Delegation' },
+      { t: 'cmd', text: 'woclaw delegate vm152 "Review the new REST /agents PR"' },
+      { t: 'output', text: '[WoClaw] Delegating task to vm152...' },
+      { t: 'output', text: '[WoClaw] Task queued: ID deleg_7a3f2c' },
+      { t: 'output', text: '[WoClaw] vm152 accepted (PENDING → RUNNING)', delay: 500 },
+      { t: 'blank' },
+      { t: 'cmd', text: 'woclaw delegations --status RUNNING' },
+      { t: 'output', text: 'ID          TO     STATUS    CREATED             DESCRIPTION' },
+      { t: 'output', text: 'deleg_7a3f2c  vm152   RUNNING   2026-04-06 06:01   Review REST /agents PR' },
+      { t: 'success', text: '✓ Task delegation — coordinate work across AI agents automatically' },
+      { t: 'blank' },
+      // === STEP 7: Federation ===
+      { t: 'step', text: 'STEP 7 — Multi-Hub Federation' },
+      { t: 'cmd', text: 'curl http://' + HUB_URL + '/federation/peers' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "peers": [' },
+      { t: 'output', text: '    {' },
+      { t: 'output', text: '      "hubId": "hub-us-east",' },
+      { t: 'output', text: '      "url": "wss://us-east.woclaw.io",' },
+      { t: 'output', text: '      "status": "connected",' },
+      { t: 'output', text: '      "agents": 5,' },
+      { t: 'output', text: '      "latency": "23ms"' },
+      { t: 'output', text: '    }' },
+      { t: 'output', text: '  ]' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Federation — agents on different hubs collaborate seamlessly' },
+      { t: 'blank' },
+      // === STEP 8: Deduplication ===
+      { t: 'step', text: 'STEP 8 — Memory Deduplication + Conflict Detection' },
+      { t: 'cmd', text: 'curl -X POST http://' + HUB_URL + '/memory \\' },
+      { t: 'cmd', text: '  -H "Authorization: Bearer WoClaw2026" \\' },
+      { t: 'cmd', text: '  -d \'{"key":"project:api-design","value":"Different value"}\'' },
+      { t: 'output', text: 'HTTP/1.1 200 OK' },
+      { t: 'output', text: 'X-WoClaw-Conflict: true' },
+      { t: 'output', text: 'X-WoClaw-Previous-Value: "REST /agents endpoint returns..."' },
+      { t: 'output', text: '{' },
+      { t: 'output', text: '  "duplicate": false,' },
+      { t: 'output', text: '  "conflict": true,' },
+      { t: 'output', text: '  "previousValue": "REST /agents endpoint returns connected agents"' },
+      { t: 'output', text: '}' },
+      { t: 'success', text: '✓ Conflict detection — prevent accidental memory overwrites' },
+      { t: 'blank' },
+      // === DEMO COMPLETE ===
+      { t: 'info', text: '=== Demo Complete ===' },
+      { t: 'dim', text: 'WoClaw connects OpenClaw, Claude Code, Gemini CLI, and Codex CLI' },
+      { t: 'dim', text: 'via shared memory, real-time pub/sub, and cross-agent delegation.' },
+      { t: 'blank' },
+      { t: 'info', text: '🌐 https://github.com/XingP14/woclaw' },
+      { t: 'info', text: '📦 npm: xingp14-woclaw@0.4.3  |  woclaw-hooks@0.4.0  |  woclaw-mcp@0.1.2' },
+      { t: 'blank' },
+    ];
+
+    let playing = false;
+    let currentLine = 0;
+    let speed = 40;
+    let timer = null;
+    const body = document.getElementById('terminalBody');
+    const progressFill = document.getElementById('progressFill');
+    const stepIndicator = document.getElementById('stepIndicator');
+
+    function setSpeed() {
+      speed = parseInt(document.getElementById('speedSelect').value);
+    }
+
+    function addLine(type, text, delay) {
+      return new Promise(resolve => {
+        const div = document.createElement('div');
+        div.className = 'line';
+        let html = '';
+        if (type === 'step') {
+          html = `<span class="${type}">${escapeHtml(text)}</span>`;
+        } else if (type === 'cmd') {
+          html = `<span class="prompt">$ </span><span class="command">${escapeHtml(text)}</span>`;
+        } else if (type === 'output') {
+          html = `<span class="output">${escapeHtml(text)}</span>`;
+        } else {
+          html = `<span class="${type}">${escapeHtml(text)}</span>`;
+        }
+        div.innerHTML = html;
+        body.appendChild(div);
+        body.scrollTop = body.scrollHeight;
+        setTimeout(resolve, delay || speed);
+      });
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function play() {
+      if (playing) return;
+      playing = true;
+      document.getElementById('playBtn').classList.add('active');
+      document.getElementById('playBtn').textContent = '⏸ Playing...';
+
+      while (playing && currentLine < lines.length) {
+        const line = lines[currentLine];
+        const delay = line.delay || speed;
+
+        if (line.t === 'blank') {
+          const div = document.createElement('div');
+          div.className = 'line';
+          div.innerHTML = '&nbsp;';
+          body.appendChild(div);
+        } else {
+          await addLine(line.t, line.text, delay);
+        }
+
+        currentLine++;
+        progressFill.style.width = `${(currentLine / lines.length) * 100}%`;
+
+        // Update step indicator
+        const lastStep = [...lines].reverse().find((l, i) => l.t === 'step' && lines.indexOf(l) < currentLine);
+        if (lastStep) {
+          const stepNum = lines.filter(l => l.t === 'step').indexOf(lastStep) + 1;
+          const totalSteps = lines.filter(l => l.t === 'step').length;
+          stepIndicator.textContent = `Step ${stepNum}/${totalSteps} — ${lastStep.text.replace('STEP ', '')}`;
+        }
+      }
+
+      playing = false;
+      document.getElementById('playBtn').classList.remove('active');
+      document.getElementById('playBtn').textContent = '▶ Replay';
+      if (currentLine >= lines.length) {
+        stepIndicator.textContent = 'Demo complete! 🎉';
+      }
+    }
+
+    function stop() {
+      playing = false;
+      document.getElementById('playBtn').classList.remove('active');
+      document.getElementById('playBtn').textContent = '▶ Resume';
+    }
+
+    function reset() {
+      stop();
+      currentLine = 0;
+      body.innerHTML = '';
+      progressFill.style.width = '0%';
+      stepIndicator.textContent = '';
+      document.getElementById('playBtn').textContent = '▶ Play Demo';
+    }
+  </script>
+</body>
+</html>
