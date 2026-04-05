@@ -679,7 +679,9 @@ Federation 架构：
   - `POST /federation/send` — 向其他 Hub 的 agent 发送消息
   - 在 ws_server.ts 处理 `federation_send` 消息类型
 
-- [ ] **S24-4（10min）：测试 + 文档** ⏳ 待开始
+- [x] **S24-4（10min）：测试 + 文档** ✅ 2026-04-05
+  -  — 6 个单元测试 ✅
+  - Build ✅ + All 92 tests pass ✅
   - `hub/test/federation.test.ts`
   - README 新增 Federation 章节
 
