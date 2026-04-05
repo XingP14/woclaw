@@ -770,7 +770,10 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - 端口：8084（HTTP）
 ```
 
-- [ ] **S27-1（10min）：Web UI 静态页面框架 + 状态概览** :hammer: 进行中
+- [x] **S27-1（10min）：Web UI 静态页面框架 + 状态概览** :white_check_mark: 2026-04-05
+  - hub/public/index.html — Topics/Agents/Memory/Federation tabs :white_check_mark:
+  - Static file server on port 8084 :white_check_mark:
+  - vm153 :8084 已部署验证 :white_check_mark:
   - hub/public/ 目录
   - index.html - 概览页（Hub 状态 + Stats）
 
