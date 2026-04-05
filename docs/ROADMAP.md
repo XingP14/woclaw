@@ -200,6 +200,35 @@ woclaw migrate --all            # 执行所有迁移
 
 ---
 
+### S28: VS Code Extension（v1.0+）
+
+> 目标：在 VS Code 中查看 WoClaw Hub 状态、Topics、Agents
+
+**设计：**
+```
+VS Code Extension = TypeScript + VS Code API
+  - 状态栏：Hub 连接状态 + agent count
+  - Tree View：Topics / Agents / Memory 三个视图
+  - 通过 Hub REST API (http://vm153:8083) 读取数据
+  - 无需认证（内网使用）
+  - 包名：woclaw-vscode
+  - 放在 packages/woclaw-vscode/ 目录
+```
+
+- [x] **S28-1（10min）：VS Code Extension 脚手架 + 状态栏** ✅ 2026-04-05
+  - `packages/woclaw-vscode/` 初始化（package.json, tsconfig, extension.ts）
+  - 状态栏：显示 "WoClaw: Connected" 或 "Disconnected"
+  - 读取 REST /health 显示 agents count + topics count
+  - ✅ statusBarItem 每 30s 轮询 + `woclaw.showDashboard` 命令
+  - ✅ README.md + .gitignore
+
+- [ ] **S28-2（10min）：Tree View + package.json 发布配置** 
+  - Topics TreeView（列出所有 topic + message count）
+  - Agents TreeView（列出所有 agent + status）
+  - Memory TreeView（搜索框 + 结果列表）
+  - package.json 配置 vsce 发布（publisher: XingP14）
+  - README 添加 VS Code Extension 章节
+
 ## 🔨 Story 步骤拆分详情
 
 ### S1: Gemini CLI Hook 脚本（v0.2）
