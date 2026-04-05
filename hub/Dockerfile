@@ -5,7 +5,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (production only)
+# Install build prerequisites for native modules, then production dependencies
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
 RUN npm ci --omit=dev
 
 # Copy source (pre-built)
