@@ -105,10 +105,12 @@ export WOCLAW_TOKEN=your-token
 
 The migration CLI imports the real persisted context for each framework:
 
-- **OpenClaw**: all `~/.openclaw/workspace*/MEMORY.md` and `~/.openclaw/workspace*/memory/*.md` files, plus `~/.openclaw/agents/*/sessions/sessions.json`
+- **OpenClaw**: all root memory docs in `~/.openclaw/workspace*/` (`MEMORY.md`, `SOUL.md`, `AGENTS.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `IDENTITY.md`), plus content under `memory/`, `_tmp/`, `_archive/`, `ai_diary/`, `ai_tech/`, and `docs/`, and session history from `~/.openclaw/agents/*/sessions/sessions.json` plus transcript logs `~/.openclaw/agents/*/sessions/*.jsonl`
 - **Claude Code**: `~/.claude/history.jsonl`
 - **Gemini CLI**: `~/.gemini/tmp/**/chats/*.json`
 - **Codex**: `~/.codex/history.jsonl`
+
+The OpenClaw scanner skips dependency/cache trees such as `node_modules/`, `.git/`, `.wrangler/`, virtualenvs, and cache directories so it only imports OpenClaw-authored history.
 
 ## WoClaw Hub
 

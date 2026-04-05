@@ -137,6 +137,7 @@ function walkFiles(rootDir, predicate, out = []) {
   for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
     const full = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
+      if (shouldSkipDirectory(entry.name)) continue;
       walkFiles(full, predicate, out);
     } else if (!predicate || predicate(full)) {
       out.push(full);
@@ -145,21 +146,130 @@ function walkFiles(rootDir, predicate, out = []) {
   return out;
 }
 
-function getWorkspaceMemoryFiles(workspaceRoot) {
-  const files = [];
-  for (const candidate of ['MEMORY.md', 'memory.md']) {
-    const p = path.join(workspaceRoot, candidate);
-    if (fs.existsSync(p) && fs.statSync(p).isFile()) files.push(p);
+const SKIPPED_DIRS = new Set([
+  '.git',
+  '.openclaw',
+  '.cache',
+  '.wrangler',
+  'build',
+  'coverage',
+  'dist',
+  'env',
+  'imgvenv',
+  'node_modules',
+  'site-packages',
+  'venv',
+  '.venv',
+  '__pycache__',
+  '.pytest_cache',
+  '.mypy_cache',
+  '.tox',
+]);
+
+function shouldSkipDirectory(name) {
+  return SKIPPED_DIRS.has(name) || /^venv\d*$/i.test(name) || /^env\d*$/i.test(name);
+}
+
+const ROOT_MEMORY_FILES = new Set([
+  'MEMORY.md',
+  'memory.md',
+  'SOUL.md',
+  'AGENTS.md',
+  'USER.md',
+  'TOOLS.md',
+  'HEARTBEAT.md',
+  'IDENTITY.md',
+]);
+
+function isSessionTranscriptPath(relPath) {
+  const normalized = relPath.split(path.sep).join('/');
+  return /^agents\/[^/]+\/sessions\/[^/]+\.jsonl$/i.test(normalized);
+}
+
+function isSessionSummaryPath(relPath) {
+  const normalized = relPath.split(path.sep).join('/');
+  return /^agents\/[^/]+\/sessions\/sessions\.json$/i.test(normalized);
+}
+
+function isWorkspaceMemoryPath(relPath, filePath) {
+  const normalized = relPath.split(path.sep).join('/');
+  const base = path.basename(filePath);
+  const parts = normalized.split('/');
+
+  if (parts.some(part => shouldSkipDirectory(part))) {
+    return false;
   }
 
-  const memoryDir = path.join(workspaceRoot, 'memory');
-  if (fs.existsSync(memoryDir) && fs.statSync(memoryDir).isDirectory()) {
-    walkFiles(memoryDir, (filePath) => fs.statSync(filePath).isFile() && isMarkdownFile(filePath), files);
+  if (ROOT_MEMORY_FILES.has(base) && !relPath.includes(path.sep)) {
+    return true;
   }
+
+  if (normalized.startsWith('memory/')) {
+    return /\.(md|markdown|json)$/i.test(base);
+  }
+
+  if (normalized.startsWith('_tmp/')) {
+    return /\.(md|markdown|json)$/i.test(base);
+  }
+
+  if (normalized.startsWith('_archive/')) {
+    return /\.(md|markdown|json)$/i.test(base);
+  }
+
+  if (normalized.startsWith('ai_diary/') || normalized.startsWith('ai_tech/')) {
+    return /\.(md|markdown)$/i.test(base);
+  }
+
+  if (normalized.startsWith('docs/')) {
+    return /\.(md|markdown)$/i.test(base);
+  }
+
+  if (normalized.startsWith('agents/')) {
+    if (isSessionTranscriptPath(normalized) || isSessionSummaryPath(normalized)) {
+      return false;
+    }
+    return /\.(md|markdown)$/i.test(base);
+  }
+
+  return false;
+}
+
+function getWorkspaceMemoryFiles(workspaceRoot) {
+  const files = [];
+  if (!fs.existsSync(workspaceRoot)) return files;
+
+  walkFiles(workspaceRoot, (filePath) => {
+    const relPath = path.relative(workspaceRoot, filePath);
+    if (relPath.startsWith('..')) return false;
+    if (relPath.includes(`${path.sep}node_modules${path.sep}`)) return false;
+    if (relPath.includes(`${path.sep}.openclaw${path.sep}`)) return false;
+    if (relPath.includes(`${path.sep}dist${path.sep}`)) return false;
+    if (relPath.includes(`${path.sep}build${path.sep}`)) return false;
+    if (relPath.includes(`${path.sep}coverage${path.sep}`)) return false;
+    return isWorkspaceMemoryPath(relPath, filePath);
+  }, files);
 
   return files
     .filter((file, idx, arr) => arr.indexOf(file) === idx)
     .sort((a, b) => a.localeCompare(b));
+}
+
+function getSessionTranscriptFiles() {
+  const files = [];
+  const agentRoot = path.join(STATE_DIR, 'agents');
+  if (!fs.existsSync(agentRoot)) return files;
+
+  for (const agentDir of fs.readdirSync(agentRoot, { withFileTypes: true })) {
+    if (!agentDir.isDirectory()) continue;
+    const sessionsDir = path.join(agentRoot, agentDir.name, 'sessions');
+    if (!fs.existsSync(sessionsDir) || !fs.statSync(sessionsDir).isDirectory()) continue;
+    walkFiles(sessionsDir, (filePath) => {
+      const base = path.basename(filePath);
+      return fs.statSync(filePath).isFile() && base.endsWith('.jsonl');
+    }, files);
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
 }
 
 function findSessionStores() {
@@ -198,6 +308,53 @@ function summarizeWorkspaceFile(workspaceLabel, workspaceRoot, filePath) {
     key: `openclaw:workspace:${workspaceLabel}:${relPath}`,
     value: `${header}${content ? `${content}\n` : ''}`,
     tags: ['openclaw', 'migrated', 'workspace-memory'],
+    updatedBy: 'openclaw-migrate',
+  };
+}
+
+function truncate(s, max = 180) {
+  if (!s) return '';
+  const text = String(s).replace(/\s+/g, ' ').trim();
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function summarizeSessionTranscript(agentId, filePath) {
+  const raw = readText(filePath).trimEnd();
+  const lines = raw ? raw.split('\n').filter(Boolean) : [];
+  const events = [];
+  for (const line of lines) {
+    try {
+      events.push(JSON.parse(line));
+    } catch {
+      // ignore malformed lines
+    }
+  }
+
+  const session = events.find(evt => evt.type === 'session') || {};
+  const messageEvents = events.filter(evt => evt.type === 'message' && evt.message);
+  const firstUser = messageEvents.find(evt => evt.message?.role === 'user')?.message?.content?.[0]?.text || '';
+  const lastAssistant = [...messageEvents].reverse().find(evt => evt.message?.role === 'assistant')?.message?.content?.[0]?.text || '';
+  const modelChange = events.find(evt => evt.type === 'model_change');
+  const sessionId = session.id || path.basename(filePath, '.jsonl');
+  const startAt = session.timestamp ? new Date(session.timestamp).toISOString() : 'unknown';
+  const header = [
+    `# OpenClaw Session Transcript`,
+    `- Agent: ${agentId}`,
+    `- Session ID: ${sessionId}`,
+    `- Started: ${startAt}`,
+    `- File: ${path.relative(HOME, filePath)}`,
+    `- Events: ${events.length}`,
+    modelChange?.provider ? `- Provider: ${modelChange.provider}` : null,
+    modelChange?.modelId ? `- Model: ${modelChange.modelId}` : null,
+    firstUser ? `- First user: ${truncate(firstUser)}` : null,
+    lastAssistant ? `- Last assistant: ${truncate(lastAssistant)}` : null,
+    '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    key: `openclaw:sessionlog:${agentId}:${sessionId}`,
+    value: `${header}${raw ? `${raw}\n` : ''}`,
+    tags: ['openclaw', 'migrated', 'session-log'],
     updatedBy: 'openclaw-migrate',
   };
 }
@@ -256,7 +413,7 @@ async function writeToHub(entry) {
   }
 }
 
-function printList(workspaceRoot, files, stores) {
+function printList(workspaceRoot, files) {
   console.log(`\n📋 OpenClaw Workspace (${workspaceRoot})\n`);
   if (files.length === 0) {
     console.log('  No workspace memory files found.');
@@ -266,29 +423,35 @@ function printList(workspaceRoot, files, stores) {
       console.log(`    - ${path.relative(workspaceRoot, file)}`);
     }
   }
-
-  if (stores.length === 0) {
-    console.log('\n  No session stores found.');
-  } else {
-    console.log('\n  Session stores:');
-    for (const store of stores) {
-      const data = loadJson(store.path) || {};
-      const count = Object.keys(data).length;
-      console.log(`    - ${store.agentId} (${count} session key(s))`);
-    }
-  }
-  console.log('');
 }
 
 async function main() {
   const workspaceRoots = discoverWorkspaceRoots();
   const sessionStores = findSessionStores();
+  const transcriptFiles = getSessionTranscriptFiles();
 
   if (mode === 'list') {
     for (const workspace of workspaceRoots) {
       const workspaceFiles = getWorkspaceMemoryFiles(workspace.root);
-      printList(workspace.root, workspaceFiles, sessionStores);
+      printList(workspace.root, workspaceFiles);
     }
+    if (sessionStores.length > 0) {
+      console.log('\n  Session stores:');
+      for (const store of sessionStores) {
+        const data = loadJson(store.path) || {};
+        const count = Object.keys(data).length;
+        console.log(`    - ${store.agentId} (${count} session key(s))`);
+      }
+    } else {
+      console.log('\n  No session stores found.');
+    }
+    if (transcriptFiles.length > 0) {
+      console.log('\n  Session transcripts:');
+      for (const transcript of transcriptFiles) {
+        console.log(`    - ${path.relative(STATE_DIR, transcript)}`);
+      }
+    }
+    console.log('');
     return;
   }
 
@@ -304,8 +467,14 @@ async function main() {
     if (mode === 'agent-id' && targetAgent && store.agentId !== targetAgent) continue;
     storeEntries.push(...summarizeSessionStore(store.agentId, store.path, mode === 'agent-id' ? targetAgent : null));
   }
+  const transcriptEntries = [];
+  for (const transcript of transcriptFiles) {
+    const agentId = path.basename(path.dirname(path.dirname(transcript)));
+    if (mode === 'agent-id' && targetAgent && agentId !== targetAgent) continue;
+    transcriptEntries.push(summarizeSessionTranscript(agentId, transcript));
+  }
 
-  const entries = [...fileEntries, ...storeEntries];
+  const entries = [...fileEntries, ...storeEntries, ...transcriptEntries];
   if (mode === 'agent-id') {
     console.log(`\n🔄 Migrating OpenClaw agent scope: ${targetAgent}\n`);
   } else {
