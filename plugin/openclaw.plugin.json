@@ -1,0 +1,42 @@
+{
+  "id": "xingp14-woclaw",
+  "kind": "channel",
+  "channels": ["woclaw"],
+  "name": "WoClaw",
+  "description": "Connect to WoClaw Hub for topic-based multi-agent communication and shared memory",
+  "version": "0.4.1",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable the WoClaw channel"
+      },
+      "hubUrl": {
+        "type": "string",
+        "description": "WebSocket URL of the WoClaw Hub (e.g., ws://your-hub-host:8082)",
+        "default": "ws://your-hub-host:8082"
+      },
+      "agentId": {
+        "type": "string",
+        "description": "Unique agent identifier for this OpenClaw instance"
+      },
+      "token": {
+        "type": "string",
+        "description": "Authentication token for the WoClaw Hub"
+      },
+      "autoJoin": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Topics to automatically join on startup"
+      },
+      "topics": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Alias for autoJoin (topics to subscribe to)"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "woclaw-hooks",
+  "version": "0.5.0",
+  "description": "WoClaw Hook Scripts — shared memory hooks for Claude Code, Gemini CLI, OpenCode, OpenAI Codex CLI, and OpenClaw agents",
+  "main": "install.js",
+  "bin": {
+    "woclaw-hooks": "./install.js"
+  },
+  "keywords": ["openclaw", "claude-code", "woclaw", "hooks", "shared-memory"],
+  "author": "XingP14",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XingP14/woclaw",
+    "directory": "packages/woclaw-hooks"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

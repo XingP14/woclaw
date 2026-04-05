@@ -1,0 +1,21 @@
+{
+  "name": "opencode-woclaw",
+  "version": "0.1.0",
+  "description": "WoClaw Hub plugin for OpenCode — shared memory, topic messaging, and multi-agent context sharing",
+  "main": "index.js",
+  "type": "module",
+  "keywords": ["opencode", "opencode-plugin", "woclaw", "openclaw", "multi-agent", "shared-memory"],
+  "author": "XingP14",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XingP14/woclaw",
+    "directory": "packages/opencode-woclaw-plugin"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "opencode": {
+    "plugins": ["opencode-woclaw"]
+  }
+}

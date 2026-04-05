@@ -1,0 +1,27 @@
+[Unit]
+Description=WoClaw Hub - Multi-agent communication relay
+After=network.target
+
+[Service]
+Type=simple
+User=node
+WorkingDirectory=/opt/woclaw/hub
+ExecStart=/usr/local/bin/node /opt/woclaw/hub/dist/index.js
+Environment=AUTH_TOKEN=YOUR_SECURE_TOKEN
+Environment=HOST=0.0.0.0
+Environment=PORT=8082
+Environment=REST_PORT=8083
+Environment=DATA_DIR=/opt/woclaw/data
+Restart=unless-stopped
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/woclaw/data /var/log
+
+[Install]
+WantedBy=multi-user.target

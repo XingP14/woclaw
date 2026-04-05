@@ -1,0 +1,50 @@
+{
+  "name": "xingp14-woclaw",
+  "version": "0.4.3",
+  "description": "WoClaw skill/plugin for OpenClaw - Connect to WoClaw Hub for multi-agent communication",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "woclaw": "./bin/woclaw.js"
+  },
+  "scripts": {
+    "start": "node bin/woclaw.js",
+    "build": "mkdir -p dist && ./node_modules/.bin/tsc --project tsconfig.build.json && cp -r skills openclaw.plugin.json bin dist/",
+    "prepublishOnly": "npm run build",
+    "test": "echo 'No tests yet' && exit 0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "woclaw",
+      "label": "WoClaw",
+      "blurb": "Connect to WoClaw Hub for topic-based multi-agent communication."
+    }
+  },
+  "keywords": [
+    "openclaw",
+    "woclaw",
+    "multi-agent",
+    "communication",
+    "collaboration"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XingP14/woclaw"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

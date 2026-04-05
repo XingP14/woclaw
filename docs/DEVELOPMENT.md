@@ -1,0 +1,268 @@
+# WoClaw 开发指南
+
+## 🛠️ 开发环境
+
+### 环境要求
+- Node.js 18+
+- npm 9+
+- TypeScript 5+
+- Git
+
+### 克隆项目
+
+```bash
+git clone https://github.com/XingP14/woclaw.git
+cd woclaw
+```
+
+### 安装依赖
+
+```bash
+cd hub
+npm install
+```
+
+### 开发模式（热重载）
+
+```bash
+npm run dev
+```
+
+### 构建
+
+```bash
+npm run build
+```
+
+### 运行测试
+
+```bash
+# 启动测试用 Hub
+npm start &
+
+# 运行测试脚本
+node test-connect.mjs
+
+# 或者
+node --loader ts-node/esm test.ts
+```
+
+## 📁 项目结构
+
+```
+hub/src/
+├── index.ts       # 入口，初始化服务器
+├── ws_server.ts   # WebSocket 服务器核心
+├── topics.ts      # Topic 管理
+├── memory.ts      # 共享内存池
+├── db.ts          # 数据持久化（JSON 文件）
+└── types.ts       # TypeScript 类型定义
+```
+
+## 🔌 核心 API
+
+### WebSocket 连接
+
+```javascript
+const ws = new WebSocket('ws://localhost:8082?agentId=my-agent&token=my-token');
+```
+
+### 发送消息
+
+```javascript
+// 加入 Topic
+ws.send(JSON.stringify({
+  type: 'join',
+  topic: 'general'
+}));
+
+// 发送消息
+ws.send(JSON.stringify({
+  type: 'message',
+  topic: 'general',
+  content: 'Hello!'
+}));
+
+// 写入共享内存
+ws.send(JSON.stringify({
+  type: 'memory_write',
+  key: 'status',
+  value: 'online'
+}));
+```
+
+### 接收消息
+
+```javascript
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  
+  switch (msg.type) {
+    case 'welcome':
+      console.log('已连接，ID:', msg.agentId);
+      break;
+    case 'message':
+      console.log(`${msg.from}: ${msg.content}`);
+      break;
+    case 'join':
+      console.log(`${msg.agent} 加入了 ${msg.topic}`);
+      break;
+    case 'memory_update':
+      console.log(`内存更新: ${msg.key} = ${msg.value}`);
+      break;
+  }
+};
+```
+
+## 🧪 测试
+
+### 本地测试
+
+```bash
+# 终端 1: 启动 Hub
+AUTH_TOKEN=test-token npm start
+
+# 终端 2: 运行测试
+node test-connect.mjs
+```
+
+### 多客户端测试
+
+```javascript
+// 同时启动多个客户端
+const clients = ['agent-a', 'agent-b', 'agent-c'];
+
+clients.forEach(id => {
+  const ws = new WebSocket(`ws://localhost:8082?agentId=${id}&token=test-token`);
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'join', topic: 'test' }));
+    ws.send(JSON.stringify({ type: 'message', topic: 'test', content: `Hi from ${id}!` }));
+  };
+});
+```
+
+### Docker 测试
+
+```bash
+# 构建本地镜像
+docker build -t xingp14/woclaw-hub:dev ./hub
+
+# 运行
+docker run -p 8082:8082 -p 8083:8083 xingp14/woclaw-hub:dev
+
+# 测试
+node test-connect.mjs
+```
+
+## 🐛 调试
+
+### 日志
+
+```bash
+# 查看 systemd 日志
+journalctl -u woclaw-hub -f
+
+# Docker 日志
+docker logs -f woclaw-hub
+```
+
+### VS Code 调试配置
+
+```json
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Hub",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/hub/dist/index.js",
+      "env": {
+        "AUTH_TOKEN": "dev-token",
+        "PORT": "8082"
+      }
+    }
+  ]
+}
+```
+
+### WebSocket 调试
+
+Chrome DevTools → Network → WS → 点击连接 → Messages
+
+## 📦 发布到 npm
+
+发布通过 GitHub Actions CI/CD 自动完成，触发方式为推送 Git tag：
+
+```bash
+# 1. 更新版本（自动触发 GitHub Actions）
+git add .
+git commit -m "chore: bump version"
+git tag hub/v0.4.0        # hub 包 → woclaw-hub
+git tag plugin/v0.4.0     # plugin 包 → xingp14-woclaw
+git tag hooks/v0.4.0     # hooks 包 → woclaw-hooks
+git push --tags
+
+# 2. GitHub Actions 自动：
+#    - 构建并发布到 npm
+#    - 构建并推送 Docker 镜像（hub/* tags）
+```
+
+本地手动发布（不推荐）：
+
+```bash
+cd hub && HOME=/home/node/.openclaw/tmp npm publish
+cd plugin && HOME=/home/node/.openclaw/tmp npm publish
+cd hooks && HOME=/home/node/.openclaw/tmp npm publish
+```
+
+## 🎯 代码规范
+
+- 使用 TypeScript（严格模式）
+- 遵循 ESLint 规则
+- 提交前运行 `npm run build`
+- 使用语义化提交信息
+
+## 🔀 Git 工作流
+
+```bash
+# 1. 创建分支
+git checkout -b feature/my-feature
+
+# 2. 开发
+git commit -m "feat: add awesome feature"
+
+# 3. 推送
+git push origin feature/my-feature
+
+# 4. 创建 PR
+```
+
+## 📚 相关资源
+
+- [TypeScript 文档](https://www.typescriptlang.org/docs/)
+- [ws 库文档](https://github.com/websockets/ws)
+- [OpenClaw 文档](https://docs.openclaw.ai)
+
+## Hub Token 说明（2026-04-02 更新）
+
+### REST API vs WebSocket Token
+- **REST API 认证**：进程启动时 `AUTH_TOKEN` 环境变量 → Hub 重启前不生效
+- **WebSocket 认证**：启动后接受参数 `token=` 动态校验
+- 当前状态：REST API 用 `WoClaw2026`，WebSocket 用 `ClawLink2026`
+- **解决方案**：重启 Hub，统一传入 `AUTH_TOKEN=ClawLink2026`
+
+### 重启 Hub（your-hub-host）
+```bash
+# SSH 到 your-hub-host
+ssh your-hub-host
+# 查看 Hub 进程
+ps aux | grep woclaw
+# 重启（docker compose）
+cd /opt/woclaw && docker compose restart
+# 或直接
+docker restart woclaw-hub
+```
+

@@ -1,0 +1,114 @@
+{
+  "name": "woclaw-vscode",
+  "displayName": "WoClaw",
+  "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory",
+  "version": "0.1.0",
+  "publisher": "XingP14",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["workspaceContains"],
+  "contributes": {
+    "configuration": {
+      "title": "WoClaw",
+      "properties": {
+        "woclaw.hubUrl": {
+          "type": "string",
+          "default": "http://localhost:8083",
+          "description": "WoClaw Hub REST API URL"
+        },
+        "woclaw.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Hub status in status bar"
+        },
+        "woclaw.pollInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "Status bar poll interval in seconds"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "woclaw-explorer",
+          "title": "WoClaw",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "woclaw-explorer": [
+        {
+          "id": "woclaw-topics",
+          "name": "Topics",
+          "icon": "media/topic.svg"
+        },
+        {
+          "id": "woclaw-agents",
+          "name": "Agents",
+          "icon": "media/agent.svg"
+        },
+        {
+          "id": "woclaw-memory",
+          "name": "Memory",
+          "icon": "media/memory.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "woclaw-topics",
+        "contents": "No topics found. Make sure the WoClaw Hub is running.",
+        "when": "!woclaw.hasData"
+      },
+      {
+        "view": "woclaw-agents",
+        "contents": "No agents connected. Make sure the WoClaw Hub is running.",
+        "when": "!woclaw.hasData"
+      }
+    ],
+    "commands": [
+      {
+        "command": "woclaw.refreshAll",
+        "title": "WoClaw: Refresh All",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "woclaw.memorySearch",
+        "title": "WoClaw: Search Memory",
+        "icon": "$(search)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "woclaw.refreshAll",
+          "when": "view == woclaw-topics || view == woclaw-agents || view == woclaw-memory",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "package": "vsce package"
+  },
+  "vsce": {
+    "publisher": "XingP14",
+    "packagePath": ".",
+    "targets": [
+      { "name": "stable", "packagePath": "." }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.3.0",
+    "vsce": "^2.15.0"
+  }
+}

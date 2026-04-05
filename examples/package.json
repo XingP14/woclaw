@@ -1,0 +1,9 @@
+{
+  "name": "woclaw-examples",
+  "version": "0.3.0",
+  "description": "Example clients for WoClaw Hub",
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
