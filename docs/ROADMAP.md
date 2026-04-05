@@ -156,7 +156,7 @@ woclaw migrate --all            # 执行所有迁移
 | v0.4 | 2026-04-02→04-04 | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）✅ |
 | v0.5 | 2026-04-04 | ⭐ **跨框架数据迁移**（OpenAI/Claude/Gemini/OpenClaw → WoClaw）✅ |
 | v0.6 | 2026-04-04 | Hook 系统完善、Docker Hub、ClawHub Skill（2026-04-13 后发布）|
-| v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic ✅ |
+| v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic、Web UI ✅ |
 
 ---
 
@@ -195,7 +195,7 @@ woclaw migrate --all            # 执行所有迁移
 | S24 | Multi-Hub Federation | v1.0 | 4 | ~40min | ✅ |
 | S25 | Semantic Recall（意图感知检索）| v1.0 | 3 | ~30min | ✅ |
 | S26 | Deduplication | v1.0 | 3 | ~30min | ✅ |
-| S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | 🔨 进行中 |
+| S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | ✅ |
 
 ---
 
