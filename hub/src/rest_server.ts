@@ -282,6 +282,49 @@ const result = this.graph.findPath(from, to, maxDepth);
         this.handleTokenStatus(res);
       } else if (path === '/admin/token/rotate' && method === 'POST') {
         this.handleTokenRotate(req, res);
+      // v1.0: Federation REST endpoints
+      } else if (path === '/federation/peers' && method === 'GET') {
+        const peers = this.wsServer?.getFederationPeersStatus?.() ?? [];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ peers }));
+      } else if (path === '/federation/peers' && method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const { hubId, wsUrl, federationToken } = JSON.parse(body);
+            if (!hubId || !wsUrl || !federationToken) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing required fields: hubId, wsUrl, federationToken' }));
+              return;
+            }
+            this.wsServer?.addFederationPeer?.({ hubId, wsUrl, federationToken, status: 'disconnected', lastSeen: 0, connectedAgents: 0 });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, hubId }));
+          } catch (e: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      } else if (path === '/federation/send' && method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const { targetHubId, agentId, payload } = JSON.parse(body);
+            if (!targetHubId || !agentId) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing required fields: targetHubId, agentId' }));
+              return;
+            }
+            const sent = this.wsServer?.federationSendToAgent?.(targetHubId, agentId, payload) ?? false;
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: sent }));
+          } catch (e: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
       } else {
         res.writeHead(405);
         res.end(JSON.stringify({ error: 'Method not allowed' }));
