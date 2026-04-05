@@ -18,7 +18,7 @@
 ## 前置要求
 
 - Gemini CLI 已安装（v0.26.0+，支持 hooks 系统）
-- 网络可达 WoClaw Hub（默认 `http://vm153:8083`）
+- 网络可达 WoClaw Hub（默认 `http://your-hub-host:8083`）
 - `curl` 和 `node` 已安装
 
 ---
@@ -90,14 +90,14 @@ Gemini CLI 通过 `settings.json` 的 `hooks` 字段配置生命周期钩子。
 安装后配置保存在 `~/.woclaw/.env`：
 
 ```env
-WOCLAW_HUB_URL=http://vm153:8083
+WOCLAW_HUB_URL=http://your-hub-host:8083
 WOCLAW_TOKEN=WoClaw2026
 WOCLAW_PROJECT_KEY=project:context
 ```
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `WOCLAW_HUB_URL` | `http://vm153:8083` | Hub REST API 地址 |
+| `WOCLAW_HUB_URL` | `http://your-hub-host:8083` | Hub REST API 地址 |
 | `WOCLAW_TOKEN` | `WoClaw2026` | Hub 认证 Token |
 | `WOCLAW_PROJECT_KEY` | `project:context` | 共享上下文 key（可按项目设置不同值）|
 
@@ -181,7 +181,7 @@ echo 'WOCLAW_PROJECT_KEY="project:backend"' >> ~/.woclaw/.env
 ### 1. 检查 Hub 连通性
 
 ```bash
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 ```
 
 预期：`{"status":"ok","agents":...,"topics":...}`
@@ -248,10 +248,10 @@ rm ~/.gemini/hooks/woclaw-session-stop.sh
 
 ```bash
 # 检查 Hub 是否可达
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 
 # 检查 token
-curl -H "Authorization: Bearer WoClaw2026" http://vm153:8083/memory
+curl -H "Authorization: Bearer WoClaw2026" http://your-hub-host:8083/memory
 ```
 
 ### 共享上下文为空

@@ -122,7 +122,7 @@ type DelegationStatus =
 | GET | /delegations/pending | 获取当前 agent 待处理的委托 |
 
 ```
-GET /delegations?fromAgent=vm152&status=requested
+GET /delegations?fromAgent=agent-b&status=requested
 POST /delegations  body: { toAgent, task, topic? }
 DELETE /delegations/:id
 ```

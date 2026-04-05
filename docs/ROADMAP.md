@@ -55,8 +55,8 @@
 ## 🚀 v0.2 — P0 功能（当前）
 
 ### 核心已上线
-- [x] WebSocket Hub (ws://vm153:8082) ✅
-- [x] REST API (vm153:8083) ✅
+- [x] WebSocket Hub (ws://your-hub-host:8082) ✅
+- [x] REST API (your-hub-host:8083) ✅
 - [x] Topic Pub/Sub ✅
 - [x] Shared Memory Pool ✅
 - [x] Message History (last 50) ✅
@@ -79,7 +79,7 @@
 
 ### P0 - OpenClaw Plugin 完善
 - [x] Plugin 导出格式修复（使用 `defineChannelPluginEntry`）✅
-- [x] **Story: vm153 plugin 验证** — 在 vm153 上安装 xingp14-woclaw，重启 gateway，验证 channel 连接正常 ✅ (S4-1/2/3, 2026-04-03)
+- [x] **Story: your-hub-host plugin 验证** — 在 your-hub-host 上安装 xingp14-woclaw，重启 gateway，验证 channel 连接正常 ✅ (S4-1/2/3, 2026-04-03)
 - [x] **Story: VPS4 plugin 验证** — 在 VPS4 本地安装验证 ✅ (S5-1/2/3, 2026-04-03)
 
 ---
@@ -213,7 +213,7 @@ woclaw migrate --all            # 执行所有迁移
 | S1 | Gemini CLI Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S2 | OpenCode Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S3 | Codex Hook npm 发布 | v0.2 | 2 | ~20min | ✅ 2026-04-03 |
-| S4 | vm153 plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
+| S4 | your-hub-host plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S5 | VPS4 plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S6 | Claude Code Hook 安装器验证 | v0.3 | 2 | ~30min | ✅ 2026-04-03 |
 | S7 | Codex Hook 安装器完善 | v0.3 | 2 | ~30min | ✅ 2026-04-04 |
@@ -250,7 +250,7 @@ woclaw migrate --all            # 执行所有迁移
 VS Code Extension = TypeScript + VS Code API
   - 状态栏：Hub 连接状态 + agent count
   - Tree View：Topics / Agents / Memory 三个视图
-  - 通过 Hub REST API (http://vm153:8083) 读取数据
+  - 通过 Hub REST API (http://your-hub-host:8083) 读取数据
   - 无需认证（内网使用）
   - 包名：woclaw-vscode
   - 放在 packages/woclaw-vscode/ 目录
@@ -324,15 +324,15 @@ VS Code Extension = TypeScript + VS Code API
   - ✅ `npm view woclaw-codex` 验证通过
   - ✅ 更新 ROADMAP.md
 
-### S4: vm153 plugin 验证（v0.2）
+### S4: your-hub-host plugin 验证（v0.2）
 > 评估：需要 SSH + 操作，~3 步骤 ✅ 全部完成
 
-- [x] **S4-1（10min）：SSH 检查 vm153 当前状态** ✅ 2026-04-03
+- [x] **S4-1（10min）：SSH 检查 your-hub-host 当前状态** ✅ 2026-04-03
   - `openclaw status` + `openclaw channels list` 执行完毕
   - 结果：plugin 已安装（`ls ~/.openclaw/extensions/` 含 woclaw），channel "WoClaw default: configured, enabled" ✅
-  - WoClaw Hub 连接：ws://192.168.102.153:8082，已认证为 vm153 ✅
-  - 注：vm153 自连存在 1006 异常关闭后重连（循环依赖，Hub 和 plugin 同机），功能正常
-  - `ssh -i ~/.ssh/id_ed25519 root@vm153 openclaw status`
+  - WoClaw Hub 连接：ws://your-hub-host-ip:8082，已认证为 your-hub-host ✅
+  - 注：your-hub-host 自连存在 1006 异常关闭后重连（循环依赖，Hub 和 plugin 同机），功能正常
+  - `ssh -i ~/.ssh/id_ed25519 root@your-hub-host openclaw status`
   - 检查 woclaw plugin 是否已安装（`~/.openclaw/extensions/`）
   - 检查 channel 状态
 
@@ -343,8 +343,8 @@ VS Code Extension = TypeScript + VS Code API
   - channel 状态确认：configured, enabled，Hub 自连正常
 
 - [x] **S4-3（10min）：验证 WebSocket 连接** ✅ 2026-04-03
-  - `curl http://vm153:8083/health` → `{"status":"ok","agents":2,"topics":2}`
-  - WebSocket 直连测试：ws://192.168.102.153:8082 → 连接成功（315ms），认证正常
+  - `curl http://your-hub-host:8083/health` → `{"status":"ok","agents":2,"topics":2}`
+  - WebSocket 直连测试：ws://your-hub-host-ip:8082 → 连接成功（315ms），认证正常
   - Hub 可见 2 个 agent，channel WoClaw default 配置 enabled
 
 ### S5: VPS4 plugin 验证（v0.2）
@@ -353,7 +353,7 @@ VS Code Extension = TypeScript + VS Code API
 - [x] **S5-1（10min）：检查当前 plugin 状态** ✅ 2026-04-03
   - `openclaw status` + `openclaw channels list` 执行完毕
   - 结果：WoClaw channel "configured, enabled" ✅，Hub 健康 ✅ (`{"status":"ok","agents":2,"topics":2}`)
-  - `xingp14-woclaw` (v0.4.3) 已安装，config 指向 Hub ws://192.168.102.153:8082 ✅
+  - `xingp14-woclaw` (v0.4.3) 已安装，config 指向 Hub ws://your-hub-host-ip:8082 ✅
   - `xingp14-woclaw.broken`（root 所有，无法清理）是旧版残留，造成 duplicate ID 警告 ⚠️
   - Plugin ID mismatch：manifest id="woclaw" vs npm package="xingp14-woclaw"
   - **S5-2 修复方案**：更新 `openclaw.plugin.json` manifest id 为 `xingp14-woclaw`，或修改 config entries key
@@ -423,12 +423,12 @@ VS Code Extension = TypeScript + VS Code API
   - 在 `bin/woclaw.js` 添加 `mcp serve` 子命令，spawn woclaw-mcp 子进程
   - 通过环境变量 `WOCLAW_WS_URL`, `WOCLAW_REST_URL`, `WOCLAW_TOKEN` 传递 Hub 连接参数
   - 添加 `--rest-url` 全局旗标支持；添加 `__dirname` ES module polyfill
-  - 验证：`woclaw mcp serve` → Hub ws://vm153:8082 连接成功
+  - 验证：`woclaw mcp serve` → Hub ws://your-hub-host:8082 连接成功
 
 - [x] **S8-4（10min）：测试 woclaw mcp serve + npm 发布** ✅ 2026-04-04
   - REST API 测试通过：`GET /memory` → 正常返回记忆列表 ✅
   - REST API 测试通过：`GET /topics` → 正常返回 topics (general, woclaw-test) ✅
-  - WebSocket 连接测试通过 → Hub ws://vm153:8082 认证成功 ✅
+  - WebSocket 连接测试通过 → Hub ws://your-hub-host:8082 认证成功 ✅
   - MCP 暴露 8 个 tools：woclaw_memory_read/write/delete/list, woclaw_topics_list/messages/send/join ✅
   - npm 包已就绪：xingp14-woclaw@0.4.3 ✅，woclaw-mcp@0.1.2 ✅
 
@@ -484,10 +484,10 @@ VS Code Extension = TypeScript + VS Code API
   - `ws_server.ts` 新增 `getAgentsInfo()` 方法，返回所有已连接 agent 列表
   - `rest_server.ts` 新增 `GET /agents` 端点，`/agents?format=details` 返回完整信息
   - `index.ts` 更新 RestServer 构造函数传递 wsServer
-  - 测试通过：`GET /agents` → vm152 + vm153 两个 agent ✅
+  - 测试通过：`GET /agents` → agent-b + your-hub-host 两个 agent ✅
 
 - [x] **S11-2（10min）：测试 + 补充字段** ✅ 2026-04-04
-  - `GET /agents` → 返回 vm152 + vm153，含 connectedAt/topics/lastSeen 字段 ✅
+  - `GET /agents` → 返回 agent-b + your-hub-host，含 connectedAt/topics/lastSeen 字段 ✅
 
 ### S12: 任务委托机制（v0.4）
 > 评估：复杂协议设计，~5 步骤
@@ -513,7 +513,7 @@ VS Code Extension = TypeScript + VS Code API
 - [x] **S12-5（10min）：CLI 支持 + 测试** ✅ 2026-04-04
   - `woclaw delegate <toAgent> <description>` ✅
   - `woclaw delegations [status]` ✅
-  - Hub vm153 重启完成
+  - Hub your-hub-host 重启完成
 
 ### S13-S16: 迁移工具（v0.5）
 > 评估：每个 ~4 步骤，以 S13 Codex 为例
@@ -705,7 +705,7 @@ Topic 类型：
 - [x] **S23-2（10min）：实现邀请机制 API** ✅ 2026-04-05
   -  — 邀请 Agent ✅
   -  — 凭邀请 Token 加入私有 Topic ✅
-  - vm153 验证通过 ✅
+  - your-hub-host 验证通过 ✅
   - `POST /topics/:name/invite` — 邀请 Agent（生成 invite token）
   - `POST /topics/:name/join` — Agent 凭 invite token 加入私有 Topic
   - ws_server.ts 在 `topic_join` 处理中验证 private Topic 邀请
@@ -743,7 +743,7 @@ Federation 架构：
 
 - [x] **S24-2（10min）：实现 Hub-to-Hub WebSocket 连接** ✅ 2026-04-05
   -  — 自动连接 peers, ping/reconnect, hub_info 交换 ✅
-  - vm153 已部署验证 ✅
+  - your-hub-host 已部署验证 ✅
   - 定期 ping peer Hub 保持连接
   - 跨 Hub 消息路由：agent 消息可发往其他 Hub 的 agent
 
@@ -751,7 +751,7 @@ Federation 架构：
   -  — 查看 peer 状态 ✅
   -  — 添加 peer Hub ✅
   -  — 向 peer Hub 的 agent 发送消息 ✅
-  - vm153 已部署验证 ✅
+  - your-hub-host 已部署验证 ✅
   - `POST /federation/send` — 向其他 Hub 的 agent 发送消息
   - 在 ws_server.ts 处理 `federation_send` 消息类型
 
@@ -787,7 +787,7 @@ Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
 - [x] **S25-2（10min）：实现语义相似度排序** ✅ 2026-04-05
   -  — Jaccard 相似度搜索 ✅
   -  ✅
-  - vm153 已部署验证 ✅
+  - your-hub-host 已部署验证 ✅
   - recall 时对结果按 `computeTextSimilarity(query, memory.label + memory.value)` 排序
   - 相似度 > threshold 的结果 boost 上浮
 
@@ -814,7 +814,7 @@ Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
   - write() 返回冲突信息 :white_check_mark:
   - duplicate/conflict 时 skip notifySubscribers() :white_check_mark:
   - REST POST /memory 返回 duplicate + conflict + previousValue :white_check_mark:
-  - vm153 已部署验证（duplicate=true, conflict=true 正常）:white_check_mark:
+  - your-hub-host 已部署验证（duplicate=true, conflict=true 正常）:white_check_mark:
   - MemoryPool.write() 返回冲突信息
   - DBMemory.conflictInfo?: { previousValue, timestamp, updatedBy }
   - REST API 返回冲突 header（X-WoClaw-Conflict: true）
@@ -822,7 +822,7 @@ Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
 - [x] **S26-2（10min）：REST API + WebSocket 冲突通知** :white_check_mark: 2026-04-05
   - POST /memory 返回 X-WoClaw-Conflict/X-WoClaw-Duplicate header :white_check_mark:
   - WebSocket memory_update 含 conflictType 字段 :white_check_mark:
-  - vm153 已部署验证 :white_check_mark:
+  - your-hub-host 已部署验证 :white_check_mark:
   - GET /memory/:key 返回 X-WoClaw-Conflict 头
   - WebSocket 消息中增加 conflictType 字段
 
@@ -844,7 +844,7 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
 - [x] **S27-1（10min）：Web UI 静态页面框架 + 状态概览** :white_check_mark: 2026-04-05
   - hub/public/index.html — Topics/Agents/Memory/Federation tabs :white_check_mark:
   - Static file server on port 8084 :white_check_mark:
-  - vm153 :8084 已部署验证 :white_check_mark:
+  - your-hub-host :8084 已部署验证 :white_check_mark:
   - hub/public/ 目录
   - index.html - 概览页（Hub 状态 + Stats）
 

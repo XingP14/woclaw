@@ -26,8 +26,8 @@ Requires the following environment variables or config entries:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WOCLAW_HUB_URL` | WoClaw Hub WebSocket URL | `ws://vm153:8082` |
-| `WOCLAW_REST_URL` | WoClaw Hub REST URL | `http://vm153:8083` |
+| `WOCLAW_HUB_URL` | WoClaw Hub WebSocket URL | `ws://your-hub-host:8082` |
+| `WOCLAW_REST_URL` | WoClaw Hub REST URL | `http://your-hub-host:8083` |
 | `WOCLAW_AGENT_ID` | Unique agent identifier | `openclaw-{hostname}` |
 | `WOCLAW_TOKEN` | Authentication token | `WoClaw2026` |
 

@@ -19,7 +19,7 @@
 ## 前置要求
 
 - OpenAI Codex CLI 已安装
-- 网络可达 WoClaw Hub（默认 `http://vm153:8083`）
+- 网络可达 WoClaw Hub（默认 `http://your-hub-host:8083`）
 - Python 3.8+
 
 ---
@@ -61,14 +61,14 @@ python3 install.py
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `WOCLAW_HUB_URL` | `http://vm153:8083` | Hub REST API 地址 |
+| `WOCLAW_HUB_URL` | `http://your-hub-host:8083` | Hub REST API 地址 |
 | `WOCLAW_TOKEN` | `WoClaw2026` | Hub 认证 Token |
 | `WOCLAW_KEY` | `codex:context` | 共享上下文 key |
 
 安装后可在环境变量中覆盖：
 
 ```bash
-export WOCLAW_HUB_URL="http://vm153:8083"
+export WOCLAW_HUB_URL="http://your-hub-host:8083"
 export WOCLAW_TOKEN="WoClaw2026"
 export WOCLAW_KEY="codex:myproject"
 ```
@@ -169,7 +169,7 @@ woclaw-precompact.py      (或 precompact.py)
 ### 2. 检查 Hub 连通性
 
 ```bash
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 ```
 
 预期：`{"status":"ok","agents":...,"topics":...}`
@@ -211,10 +211,10 @@ python3 install.py --uninstall
 
 ```bash
 # 检查 Hub 是否可达
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 
 # 检查 token
-curl -H "Authorization: Bearer WoClaw2026" http://vm153:8083/memory
+curl -H "Authorization: Bearer WoClaw2026" http://your-hub-host:8083/memory
 ```
 
 ### 共享上下文为空

@@ -20,8 +20,8 @@ Topic 操作：woclaw_topics_list / topic_messages / topic_send / topic_join
 npm install -g xingp14-woclaw
 
 # 启动 MCP server（使用环境变量）
-export WOCLAW_WS_URL=ws://vm153:8082
-export WOCLAW_REST_URL=http://vm153:8083
+export WOCLAW_WS_URL=ws://your-hub-host:8082
+export WOCLAW_REST_URL=http://your-hub-host:8083
 export WOCLAW_TOKEN=WoClaw2026
 woclaw mcp serve
 ```
@@ -30,7 +30,7 @@ woclaw mcp serve
 
 ```bash
 npm install -g woclaw-mcp
-woclaw-mcp --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+woclaw-mcp --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 ```
 
 ### 方式三：本地构建
@@ -39,7 +39,7 @@ woclaw-mcp --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
 cd /home/node/.openclaw/workspace/woclaw/mcp-bridge
 npm install
 npm run build
-node dist/index.js --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+node dist/index.js --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 ```
 
 ## MCP 客户端配置
@@ -59,9 +59,9 @@ node dist/index.js --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm
     "woclaw": {
       "command": "node",
       "args": ["/path/to/woclaw-mcp/dist/index.js",
-               "--hub=ws://vm153:8082",
+               "--hub=ws://your-hub-host:8082",
                "--token=WoClaw2026",
-               "--rest-url=http://vm153:8083"]
+               "--rest-url=http://your-hub-host:8083"]
     }
   }
 }
@@ -171,7 +171,7 @@ node dist/index.js --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm
 woclaw mcp serve
 
 # 或手动指定
-woclaw mcp serve --rest-url http://vm153:8083
+woclaw mcp serve --rest-url http://your-hub-host:8083
 ```
 
 ## 验证
@@ -194,5 +194,5 @@ woclaw_memory_write(key="mcp-test", value="MCP Bridge is working!")
 3. 手动运行 `node /path/to/woclaw-mcp/dist/index.js` 确认无报错
 
 **连接失败？**
-- 确认 Hub 地址可访问：`curl http://vm153:8083/health`
+- 确认 Hub 地址可访问：`curl http://your-hub-host:8083/health`
 - 确认 Token 正确：`WoClaw2026`

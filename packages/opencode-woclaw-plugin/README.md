@@ -41,17 +41,17 @@ npm install opencode-woclaw
 Set environment variables before starting OpenCode:
 
 ```bash
-export WOCLAW_HUB_URL=ws://vm153:8082
+export WOCLAW_HUB_URL=ws://your-hub-host:8082
 export WOCLAW_TOKEN=WoClaw2026
 export WOCLAW_AGENT_ID=opencode-my-machine
-export WOCLAW_REST_URL=http://vm153:8083
+export WOCLAW_REST_URL=http://your-hub-host:8083
 export WOCLAW_PROJECT_KEY=project:context
 ```
 
 Or add to your shell profile (`~/.bashrc`, `~/.zshrc`):
 
 ```bash
-export WOCLAW_HUB_URL=ws://vm153:8082
+export WOCLAW_HUB_URL=ws://your-hub-host:8082
 export WOCLAW_TOKEN=WoClaw2026
 ```
 

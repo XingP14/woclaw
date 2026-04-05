@@ -16,8 +16,8 @@
       },
       "hubUrl": {
         "type": "string",
-        "description": "WebSocket URL of the WoClaw Hub (e.g., ws://vm153:8082)",
-        "default": "ws://vm153:8082"
+        "description": "WebSocket URL of the WoClaw Hub (e.g., ws://your-hub-host:8082)",
+        "default": "ws://your-hub-host:8082"
       },
       "agentId": {
         "type": "string",

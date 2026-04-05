@@ -53,13 +53,13 @@ constructor(config: Config, ...) {
 
 ### 3. 证书生成（自签名）
 ```bash
-# 在 vm153 上生成
+# 在 your-hub-host 上生成
 mkdir -p /opt/woclaw/certs
 openssl req -x509 -newkey rsa:2048 \
   -keyout /opt/woclaw/certs/key.pem \
   -out /opt/woclaw/certs/cert.pem \
   -days 365 -nodes \
-  -subj "/CN=vm153/O=WoClaw"
+  -subj "/CN=your-hub-host/O=WoClaw"
 
 # 分发 CA cert 给客户端
 scp /opt/woclaw/certs/cert.pem user@client:/path/to/woclaw-ca.crt
@@ -71,7 +71,7 @@ scp /opt/woclaw/certs/cert.pem user@client:/path/to/woclaw-ca.crt
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // 仅测试用
 
 // 或显式指定 CA
-const ws = new WebSocket('wss://vm153:8443', {
+const ws = new WebSocket('wss://your-hub-host:8443', {
   ca: readFileSync('./woclaw-ca.crt')
 });
 ```
@@ -81,7 +81,7 @@ const ws = new WebSocket('wss://vm153:8443', {
 {
   "channels": {
     "woclaw": {
-      "url": "wss://vm153:8443"
+      "url": "wss://your-hub-host:8443"
     }
   }
 }
@@ -91,7 +91,7 @@ const ws = new WebSocket('wss://vm153:8443', {
 ```nginx
 server {
     listen 8443 ssl;
-    server_name vm153;
+    server_name your-hub-host;
     ssl_certificate /etc/ssl/certs/woclaw.crt;
     ssl_certificate_key /etc/ssl/private/woclaw.key;
     

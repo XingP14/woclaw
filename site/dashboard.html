@@ -145,7 +145,7 @@
 // === CONFIG ===
 const DEFAULT_HUB = (() => {
   if (location.hostname.endsWith('github.io') || location.protocol === 'file:') return '';
-  return 'http://vm153:8083';
+  return 'http://your-hub-host:8083';
 })();
 const REFRESH_MS = 30000;
 let autoRefresh = true;

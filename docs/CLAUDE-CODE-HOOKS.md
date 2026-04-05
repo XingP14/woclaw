@@ -19,7 +19,7 @@
 ## 前置要求
 
 - Claude Code 已安装 (`npm install -g @anthropic-ai/claude-code`)
-- 网络可达 WoClaw Hub（默认 `http://vm153:8083`）
+- 网络可达 WoClaw Hub（默认 `http://your-hub-host:8083`）
 - `curl` 和 `node` 已安装
 
 ---
@@ -31,7 +31,7 @@ npx woclaw-hooks --framework claude-code
 ```
 
 按提示输入：
-- **Hub URL**: `http://vm153:8083`（默认）
+- **Hub URL**: `http://your-hub-host:8083`（默认）
 - **Hub Token**: `WoClaw2026`（默认）
 - **Project Key**: `project:context`（默认，可按项目自定义）
 
@@ -97,14 +97,14 @@ npx woclaw-hooks --framework claude-code
 安装后配置保存在 `~/.woclaw/.env`：
 
 ```bash
-WOCLAW_HUB_URL="http://vm153:8083"
+WOCLAW_HUB_URL="http://your-hub-host:8083"
 WOCLAW_TOKEN="WoClaw2026"
 WOCLAW_PROJECT_KEY="project:context"
 ```
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `WOCLAW_HUB_URL` | `http://vm153:8083` | Hub REST API 地址 |
+| `WOCLAW_HUB_URL` | `http://your-hub-host:8083` | Hub REST API 地址 |
 | `WOCLAW_TOKEN` | `WoClaw2026` | Hub 认证 Token |
 | `WOCLAW_PROJECT_KEY` | `project:context` | 共享上下文 key（可按项目设置不同值）|
 
@@ -170,7 +170,7 @@ npx woclaw-hooks --status
 ```
 📡 WoClaw Hooks Status
 
-   Hub URL:     http://vm153:8083
+   Hub URL:     http://your-hub-host:8083
    Token:       ***aw2026
    Project Key: project:context
 
@@ -183,7 +183,7 @@ npx woclaw-hooks --status
 ### 2. 检查 Hub 连通性
 
 ```bash
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 ```
 
 预期：`{"status":"ok","agents":...,"topics":...}`
@@ -226,10 +226,10 @@ npx woclaw-hooks --framework claude-code --uninstall
 
 ```bash
 # 检查 Hub 是否可达
-curl http://vm153:8083/health
+curl http://your-hub-host:8083/health
 
 # 检查 token
-curl -H "Authorization: Bearer WoClaw2026" http://vm153:8083/memory
+curl -H "Authorization: Bearer WoClaw2026" http://your-hub-host:8083/memory
 ```
 
 ### 共享上下文为空

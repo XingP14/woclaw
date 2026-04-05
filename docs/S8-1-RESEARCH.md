@@ -80,10 +80,10 @@ else if (command === 'mcp') {
 
 ```bash
 # 方式1：直接用 woclaw-mcp
-woclaw-mcp --hub=ws://vm153:8082 --token=WoClaw2026 --rest-url=http://vm153:8083
+woclaw-mcp --hub=ws://your-hub-host:8082 --token=WoClaw2026 --rest-url=http://your-hub-host:8083
 
 # 方式2：通过 woclaw CLI（S8-3 实现目标）
-woclaw mcp serve --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+woclaw mcp serve --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 ```
 
 ---

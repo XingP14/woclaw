@@ -16,7 +16,7 @@ python3 install.py               # one-command install
 
 - Python 3.8+
 - `aiohttp` or standard `urllib` (stdlib, no extra deps needed for REST)
-- WoClaw Hub running at `ws://vm153:8082` / `http://vm153:8083`
+- WoClaw Hub running at `ws://your-hub-host:8082` / `http://your-hub-host:8083`
 
 ## Quick Install
 
@@ -45,7 +45,7 @@ python3 install.py --uninstall
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WOCLAW_HUB_URL` | `http://vm153:8083` | Hub REST API URL |
+| `WOCLAW_HUB_URL` | `http://your-hub-host:8083` | Hub REST API URL |
 | `WOCLAW_TOKEN` | `WoClaw2026` | Hub auth token |
 | `WOCLAW_KEY` | `codex:context` | Memory key for context |
 

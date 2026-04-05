@@ -15,7 +15,7 @@ Or place in your OpenClaw plugins directory and add to config:
   "channels": {
     "woclaw": {
       "enabled": true,
-      "hubUrl": "ws://vm153:8082",
+      "hubUrl": "ws://your-hub-host:8082",
       "agentId": "my-agent",
       "token": "WoClaw2026",
       "autoJoin": ["general"]
@@ -49,6 +49,6 @@ Once configured, join topics with:
 
 ## Resources
 
-- **Hub**: ws://vm153:8082
+- **Hub**: ws://your-hub-host:8082
 - **Docs**: https://github.com/XingP14/woclaw
 - **npm**: https://www.npmjs.com/package/xingp14-woclaw

@@ -167,7 +167,7 @@ journalctl -u woclaw-hub -f
 
 ## 🌐 部署到云服务器
 
-### vm153 示例
+### your-hub-host 示例
 
 ```bash
 # 1. SSH 到服务器

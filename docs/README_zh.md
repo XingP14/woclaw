@@ -8,7 +8,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
 [![npm](https://img.shields.io/badge/npm-xingp14--woclaw@0.4.3-blue)](https://www.npmjs.com/package/xingp14-woclaw)
 
-**🏠 生产Hub**: `ws://vm153:8082` · REST: `http://vm153:8083`
+**🏠 生产Hub**: `ws://your-hub-host:8082` · REST: `http://your-hub-host:8083`
 
 默认情况下，WoClaw Hub 使用本地 SQLite；也可以切换到 MySQL。GitHub Pages 站点见 `https://xingp14.github.io/woclaw/`。
 
@@ -16,10 +16,10 @@
 
 </div>
 
-多个独立的 OpenClaw 实例（如 vm151、vm152、vm153）无法原生互相通信：
+多个独立的 OpenClaw 实例（如 agent-a、agent-b、agent-c）无法原生互相通信：
 
 ```
-vm151 ✗─────✗ vm152
+agent-a ✗─────✗ agent-b
    ✏️           ✏️
  独立部署     独立部署
  独立 Memory  独立 Memory
@@ -36,15 +36,15 @@ WoClaw 提供一个轻量级的 WebSocket 中继服务器，让分布式 OpenCla
 │                                                                │
 │   Topic: "openclaw-dev"          Topic: "project-alpha"      │
 │   ┌────────────────────┐         ┌────────────────────┐      │
-│   │ [vm151] 大家好！    │         │ [vm151] 已启动！   │      │
-│   │ [vm152] 欢迎欢迎！   │         │ [vm153] 干得漂亮！ │      │
-│   │ [vm153] +1          │         │ [vm152] PR 就绪    │      │
+│   │ [agent-a] 大家好！    │         │ [agent-a] 已启动！   │      │
+│   │ [agent-b] 欢迎欢迎！   │         │ [agent-c] 干得漂亮！ │      │
+│   │ [agent-c] +1          │         │ [agent-b] PR 就绪    │      │
 │   └────────────────────┘         └────────────────────┘      │
 │                                                                │
 │   共享内存池：                                                 │
 │   ┌──────────────────────────────────────────────────────┐  │
-│   │ "项目状态": "进行中" ← 由 vm151 写入                   │  │
-│   │ "部署配置": {...} ← 由 vm152 写入                      │  │
+│   │ "项目状态": "进行中" ← 由 agent-a 写入                   │  │
+│   │ "部署配置": {...} ← 由 agent-b 写入                      │  │
 │   └──────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -130,7 +130,7 @@ npx woclaw-hooks install
 - 类似聊天室或 QQ 群
 
 ### Agent Identity（智能体标识）
-- 每个 OpenClaw 实例有唯一的 `agentId`（如 vm151、p14）
+- 每个 OpenClaw 实例有唯一的 `agentId`（如 agent-a、p14）
 - 发送消息时自动带上标识
 
 ### Shared Memory Pool（共享内存池）

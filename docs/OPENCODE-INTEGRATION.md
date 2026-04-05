@@ -23,9 +23,9 @@ ln -s ~/.claude/settings.json ~/.config/opencode/settings.json 2>/dev/null || tr
 ls ~/.claude/hooks/  # 应该有 session-start.sh, session-stop.sh, precompact.sh
 
 # 4. 配置 WoClaw 环境变量
-export WOCLAW_HUB_URL=ws://vm153:8082
+export WOCLAW_HUB_URL=ws://your-hub-host:8082
 export WOCLAW_TOKEN=WoClaw2026
-export WOCLAW_REST_URL=http://vm153:8083
+export WOCLAW_REST_URL=http://your-hub-host:8083
 ```
 
 ### 限制
@@ -75,10 +75,10 @@ npm install opencode-woclaw
 ### 环境变量配置
 
 ```bash
-export WOCLAW_HUB_URL=ws://vm153:8082
+export WOCLAW_HUB_URL=ws://your-hub-host:8082
 export WOCLAW_TOKEN=WoClaw2026
 export WOCLAW_AGENT_ID=opencode-$(hostname)
-export WOCLAW_REST_URL=http://vm153:8083
+export WOCLAW_REST_URL=http://your-hub-host:8083
 export WOCLAW_PROJECT_KEY=project:context  # 可选，默认 "project:context"
 ```
 

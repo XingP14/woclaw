@@ -68,5 +68,4 @@ docker run -d \
 
 - [GitHub 仓库](https://github.com/XingP14/woclaw)
 - [GitHub Pages](https://xingp14.github.io/woclaw/)
-- [Hub 运行实例](ws://vm153:8082 · REST http://vm153:8083)
-
+- Hub 运行实例：`ws://your-hub-host:8082` · `http://your-hub-host:8083`

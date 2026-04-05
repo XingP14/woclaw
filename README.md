@@ -70,4 +70,4 @@ Detailed setup and configuration live in [docs/README.md](./docs/README.md).
 
 - [GitHub repository](https://github.com/XingP14/woclaw)
 - [GitHub Pages](https://xingp14.github.io/woclaw/)
-- [Hub runtime instance](ws://vm153:8082 · REST http://vm153:8083)
+- Hub runtime instance: `ws://your-hub-host:8082` · `http://your-hub-host:8083`

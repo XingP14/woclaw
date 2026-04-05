@@ -71,10 +71,10 @@ else if (command === 'mcp') {
 # 方式1：通过 woclaw CLI（S8-3 实现目标）
 woclaw mcp serve
 # 或者带参数
-woclaw mcp serve --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+woclaw mcp serve --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 
 # 方式2：直接用 woclaw-mcp
-woclaw-mcp --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+woclaw-mcp --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 ```
 
 ### 帮助信息更新
@@ -89,11 +89,11 @@ log('  ' + cyan('mcp serve') + '            Start MCP server (for Claude Desktop
 ```bash
 # 测试 woclaw mcp serve
 cd /home/node/.openclaw/workspace/woclaw/plugin
-node bin/woclaw.js mcp serve --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+node bin/woclaw.js mcp serve --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 
 # 单独测试 woclaw-mcp
 cd /home/node/.openclaw/workspace/woclaw/mcp-bridge
-node dist/index.js --hub ws://vm153:8082 --token WoClaw2026 --rest-url http://vm153:8083
+node dist/index.js --hub ws://your-hub-host:8082 --token WoClaw2026 --rest-url http://your-hub-host:8083
 ```
 
 ## 后续步骤

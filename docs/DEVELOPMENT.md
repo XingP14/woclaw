@@ -254,10 +254,10 @@ git push origin feature/my-feature
 - 当前状态：REST API 用 `WoClaw2026`，WebSocket 用 `ClawLink2026`
 - **解决方案**：重启 Hub，统一传入 `AUTH_TOKEN=ClawLink2026`
 
-### 重启 Hub（vm153）
+### 重启 Hub（your-hub-host）
 ```bash
-# SSH 到 vm153
-ssh vm153
+# SSH 到 your-hub-host
+ssh your-hub-host
 # 查看 Hub 进程
 ps aux | grep woclaw
 # 重启（docker compose）
