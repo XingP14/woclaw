@@ -92,6 +92,34 @@ function resolveWorkspaceRoot() {
   return expandHome(WORKSPACE_OVERRIDE || cfgWorkspace || path.join(STATE_DIR, defaultWorkspace));
 }
 
+function discoverWorkspaceRoots() {
+  if (WORKSPACE_OVERRIDE) {
+    return [{
+      label: path.basename(WORKSPACE_OVERRIDE),
+      root: expandHome(WORKSPACE_OVERRIDE),
+    }];
+  }
+
+  const roots = [];
+  const defaultRoot = resolveWorkspaceRoot();
+  roots.push({
+    label: path.basename(defaultRoot),
+    root: defaultRoot,
+  });
+
+  if (!fs.existsSync(STATE_DIR)) return roots;
+
+  for (const entry of fs.readdirSync(STATE_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!entry.name.startsWith('workspace')) continue;
+    const root = path.join(STATE_DIR, entry.name);
+    if (roots.some(r => r.root === root)) continue;
+    roots.push({ label: entry.name, root });
+  }
+
+  return roots.sort((a, b) => a.label.localeCompare(b.label));
+}
+
 function readText(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
@@ -153,12 +181,13 @@ function findSessionStores() {
   return stores.sort((a, b) => a.agentId.localeCompare(b.agentId));
 }
 
-function summarizeWorkspaceFile(workspaceRoot, filePath) {
+function summarizeWorkspaceFile(workspaceLabel, workspaceRoot, filePath) {
   const relPath = path.relative(workspaceRoot, filePath).split(path.sep).join(':');
   const content = readText(filePath).trimEnd();
   const stat = fs.statSync(filePath);
   const header = [
     `# OpenClaw Workspace Memory`,
+    `- Workspace Label: ${workspaceLabel}`,
     `- Source: ${path.relative(HOME, filePath).startsWith('..') ? filePath : path.relative(HOME, filePath)}`,
     `- Workspace: ${workspaceRoot}`,
     `- Updated: ${stat.mtime.toISOString()}`,
@@ -166,7 +195,7 @@ function summarizeWorkspaceFile(workspaceRoot, filePath) {
   ].join('\n');
 
   return {
-    key: `openclaw:workspace:${relPath}`,
+    key: `openclaw:workspace:${workspaceLabel}:${relPath}`,
     value: `${header}${content ? `${content}\n` : ''}`,
     tags: ['openclaw', 'migrated', 'workspace-memory'],
     updatedBy: 'openclaw-migrate',
@@ -252,16 +281,24 @@ function printList(workspaceRoot, files, stores) {
 }
 
 async function main() {
-  const workspaceRoot = resolveWorkspaceRoot();
-  const workspaceFiles = getWorkspaceMemoryFiles(workspaceRoot);
+  const workspaceRoots = discoverWorkspaceRoots();
   const sessionStores = findSessionStores();
 
   if (mode === 'list') {
-    printList(workspaceRoot, workspaceFiles, sessionStores);
+    for (const workspace of workspaceRoots) {
+      const workspaceFiles = getWorkspaceMemoryFiles(workspace.root);
+      printList(workspace.root, workspaceFiles, sessionStores);
+    }
     return;
   }
 
-  const fileEntries = workspaceFiles.map((filePath) => summarizeWorkspaceFile(workspaceRoot, filePath));
+  const fileEntries = [];
+  for (const workspace of workspaceRoots) {
+    const workspaceFiles = getWorkspaceMemoryFiles(workspace.root);
+    for (const filePath of workspaceFiles) {
+      fileEntries.push(summarizeWorkspaceFile(workspace.label, workspace.root, filePath));
+    }
+  }
   const storeEntries = [];
   for (const store of sessionStores) {
     if (mode === 'agent-id' && targetAgent && store.agentId !== targetAgent) continue;

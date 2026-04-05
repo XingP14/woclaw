@@ -105,7 +105,7 @@ export WOCLAW_TOKEN=your-token
 
 The migration CLI imports the real persisted context for each framework:
 
-- **OpenClaw**: `~/.openclaw/workspace/MEMORY.md`, `~/.openclaw/workspace/memory/*.md`, and `~/.openclaw/agents/*/sessions/sessions.json`
+- **OpenClaw**: all `~/.openclaw/workspace*/MEMORY.md` and `~/.openclaw/workspace*/memory/*.md` files, plus `~/.openclaw/agents/*/sessions/sessions.json`
 - **Claude Code**: `~/.claude/history.jsonl`
 - **Gemini CLI**: `~/.gemini/tmp/**/chats/*.json`
 - **Codex**: `~/.codex/history.jsonl`
