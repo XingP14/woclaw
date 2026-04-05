@@ -656,7 +656,11 @@ Federation 架构：
   • 信任模型：每个 Hub 需要预共享 federation token 才能连接
 ```
 
-- [ ] **S24-1（10min）：设计 Federation 方案 + Hub 注册表** 🔨 进行中
+- [x] **S24-1（10min）：设计 Federation 方案 + Hub 注册表** ✅ 2026-04-05
+  -  类型 ✅
+  - , ,  ✅
+  -  替代  ✅
+  - Build ✅ + All 86 tests ✅
   - `hub/src/types.ts` 新增 `FederationConfig`, `HubPeer` 类型
   - Hub 启动时注册到已知 peer Hub 列表
   - `POST /federation/peers` — 添加 federation peer Hub
