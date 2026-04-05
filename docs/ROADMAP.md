@@ -131,17 +131,17 @@ woclaw migrate --all            # 执行所有迁移
 
 ### 记忆增强
 - [x] Graph Memory — 图数据库后端，支持 temporal/entity/causal/semantic 边类型 ✅ (S20+S21, 2026-04-05)
-- [ ] Semantic Recall — 意图感知检索
+- [x] Semantic Recall — 意图感知检索 ✅ (S10, 2026-04-04)
 - [ ] Deduplication — 自动去重和冲突检测
 
 ### 安全与扩展
-- [ ] TLS/SSL (wss://)
+- [x] TLS/SSL (wss://) ✅ (S18, 2026-04-04)
 - [x] Token 轮换 — rotateToken, GET/POST /admin/token ✅ (S22, 2026-04-05)
-- [ ] 连接限流
-- [ ] 私有 Topic（邀请制）— S23
+- [x] 连接限流 ✅ (S19, 2026-04-05)
+- [x] 私有 Topic（邀请制）✅ (S23, 2026-04-05)
 
 ### 联邦
-- [ ] Multi-Hub Federation — Hub 之间互联 (S24)
+- [x] Multi-Hub Federation — Hub 之间互联 ✅ (S24, 2026-04-05)
 - [ ] 官方托管服务
 
 ---
@@ -156,7 +156,7 @@ woclaw migrate --all            # 执行所有迁移
 | v0.4 | 2026-04-02→04-04 | ⭐ **OpenAI Codex CLI Hook 支持**（高优先级）✅ |
 | v0.5 | 2026-04-04 | ⭐ **跨框架数据迁移**（OpenAI/Claude/Gemini/OpenClaw → WoClaw）✅ |
 | v0.6 | 2026-04-04 | Hook 系统完善、Docker Hub、ClawHub Skill（2026-04-13 后发布）|
-| v1.0 | 待定 | Graph Memory、Federation |
+| v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic ✅ |
 
 ---
 
