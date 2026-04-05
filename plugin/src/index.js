@@ -11,7 +11,7 @@ class WoClawChannel {
     this.ctx = null;
     this.reconnectTimer = null;
     this.pingTimer = null;
-    this.pendingMessages = new Map();
+    this.pendingMemoryReads = new Map();
     this.messageHandlers = [];
     this.topics = new Set();
     this.agentId = '';
@@ -61,7 +61,7 @@ class WoClawChannel {
 
       this.ws.onmessage = (event) => {
         try {
-          const msg = JSON.parse(event.data);
+          const msg = JSON.parse(event.data.toString());
           this.handleMessage(msg);
         } catch (e) {
           this.ctx?.logger?.error('[WoClaw] Failed to parse message:', e);
@@ -147,13 +147,13 @@ class WoClawChannel {
         this.ctx?.logger?.error(`[WoClaw] Server error: ${msg.code} - ${msg.message}`);
         break;
 
-      case 'memory_result':
-        if (msg.mid && this.pendingMessages.has(msg.mid)) {
-          const resolve = this.pendingMessages.get(msg.mid);
-          this.pendingMessages.delete(msg.mid);
-          resolve(msg.value ?? null);
+      case 'memory_value': {
+        const queue = this.pendingMemoryReads.get(msg.key);
+        if (queue && queue.length > 0) {
+          this.resolveMemoryRead(msg.key, queue[0], msg.exists ? msg.value : null);
         }
         break;
+      }
     }
 
     for (const handler of this.messageHandlers) {
@@ -177,6 +177,20 @@ class WoClawChannel {
     }
   }
 
+  resolveMemoryRead(key, pending, value) {
+    if (!pending || pending.resolved) return;
+
+    pending.resolved = true;
+    if (pending.timer) clearTimeout(pending.timer);
+    pending.resolve(value);
+
+    const queue = this.pendingMemoryReads.get(key);
+    if (!queue) return;
+    const index = queue.indexOf(pending);
+    if (index >= 0) queue.splice(index, 1);
+    if (queue.length === 0) this.pendingMemoryReads.delete(key);
+  }
+
   async sendMessage(topic, content) {
     this.send({ type: 'message', topic, content });
   }
@@ -198,16 +212,19 @@ class WoClawChannel {
 
   async readMemory(key) {
     return new Promise((resolve) => {
-      const mid = Date.now().toString();
-      this.pendingMessages.set(mid, resolve);
-      this.send({ type: 'memory_read', key, mid });
-      
-      setTimeout(() => {
-        if (this.pendingMessages.has(mid)) {
-          this.pendingMessages.delete(mid);
-          resolve(null);
-        }
+      const pending = {
+        resolve,
+        resolved: false,
+        timer: null,
+      };
+      pending.timer = setTimeout(() => {
+        this.resolveMemoryRead(key, pending, null);
       }, 5000);
+
+      const queue = this.pendingMemoryReads.get(key) || [];
+      queue.push(pending);
+      this.pendingMemoryReads.set(key, queue);
+      this.send({ type: 'memory_read', key });
     });
   }
 
