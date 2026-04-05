@@ -750,7 +750,9 @@ Semantic Recall = 关键词匹配 + 意图分类 + 语义相似度
   - GET /memory/:key 返回 X-WoClaw-Conflict 头
   - WebSocket 消息中增加 conflictType 字段
 
-- [ ] **S26-3（10min）：测试 + 文档** :hourglass: 待开始
+- [x] **S26-3（10min）：测试 + 文档** :white_check_mark: 2026-04-05
+  - hub/test/dedup.test.ts — 9 tests :white_check_mark:
+  - All 100 unit tests pass :white_check_mark:
   - hub/test/dedup.test.ts
   - README 新增 Deduplication 章节
   - STOP_WORDS 修复（添加 the/is/a）✅
