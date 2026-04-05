@@ -77,4 +77,19 @@ describe('Token Rotation (S22)', () => {
     expect(status.currentTokenMasked).toBe('token-c...');
     expect(status.inGracePeriod).toBe(true);
   });
+
+  it('rejects the old token after the grace period expires', async () => {
+    const oldToken = 'initial-token-abc';
+    const newToken = 'rotated-token-expiry';
+
+    wsServer.rotateToken(newToken, 100);
+
+    expect(wsServer.isTokenAuthorized(oldToken)).toBe(true);
+    expect(wsServer.isTokenAuthorized(newToken)).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    expect(wsServer.isTokenAuthorized(oldToken)).toBe(false);
+    expect(wsServer.isTokenAuthorized(newToken)).toBe(true);
+  });
 });

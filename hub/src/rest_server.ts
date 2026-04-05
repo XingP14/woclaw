@@ -1,6 +1,7 @@
 import http from 'http';
 import https from 'https';
 import { readFileSync } from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 import { ClawDB } from './db.js';
 import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
@@ -71,7 +72,10 @@ export class RestServer {
 
     // Auth check for write operations
     const authHeader = req.headers.authorization;
-    if (method !== 'GET' && authHeader !== `Bearer ${this.config.authToken}`) {
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const requiresAuth = method !== 'GET' || path === '/admin/token/status';
+    const isAuthorized = this.wsServer?.isTokenAuthorized(token) ?? token === this.config.authToken;
+    if (requiresAuth && !isAuthorized) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
@@ -617,12 +621,13 @@ const result = this.graph.findPath(from, to, maxDepth);
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         try {
-          const { id, toAgent, task, topic } = JSON.parse(body);
-          if (!id || !toAgent || !task) {
+          const { id: requestedId, toAgent, task, topic } = JSON.parse(body);
+          if (!toAgent || !task) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'id, toAgent, task required' }));
+            res.end(JSON.stringify({ error: 'toAgent and task required' }));
             return;
           }
+          const id = requestedId || uuidv4();
           // Use a dummy fromAgent for REST-created delegations
           const fromAgent = 'rest-api';
           const delegation: import('./types.js').Delegation = {
@@ -637,7 +642,7 @@ const result = this.graph.findPath(from, to, maxDepth);
             updatedAt: Date.now(),
           };
           this.wsServer.createDelegation(delegation);
-          this.wsServer.sendToAgent(toAgent, {
+          const delivered = this.wsServer.sendToAgent(toAgent, {
             type: 'delegate_incoming',
             id,
             fromAgent,
@@ -645,8 +650,18 @@ const result = this.graph.findPath(from, to, maxDepth);
             topic,
             createdAt: delegation.createdAt,
           } as import('./types.js').OutboundMessage);
+          if (!delivered) {
+            delegation.status = 'rejected';
+            delegation.note = 'Target agent not connected';
+            delegation.updatedAt = Date.now();
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, id, status: 'requested' }));
+          res.end(JSON.stringify({
+            success: true,
+            id,
+            status: delegation.status,
+            note: delegation.note ?? null,
+          }));
         } catch (e: any) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: e.message }));
@@ -915,7 +930,8 @@ const result = this.graph.findPath(from, to, maxDepth);
     req.on('data', (chunk: any) => { body += chunk; });
     req.on('end', () => {
       try {
-        const { isPrivate } = body ? JSON.parse(body) : {};
+        const parsed = body ? JSON.parse(body) : {};
+        const isPrivate = Boolean((parsed as any).isPrivate);
         if (isPrivate) {
           this.topics.createPrivateTopic(topicName);
         } else {
