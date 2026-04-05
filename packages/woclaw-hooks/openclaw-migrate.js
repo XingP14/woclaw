@@ -29,26 +29,23 @@ const PROFILE = process.env.OPENCLAW_PROFILE || '';
 const WOCLAW_HUB_URL = process.env.WOCLAW_HUB_URL || 'http://vm153:8083';
 const WOCLAW_TOKEN = process.env.WOCLAW_TOKEN || 'WoClaw2026';
 
-const args = process.argv.slice(2);
-let mode = null;
-let targetAgent = null;
+function parseArgs(argv) {
+  let mode = null;
+  let targetAgent = null;
 
-for (let i = 0; i < args.length; i++) {
-  const arg = args[i];
-  if (arg === '--list') mode = 'list';
-  else if (arg === '--all') mode = 'all';
-  else if (arg === '--agent-id' && i + 1 < args.length) {
-    mode = 'agent-id';
-    targetAgent = args[++i];
-  } else if (arg === '--help' || arg === '-h') {
-    printHelp();
-    process.exit(0);
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--list') mode = 'list';
+    else if (arg === '--all') mode = 'all';
+    else if (arg === '--agent-id' && i + 1 < argv.length) {
+      mode = 'agent-id';
+      targetAgent = argv[++i];
+    } else if (arg === '--help' || arg === '-h') {
+      return { mode: 'help', targetAgent: null };
+    }
   }
-}
 
-if (!mode) {
-  printHelp();
-  process.exit(1);
+  return { mode, targetAgent };
 }
 
 function printHelp() {
@@ -426,6 +423,16 @@ function printList(workspaceRoot, files) {
 }
 
 async function main() {
+  const { mode, targetAgent } = parseArgs(process.argv.slice(2));
+  if (mode === 'help') {
+    printHelp();
+    process.exit(0);
+  }
+  if (!mode) {
+    printHelp();
+    process.exit(1);
+  }
+
   const workspaceRoots = discoverWorkspaceRoots();
   const sessionStores = findSessionStores();
   const transcriptFiles = getSessionTranscriptFiles();
@@ -498,7 +505,35 @@ async function main() {
   console.log(`\n✅ Migrated ${migrated} OpenClaw memory entries\n`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+const SHOULD_AUTO_RUN = process.env.WOCLAW_OPENCLAW_MIGRATE_SKIP_MAIN !== '1';
+
+if (SHOULD_AUTO_RUN && require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  expandHome,
+  loadJson,
+  resolveWorkspaceRoot,
+  discoverWorkspaceRoots,
+  readText,
+  isMarkdownFile,
+  walkFiles,
+  shouldSkipDirectory,
+  isSessionTranscriptPath,
+  isSessionSummaryPath,
+  isWorkspaceMemoryPath,
+  getWorkspaceMemoryFiles,
+  getSessionTranscriptFiles,
+  findSessionStores,
+  summarizeWorkspaceFile,
+  truncate,
+  summarizeSessionTranscript,
+  summarizeSessionStore,
+  printList,
+  writeToHub,
+  main,
+};
