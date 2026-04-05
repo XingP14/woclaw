@@ -626,12 +626,16 @@ Topic 类型：
   - `Topic.invitedAgents?: string[]` 已邀请的 Agent 列表
   - `Topic.inviteExpiresAt?: number` 邀请过期时间
 
-- [ ] **S23-2（10min）：实现邀请机制 API** ⏳ 待开始
+- [x] **S23-2（10min）：实现邀请机制 API** ✅ 2026-04-05
+  -  — 邀请 Agent ✅
+  -  — 凭邀请 Token 加入私有 Topic ✅
+  - vm153 验证通过 ✅
   - `POST /topics/:name/invite` — 邀请 Agent（生成 invite token）
   - `POST /topics/:name/join` — Agent 凭 invite token 加入私有 Topic
   - ws_server.ts 在 `topic_join` 处理中验证 private Topic 邀请
 
-- [ ] **S23-3（10min）：测试 + 文档** ⏳ 待开始
+- [x] **S23-3（10min）：测试 + 文档** ✅ 2026-04-05
+  - Build ✅ + All 86 tests pass ✅
   - `hub/test/private_topics.test.ts`
   - README 新增 Private Topics 章节
 
