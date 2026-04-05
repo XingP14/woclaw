@@ -52,6 +52,30 @@
       margin-left: auto;
     }
     header a:hover { text-decoration: underline; }
+    .hub-connect {
+      display: flex; align-items: center; gap: 8px;
+      margin-left: auto;
+    }
+    .hub-url-input {
+      background: #21262d; color: #8b949e;
+      border: 1px solid #30363d; border-radius: 6px;
+      padding: 5px 10px; font-family: inherit; font-size: 0.75rem;
+      width: 160px; outline: none;
+    }
+    .hub-url-input:focus { border-color: #58a6ff; color: #c9d1d9; }
+    .btn-sm {
+      background: #1f6feb; color: #fff;
+      border: none; border-radius: 6px;
+      padding: 5px 12px; font-family: inherit; font-size: 0.75rem;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-sm:hover { background: #388bfd; }
+    .btn-sm.connecting { background: #484f58; cursor: not-allowed; }
+    .hub-status-text { font-size: 0.72rem; }
+    .hub-status-text.connected { color: #3fb950; }
+    .hub-status-text.disconnected { color: #484f58; }
+    .hub-status-text.connecting { color: #d29922; }
+    .hub-status-text.error { color: #f85149; }
     main { display: flex; flex: 1; overflow: hidden; }
     .sidebar {
       width: 220px;
@@ -223,6 +247,11 @@
 <header>
   <h1>🦞 WoClaw <span class="header-badge">v1.0</span></h1>
   <p>Interactive Demo — Multi-Agent Communication Hub</p>
+  <div class="hub-connect">
+    <input type="text" id="hubUrlInput" placeholder="your-hub:8083" value="" />
+    <button class="btn-sm" id="connectBtn" onclick="toggleHub()">Try with your Hub →</button>
+    <span id="hubStatus" class="hub-status-text">demo mode</span>
+  </div>
   <a href="https://github.com/XingP14/woclaw" target="_blank">📦 GitHub</a>
 </header>
 
@@ -266,144 +295,148 @@
     </div>
   </div>
 </main>
-
 <script>
-const HUB_URL = 'vm153:8083';
-const DEMO_STEPS = [
-  {
-    title: 'Hub Health Check',
-    lines: [
+/* ═══════════════════════════════════════════
+   LIVE HUB CONNECTION
+═══════════════════════════════════════════ */
+let hubUrl = null;
+let liveHubData = null;
+let isConnected = false;
+
+async function toggleHub() {
+  const btn = document.getElementById('connectBtn');
+  const statusEl = document.getElementById('hubStatus');
+  const input = document.getElementById('hubUrlInput');
+  const url = input.value.trim();
+
+  if (isConnected) {
+    isConnected = false; liveHubData = null; hubUrl = null;
+    btn.textContent = 'Try with your Hub →';
+    btn.classList.remove('connecting');
+    statusEl.textContent = 'demo mode';
+    statusEl.className = 'hub-status-text disconnected';
+    renderDemoSteps(); return;
+  }
+  if (!url) {
+    statusEl.textContent = 'enter a URL';
+    statusEl.className = 'hub-status-text error';
+    setTimeout(() => { statusEl.textContent = 'demo mode'; statusEl.className = 'hub-status-text disconnected'; }, 1500);
+    return;
+  }
+  btn.textContent = 'Connecting...'; btn.classList.add('connecting');
+  statusEl.textContent = 'connecting...'; statusEl.className = 'hub-status-text connecting';
+  try {
+    const res = await fetch('http://' + url + '/health', { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    liveHubData = data; hubUrl = url; isConnected = true;
+    btn.textContent = 'Disconnect'; btn.classList.remove('connecting');
+    statusEl.textContent = '✓ connected'; statusEl.className = 'hub-status-text connected';
+    renderDemoSteps();
+  } catch (e) {
+    btn.textContent = 'Try with your Hub →'; btn.classList.remove('connecting');
+    statusEl.textContent = 'connection failed'; statusEl.className = 'hub-status-text error';
+    setTimeout(() => { statusEl.textContent = 'demo mode'; statusEl.className = 'hub-status-text disconnected'; }, 2500);
+  }
+}
+
+function getHubBase() { return hubUrl || 'vm153:8083'; }
+
+/* ═══════════════════════════════════════════
+   DEMO STEPS — built dynamically
+═══════════════════════════════════════════ */
+function buildDemoSteps() {
+  const hb = getHubBase();
+  const agents = liveHubData ? liveHubData.agents : 2;
+  const topics = liveHubData ? liveHubData.topics : 2;
+  const memCount = liveHubData ? (liveHubData.memory ? (typeof liveHubData.memory === 'object' ? Object.keys(liveHubData.memory).length : liveHubData.memory) : (liveHubData.stats ? liveHubData.stats.memory : 23)) : 23;
+  const uptime = liveHubData ? liveHubData.uptime : 45631;
+  const version = liveHubData ? (liveHubData.version || '1.0.0') : '1.0.0';
+  return [
+    { title: 'Hub Health Check', lines: [
       { t: 'info', text: '# WoClaw v1.0 — Shared Memory + Messaging Hub for AI Agents' },
-      { t: 'dim', text: '# Live demo against: ws://' + HUB_URL },
+      { t: 'dim', text: isConnected ? '# Connected to: ' + hubUrl : '# Demo mode — click "Connect" to try your own Hub!' },
       { t: 'blank' },
       { t: 'step', text: 'STEP 1 — Hub Health Check' },
-      { t: 'cmd', text: 'curl http://' + HUB_URL + '/health' },
+      { t: 'cmd', text: 'curl http://' + hb + '/health' },
       { t: 'output', text: '{' },
       { t: 'output', text: '  "status": "ok",' },
-      { t: 'output', text: '  "agents": 2,' },
-      { t: 'output', text: '  "topics": 2,' },
-      { t: 'output', text: '  "memory": 23,' },
-      { t: 'output', text: '  "uptime": 45631,' },
-      { t: 'output', text: '  "version": "1.0.0"' },
+      { t: 'output', text: '  "agents": ' + agents + ',' },
+      { t: 'output', text: '  "topics": ' + topics + ',' },
+      { t: 'output', text: '  "memory": ' + memCount + ',' },
+      { t: 'output', text: '  "uptime": ' + uptime + ',' },
+      { t: 'output', text: '  "version": "' + version + '"' },
       { t: 'output', text: '}' },
-      { t: 'success', text: '✓ Hub healthy — 2 agents · 23 memories · v1.0.0' },
+      { t: 'success', text: '✓ Hub healthy — ' + agents + ' agents · ' + memCount + ' memories · v' + version },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Write Shared Memory',
-    lines: [
+    ]},
+    { title: 'Write Shared Memory', lines: [
       { t: 'step', text: 'STEP 2 — Write Shared Memory' },
-      { t: 'cmd', text: 'curl -X POST http://' + HUB_URL + '/memory \\' },
-      { t: 'cmd', text: '  -H "Authorization: Bearer WoClaw2026" \\' },
+      { t: 'cmd', text: 'curl -X POST http://' + hb + '/memory \\' },
+      { t: 'cmd', text: '  -H "Authorization: Bearer <YOUR_TOKEN>" \\' },
       { t: 'cmd', text: '  -H "Content-Type: application/json" \\' },
       { t: 'cmd', text: '  -d \'{"key":"project:api-design","value":"REST /agents returns connected agents","tags":["claude-code","design"],"ttl":86400}\'' },
-      { t: 'output', text: '{' },
-      { t: 'output', text: '  "key": "project:api-design",' },
-      { t: 'output', text: '  "value": "REST /agents returns connected agents",' },
-      { t: 'output', text: '  "tags": ["claude-code", "design"],' },
-      { t: 'output', text: '  "createdAt": "2026-04-06T06:00:00.000Z",' },
-      { t: 'output', text: '  "ttl": 86400,' },
-      { t: 'output', text: '  "version": 1' },
-      { t: 'output', text: '}' },
+      { t: 'output', text: '{ "key": "project:api-design", "value": "REST /agents returns connected agents", "tags": ["claude-code", "design"], "createdAt": "2026-04-06T06:00:00.000Z", "ttl": 86400, "version": 1 }' },
       { t: 'success', text: '✓ Written — instantly visible to ALL connected agents' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Intent-Aware Recall',
-    lines: [
+    ]},
+    { title: 'Intent-Aware Recall', lines: [
       { t: 'step', text: 'STEP 3 — Intent-Aware Recall' },
-      { t: 'cmd', text: 'curl "http://' + HUB_URL + '/memory/recall?q=api+design&intent=question&limit=3"' },
-      { t: 'output', text: '{' },
-      { t: 'output', text: '  "results": [{' },
-      { t: 'output', text: '    "key": "project:api-design",' },
-      { t: 'output', text: '    "score": 0.95,' },
-      { t: 'output', text: '    "intent": "question",' },
-      { t: 'output', text: '    "tags": ["claude-code", "design"]' },
-      { t: 'output', text: '  }],' },
-      { t: 'output', text: '  "query": "api design",' },
-      { t: 'output', text: '  "total": 1' },
-      { t: 'output', text: '}' },
+      { t: 'cmd', text: 'curl "http://' + hb + '/memory/recall?q=api+design&intent=question&limit=3"' },
+      { t: 'output', text: '{ "results": [{ "key": "project:api-design", "score": 0.95, "intent": "question", "tags": ["claude-code", "design"] }], "query": "api design", "total": 1 }' },
       { t: 'success', text: '✓ Semantic search — finds relevant memories across all AI sessions' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Real-time Pub/Sub',
-    lines: [
+    ]},
+    { title: 'Real-time Pub/Sub', lines: [
       { t: 'step', text: 'STEP 4 — Real-time Topic Pub/Sub' },
       { t: 'cmd', text: 'woclaw topic join project-updates' },
       { t: 'output', text: '[WoClaw] Joining topic: project-updates' },
       { t: 'output', text: '[WoClaw] Joined! Waiting for messages...' },
       { t: 'blank' },
       { t: 'dim', text: '# Another agent publishes to the same topic:' },
-      { t: 'output', text: '[topic:project-updates] 📢 agent:vm153' },
+      { t: 'output', text: '[topic:project-updates] 📢 agent:agent-1' },
       { t: 'output', text: '  "API design finalized — v2 REST endpoints approved"' },
       { t: 'output', text: '  tags: [announcement, backend]', delay: 300 },
       { t: 'blank' },
-      { t: 'output', text: '[WoClaw] Notified 3 agents in 12ms' },
+      { t: 'output', text: '[WoClaw] Notified ' + agents + ' agent(s) in 12ms' },
       { t: 'success', text: '✓ Real-time pub/sub — instant cross-framework messaging' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Graph Memory',
-    lines: [
+    ]},
+    { title: 'Graph Memory', lines: [
       { t: 'step', text: 'STEP 5 — Graph Memory' },
-      { t: 'cmd', text: 'curl "http://' + HUB_URL + '/graph/traverse/project:api-design?depth=2"' },
-      { t: 'output', text: '{' },
-      { t: 'output', text: '  "center": "project:api-design",' },
-      { t: 'output', text: '  "edges": [' },
+      { t: 'cmd', text: 'curl "http://' + hb + '/graph/traverse/project:api-design?depth=2"' },
+      { t: 'output', text: '{ "center": "project:api-design", "edges": [' },
       { t: 'output', text: '    { "type": "causal",  "label": "leads_to",        "to": "task:implement-rest" },' },
       { t: 'output', text: '    { "type": "temporal","label": "happened_before", "from": "meeting:design-review" },' },
       { t: 'output', text: '    { "type": "entity",  "label": "about",           "to": "topic:backend" }' },
-      { t: 'output', text: '  ]' },
-      { t: 'output', text: '}' },
+      { t: 'output', text: '  ]}' },
       { t: 'success', text: '✓ Graph traversal — understand why, not just what' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Task Delegation',
-    lines: [
+    ]},
+    { title: 'Task Delegation', lines: [
       { t: 'step', text: 'STEP 6 — Cross-Agent Task Delegation' },
-      { t: 'cmd', text: 'woclaw delegate vm152 "Review the new REST /agents PR"' },
-      { t: 'output', text: '[WoClaw] Delegating task to vm152...' },
+      { t: 'cmd', text: 'woclaw delegate agent-2 "Review the new REST /agents PR"' },
+      { t: 'output', text: '[WoClaw] Delegating task to agent-2...' },
       { t: 'output', text: '[WoClaw] Task queued: ID deleg_7a3f2c' },
-      { t: 'output', text: '[WoClaw] vm152 accepted → RUNNING', delay: 400 },
+      { t: 'output', text: '[WoClaw] agent-2 accepted → RUNNING', delay: 400 },
       { t: 'blank' },
       { t: 'cmd', text: 'woclaw delegations --status RUNNING' },
-      { t: 'output', text: 'ID           TO     STATUS   CREATED              DESCRIPTION' },
-      { t: 'output', text: 'deleg_7a3f2c  vm152  RUNNING  2026-04-06 06:01   Review REST /agents PR' },
+      { t: 'output', text: 'ID           TO       STATUS   CREATED              DESCRIPTION' },
+      { t: 'output', text: 'deleg_7a3f2c  agent-2  RUNNING  2026-04-06 06:01   Review REST /agents PR' },
       { t: 'success', text: '✓ Task delegation — coordinate work across AI agents automatically' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Multi-Hub Federation',
-    lines: [
+    ]},
+    { title: 'Multi-Hub Federation', lines: [
       { t: 'step', text: 'STEP 7 — Multi-Hub Federation' },
-      { t: 'cmd', text: 'curl http://' + HUB_URL + '/federation/peers' },
-      { t: 'output', text: '{' },
-      { t: 'output', text: '  "peers": [{' },
-      { t: 'output', text: '    "hubId": "hub-us-east",' },
-      { t: 'output', text: '    "url": "wss://us-east.woclaw.io",' },
-      { t: 'output', text: '    "status": "connected",' },
-      { t: 'output', text: '    "agents": 5,' },
-      { t: 'output', text: '    "latency": "23ms"' },
-      { t: 'output', text: '  }]' },
-      { t: 'output', text: '}' },
+      { t: 'cmd', text: 'curl http://' + hb + '/federation/peers' },
+      { t: 'output', text: '{ "peers": [{ "hubId": "hub-us-east", "url": "wss://us-east.woclaw.io", "status": "connected", "agents": 5, "latency": "23ms" }] }' },
       { t: 'success', text: '✓ Federation — agents on different hubs collaborate seamlessly' },
       { t: 'blank' },
-    ]
-  },
-  {
-    title: 'Deduplication',
-    lines: [
+    ]},
+    { title: 'Deduplication', lines: [
       { t: 'step', text: 'STEP 8 — Deduplication + Conflict Detection' },
-      { t: 'cmd', text: 'curl -X POST http://' + HUB_URL + '/memory \\' },
-      { t: 'cmd', text: '  -H "Authorization: Bearer WoClaw2026" \\' },
+      { t: 'cmd', text: 'curl -X POST http://' + hb + '/memory \\' },
+      { t: 'cmd', text: '  -H "Authorization: Bearer <YOUR_TOKEN>" \\' },
       { t: 'cmd', text: '  -d \'{"key":"project:api-design","value":"Different value"}\'' },
       { t: 'output', text: 'HTTP/1.1 200 OK' },
       { t: 'output', text: 'X-WoClaw-Conflict: true' },
@@ -420,28 +453,37 @@ const DEMO_STEPS = [
       { t: 'info', text: '  🌐 github.com/XingP14/woclaw' },
       { t: 'info', text: '  📦 npm: xingp14-woclaw · woclaw-hooks · woclaw-mcp' },
       { t: 'blank' },
-    ]
-  },
-];
+    ]},
+  ];
+}
 
-const allLines = [];
-DEMO_STEPS.forEach((step, si) => {
-  step.lineStart = allLines.length;
-  step.lines.forEach(l => allLines.push({ ...l, stepIdx: si }));
-  step.lineEnd = allLines.length - 1;
-});
+let DEMO_STEPS = buildDemoSteps();
 
+/* ═══════════════════════════════════════════
+   STATE + HELPERS
+═══════════════════════════════════════════ */
 let playing = false, currentLine = 0, speed = 40;
 const body = document.getElementById('terminalBody');
+let allLines = [];
+
+function flattenSteps() {
+  allLines = [];
+  DEMO_STEPS.forEach((step, si) => {
+    step.lineStart = allLines.length;
+    step.lines.forEach(l => allLines.push({ ...l, stepIdx: si }));
+    step.lineEnd = allLines.length - 1;
+  });
+}
 
 function initSidebar() {
+  flattenSteps();
   const list = document.getElementById('stepList');
+  list.innerHTML = '';
   DEMO_STEPS.forEach((step, i) => {
     const li = document.createElement('li');
     li.className = 'step-item';
-    li.innerHTML = `<button class="step-btn" id="stepBtn${i}" onclick="jumpToStep(${i})">
-      <span class="step-num">${i + 1}</span><span>${step.title}</span>
-    </button>`;
+    li.innerHTML = '<button class="step-btn" id="stepBtn' + i + '" onclick="jumpToStep(' + i + ')">' +
+      '<span class="step-num">' + (i + 1) + '</span><span>' + step.title + '</span></button>';
     list.appendChild(li);
   });
 }
@@ -454,17 +496,16 @@ function renderLine(item) {
   const div = document.createElement('div');
   const clsMap = { step:'step-header', cmd:'cmd-line', output:'', success:'success',
     info:'info', dim:'dim', warning:'warning', error:'error', blank:'blank-line' };
-  div.className = `line ${clsMap[item.t] || ''}`;
+  div.className = 'line ' + (clsMap[item.t] || '');
   if (item.t === 'blank') return div;
-
   let html = '';
   if (item.t === 'cmd') {
-    html = `<div class="cmd-wrapper"><div class="cmd-text"><span class="prompt">$ </span><span class="command">${escapeHtml(item.text)}</span></div>
-      <button class="copy-btn" onclick="copyCmd(this,'${escapeHtml(item.fullCommand||item.text).replace(/'/g,"\\'")}')">copy</button></div>`;
+    html = '<div class="cmd-wrapper"><div class="cmd-text"><span class="prompt">$ </span><span class="command">' + escapeHtml(item.text) + '</span></div>' +
+      '<button class="copy-btn" onclick="copyCmd(this,\'' + escapeHtml(item.fullCommand||item.text).replace(/'/g,"\\'") + '\')">copy</button></div>';
   } else if (item.t === 'step') {
     html = escapeHtml(item.text);
   } else if (item.t === 'dim' && item.text.startsWith('#')) {
-    html = `<span class="comment-line">${escapeHtml(item.text)}</span>`;
+    html = '<span class="comment-line">' + escapeHtml(item.text) + '</span>';
   } else {
     html = escapeHtml(item.text);
   }
@@ -476,10 +517,8 @@ function updateProgress() {
   const pct = allLines.length > 0 ? (currentLine / allLines.length) * 100 : 0;
   document.getElementById('progressFill').style.width = pct + '%';
   let currentStep = 0;
-  for (let i = 0; i < DEMO_STEPS.length; i++) {
-    if (currentLine > DEMO_STEPS[i].lineStart) currentStep = i;
-  }
-  document.getElementById('stepIndicator').textContent = `${currentStep + 1} / ${DEMO_STEPS.length}`;
+  for (let i = 0; i < DEMO_STEPS.length; i++) { if (currentLine > DEMO_STEPS[i].lineStart) currentStep = i; }
+  document.getElementById('stepIndicator').textContent = (currentStep + 1) + ' / ' + DEMO_STEPS.length;
   DEMO_STEPS.forEach((_, i) => {
     const btn = document.getElementById('stepBtn' + i);
     if (!btn) return;
@@ -487,6 +526,29 @@ function updateProgress() {
     if (i === currentStep) btn.classList.add('active');
     else if (i < currentStep) btn.classList.add('done');
   });
+}
+
+function renderDemoSteps() {
+  DEMO_STEPS = buildDemoSteps();
+  flattenSteps();
+  const list = document.getElementById('stepList');
+  list.innerHTML = '';
+  DEMO_STEPS.forEach((step, i) => {
+    const li = document.createElement('li');
+    li.className = 'step-item';
+    li.innerHTML = '<button class="step-btn" id="stepBtn' + i + '" onclick="jumpToStep(' + i + ')">' +
+      '<span class="step-num">' + (i + 1) + '</span><span>' + step.title + '</span></button>';
+    list.appendChild(li);
+  });
+  const statusEl = document.getElementById('hubStatus');
+  if (isConnected) {
+    statusEl.textContent = '✓ ' + hubUrl;
+    statusEl.className = 'hub-status-text connected';
+  } else {
+    statusEl.textContent = 'demo mode';
+    statusEl.className = 'hub-status-text disconnected';
+  }
+  if (currentLine > 0) reset();
 }
 
 async function play() {
@@ -497,8 +559,7 @@ async function play() {
     const delay = item.delay || speed;
     body.appendChild(renderLine(item));
     body.scrollTop = body.scrollHeight;
-    currentLine++;
-    updateProgress();
+    currentLine++; updateProgress();
     await new Promise(r => setTimeout(r, delay));
   }
   playing = false;
@@ -506,8 +567,7 @@ async function play() {
 }
 
 function reset() {
-  playing = false; currentLine = 0;
-  body.innerHTML = '';
+  playing = false; currentLine = 0; body.innerHTML = '';
   updateProgress(); updatePlayBtn('play');
 }
 
@@ -521,13 +581,10 @@ function updatePlayBtn(state) {
 }
 
 function jumpToStep(idx) {
-  playing = false;
-  body.innerHTML = '';
-  currentLine = 0;
+  playing = false; body.innerHTML = ''; currentLine = 0;
   DEMO_STEPS.forEach((_, i) => { const b = document.getElementById('stepBtn'+i); if(b) b.classList.remove('active','done'); });
   for (let i = 0; i < DEMO_STEPS[idx].lineStart; i++) {
-    body.appendChild(renderLine(allLines[i]));
-    currentLine++;
+    body.appendChild(renderLine(allLines[i])); currentLine++;
   }
   updateProgress();
   playing = true; updatePlayBtn('playing');
@@ -540,8 +597,7 @@ async function autoPlay() {
     const delay = item.delay || speed;
     body.appendChild(renderLine(item));
     body.scrollTop = body.scrollHeight;
-    currentLine++;
-    updateProgress();
+    currentLine++; updateProgress();
     await new Promise(r => setTimeout(r, delay));
   }
   playing = false;
@@ -571,8 +627,8 @@ document.addEventListener('keydown', e => {
   }
 });
 
-initSidebar();
-updateProgress();
+/* Auto-connect to demo Hub on page load */
+/* Hub auto-connect removed — users can click Connect manually */
 </script>
 </body>
 </html>
