@@ -1,6 +1,6 @@
 # WoClaw
 
-> **AI Agent 共享记忆与消息中枢** — 支持 OpenClaw、Claude Code、Gemini CLI、OpenCode 等多框架。
+> **AI Agent 共享记忆与消息中枢** - 支持 OpenClaw、Claude Code、Gemini CLI、OpenAI Codex CLI、OpenCode 等多框架。
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
@@ -10,65 +10,27 @@
 [![npm](https://img.shields.io/npm/v/woclaw-mcp?label=woclaw-mcp)](https://www.npmjs.com/package/woclaw-mcp)
 [![npm](https://img.shields.io/npm/v/woclaw-hooks?label=woclaw-hooks%400.5.0)](https://www.npmjs.com/package/woclaw-hooks)
 
-## 问题背景
-
-每个 AI Agent 每次会话都从零开始。
-
-你用 **Claude Code** 写代码，**OpenClaw** 做编排，**Gemini CLI** 做调研。每个 Agent 在会话结束时遗忘一切，每次都要重复同样的上下文。
-
-```
-┌─────────────────────────────────────────────────────┐
-│  你（反复说）：                                     │
-│  "我们用 React + Go 构建 web app..."               │
-│  "记得用 fs.promises 而不是 fs.sync..."            │
-│  "数据库 schema 在 docs/schema.md..."              │
-└─────────────────────────────────────────────────────┘
-```
-
-## 解决方案
-
-WoClaw Hub 是所有 AI Agent 的**网络原生共享大脑**。
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      WoClaw Hub                             │
-│                ws://hub:8082 · REST :8083                   │
-│                                                              │
-│   Claude Code ──┐                                           │
-│                 ├──▶ Shared Memory Pool ──▶ Gemini CLI     │
-│   OpenClaw ─────┤    "project: web app"                     │
-│                 ├──▶ Topics ──────────────▶ OpenCode        │
-│   OpenCode ─────┘    general / dev / research              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-**一次上下文，所有 Agent 共享，实时同步。**
+WoClaw 的当前定位是三层：
+- **Hub** 负责记忆、Topic、Graph Memory、鉴权和存储
+- **Agent 接入层** 负责 OpenClaw、Claude Code、Gemini CLI、Codex、OpenCode 的连接
+- **文档与站点层** 负责 GitHub Pages、Dashboard、Inspector 和迁移说明
 
 默认情况下，Hub 使用本地 SQLite；也可以切换到 MySQL。GitHub Pages 站点见 `https://xingp14.github.io/woclaw/`。
 
-## 功能特性
+## 核心能力
 
-| 功能 | 说明 |
-|------|------|
-| 🧠 **共享记忆池** | 全局键值存储，支持标签（Tags）和 TTL 过期 |
-| 🗄️ **存储后端** | 默认本地 SQLite，可选 MySQL，并支持旧 JSON 自动迁移 |
-| 📡 **Topic 订阅发布** | Agent 间实时消息路由 |
-| 🔗 **多框架支持** | 连接 OpenClaw、Claude Code、 Gemini CLI、OpenCode |
-| 🌉 **MCP Bridge** | 内置 MCP 服务器，供 MCP 化 Agent 使用 |
-| 🪝 **Hook 集成** | 通过生命周期钩子实现 LLM 监督的记忆同步 |
-| 📜 **消息历史** | 加入 Topic 时自动收到最近 50 条消息 |
-| 🔎 **记忆搜索** | 关键字与正文内容搜索，支持 scope 过滤 |
-| 🧭 **Web UI** | 支持 GitHub Pages 的静态首页、Dashboard 和 Inspector |
-| 🕸️ **图记忆** | 支持 temporal / entity / causal / semantic 图关系 |
-| 🔒 **Token 认证** | Bearer Token 保护 |
-| ⚡ **实时同步** | WebSocket 驱动，无需轮询 |
+- 共享记忆池，支持 Tags、TTL、版本历史、关键词搜索和 scope 过滤
+- Topic 订阅发布，支持消息历史、私有 Topic、Federation
+- 多框架接入：OpenClaw、Claude Code、Gemini CLI、OpenAI Codex CLI、OpenCode
+- Hooks 和迁移工具：会话启动/结束/PreCompact、历史记忆导入
+- Web UI：静态首页、Dashboard、Inspector
+- Graph Memory：temporal / entity / causal / semantic 关系
 
-## 快速开始
+## 最短上手
 
-### 1. 部署 Hub
+### 1. 启动 Hub
 
 ```bash
-# 从 Docker Hub 拉取（推荐）
 docker pull xingp14/woclaw-hub:latest
 docker run -d \
   --name woclaw-hub \
@@ -78,99 +40,33 @@ docker run -d \
   xingp14/woclaw-hub:latest
 ```
 
-> Docker Hub 镜像由 GitHub Actions docker-publish.yml 自动构建，使用 `hub/v*` 标签触发。详见 [docs/PUBLISH.md](./docs/PUBLISH.md)。
+默认数据目录是 `/data/woclaw.sqlite`。如果要接 MySQL，设置 `DB_TYPE=mysql` 和对应的 `MYSQL_*` 环境变量。
 
-### 2. 连接你的 Agent
+### 2. 接入 Agent
 
-**OpenClaw（插件）：**
-```bash
-npm install xingp14-woclaw
-```
-```json
-"channels": {
-  "woclaw": {
-    "enabled": true,
-    "hubUrl": "ws://your-hub:8082",
-    "agentId": "my-openclaw",
-    "token": "change-me",
-    "autoJoin": ["general", "memory"]
-  }
-}
-```
+- OpenClaw 插件：`npm install xingp14-woclaw`
+- Claude Code / Gemini CLI / OpenCode：使用 `woclaw-hooks`
+- OpenAI Codex CLI：使用 `woclaw-codex`
+- MCP 客户端：使用 `woclaw-mcp`
 
-**Claude Code / Gemini CLI / OpenCode（Hook 脚本）：**
-```bash
-# 安装 WoClaw Hooks（Claude Code 推荐）
-npm install -g woclaw-hooks
-woclaw-hooks --install
+详细安装和配置请看 [docs/README_zh.md](./docs/README_zh.md)。
 
-# 或手动操作：
-# SessionStart: 加载共享上下文
-curl -s http://your-hub:8083/memory/project-context
+### 3. 打开 Web UI
 
-# SessionStop: 保存关键信息
-curl -X POST http://your-hub:8083/memory/discovered \
-  -H "Authorization: Bearer change-me" \
-  -d '{"value": "use fs.promises"}'
-```
+- GitHub Pages: `https://xingp14.github.io/woclaw/`
+- 本地 Hub Dashboard: `http://your-hub:8084`
 
-**OpenCode（插件 — 见 [packages/opencode-woclaw-plugin](./packages/opencode-woclaw-plugin/)）：**
+## 文档导航
 
-```bash
-# 安装插件
-cp packages/opencode-woclaw-plugin/index.js ~/.config/opencode/plugins/woclaw.js
+- [详细中文文档](./docs/README_zh.md)
+- [路线图](./docs/ROADMAP.md)
+- [安装指南](./docs/INSTALL.md)
+- [API 参考](./docs/API.md)
+- [MCP Server 文档](./docs/MCP-SERVER.md)
 
-# 配置环境变量
-export WOCLAW_HUB_URL=ws://your-hub:8082
-export WOCLAW_TOKEN=change-me
-```
+## 相关链接
 
-然后 OpenCode 可使用内置工具：
-```
-/woclaw_memory_read project-context
-/woclaw_memory_write discovered "use fs.promises"
-/woclaw_topics_list
-/woclaw_hub_status
-```
+- [GitHub 仓库](https://github.com/XingP14/woclaw)
+- [GitHub Pages](https://xingp14.github.io/woclaw/)
+- [Hub 运行实例](ws://vm153:8082 · REST http://vm153:8083)
 
-**Python Codex agents（见 [packages/codex-woclaw-example](./packages/codex-woclaw-example/)）：**
-
-```python
-import asyncio
-from codex_example import memory_read, memory_write, hub_health
-
-async def main():
-    health = await hub_health()
-    await memory_write("codex:session", "Working on feature X")
-    context = await memory_read("project:context")
-```
-
-**MCP Bridge（Node.js / Deno）：**
-```bash
-npm install woclaw-mcp
-woclaw-mcp --hub ws://your-hub:8082 --token change-me
-```
-
-## Hub API 参考
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `ws://hub:8082` | WebSocket | 实时消息和记忆读写 |
-| `http://hub:8083/health` | GET | 健康检查 |
-| `http://hub:8083/topics` | GET | 列出所有 Topic |
-| `http://hub:8083/memory` | GET | 获取所有记忆 |
-| `http://hub:8083/memory/:key` | GET/POST/PUT/DELETE | 读写单条记忆 |
-| `http://hub:8083/memory/tags/:tag` | GET | 按标签查询记忆 |
-
-详见 [SPEC.md](./SPEC.md)。
-
-## 资源链接
-
-- **GitHub**: https://github.com/XingP14/woclaw
-- **npm**: https://www.npmjs.com/package/xingp14-woclaw
-- **Docker Hub**: https://hub.docker.com/r/xingp14/woclaw-hub
-- **Hub 运行实例**: ws://vm153:8082 · REST http://vm153:8083
-
-## 许可证
-
-MIT

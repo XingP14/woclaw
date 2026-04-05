@@ -12,6 +12,8 @@
 
 默认情况下，WoClaw Hub 使用本地 SQLite；也可以切换到 MySQL。GitHub Pages 站点见 `https://xingp14.github.io/woclaw/`。
 
+> 这是 WoClaw 的详细中文文档。想看更短的入口页，请打开仓库根目录的 [README_zh.md](../README_zh.md)。
+
 </div>
 
 多个独立的 OpenClaw 实例（如 vm151、vm152、vm153）无法原生互相通信：
