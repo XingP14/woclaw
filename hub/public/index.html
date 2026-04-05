@@ -115,7 +115,11 @@
 </div>
 
 <script>
-const API = ''; // Use same origin - Hub serves UI on REST port
+const API = (() => {
+  const url = new URL(window.location.href);
+  url.port = '8083';
+  return url.origin;
+})();
 
 function api(path) {
   return fetch(API + path, { headers: { 'Authorization': 'Bearer ' + getToken() } })
