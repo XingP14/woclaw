@@ -158,18 +158,19 @@ export class RestServer {
         if (method === 'GET') {
           this.handleTopicMessages(res, topicName, url.searchParams.get('limit'));
         } else if (method === 'POST') {
+          // v1.0: Private topic sub-routes (/invite, /join) or regular topic creation
+          const slashIdx = topicName.indexOf('/');
+          if (slashIdx >= 0) {
+            const baseName = topicName.slice(0, slashIdx);
+            const subPath = topicName.slice(slashIdx + 1);
+            if (subPath === 'invite') { this.handleTopicInvite(req, res, baseName); return; }
+            if (subPath === 'join') { this.handleTopicJoin(req, res, baseName); return; }
+          }
           this.handleTopicCreate(req, res, topicName);
         } else {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
-      // v1.0: Private topic invite/join
-      } else if (path.startsWith('/topics/') && path.endsWith('/invite') && method === 'POST') {
-        const name = decodeURIComponent(path.slice(8, -7));
-        this.handleTopicInvite(req, res, name);
-      } else if (path.startsWith('/topics/') && path.endsWith('/join') && method === 'POST') {
-        const name = decodeURIComponent(path.slice(8, -5));
-        this.handleTopicJoin(req, res, name);
       // v0.4: Delegation REST endpoints
       } else if (path === '/delegations' || path.startsWith('/delegations')) {
         this.handleDelegations(req, res, url, path, method);
