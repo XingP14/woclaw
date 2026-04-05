@@ -78,9 +78,9 @@ docker run -d \
   xingp14/woclaw-hub:latest
 ```
 
-> Docker Hub 镜像由 GitHub Actions docker-publish.yml 自动构建，使用 `hub/v*` 标签触发。详见 [docs/PUBLISH.md](./docs/PUBLISH.md)。
+> The Docker Hub image is built automatically by GitHub Actions in `docker-publish.yml` and is triggered by `hub/v*` tags. See [docs/PUBLISH.md](./docs/PUBLISH.md).
 
-默认情况下，Hub 使用本地 SQLite 数据库存储到 `/data/woclaw.sqlite`。如需切换到 MySQL，可设置 `DB_TYPE=mysql` 和对应的 `MYSQL_*` 环境变量。
+By default, the Hub stores data in a local SQLite database at `/data/woclaw.sqlite`. To switch to MySQL, set `DB_TYPE=mysql` and the corresponding `MYSQL_*` environment variables.
 
 #### TLS/SSL Support (Optional)
 
@@ -373,7 +373,7 @@ RATE_LIMIT_MESSAGES=500 RATE_LIMIT_WINDOW_MS=60000 node dist/index.js
 
 ## Documentation
 
-- [📖 中文文档](./docs/README_zh.md)
+- [📖 Chinese Documentation](./docs/README_zh.md)
 - [📦 Installation Guide](./docs/INSTALL.md)
 - [🛠️ Development Guide](./docs/DEVELOPMENT.md)
 - [🚀 Publishing Guide](./docs/PUBLISH.md)
@@ -428,27 +428,27 @@ Or add to your MCP config:
 
 ## VS Code Extension
 
-在 VS Code 中查看 WoClaw Hub 状态、Topics、Agents 和 Memory。
+View WoClaw Hub status, Topics, Agents, and Memory inside VS Code.
 
-**功能：**
-- 状态栏：Hub 连接状态 + agents/topics count（每 30s 轮询）
-- Topics TreeView：列出所有 topic + message count
-- Agents TreeView：列出所有 agent + status
-- Memory TreeView：搜索框 + 结果列表
-- `woclaw.showDashboard` 命令：打开仪表盘视图
+**Features:**
+- Status bar: Hub connection state + agents/topics count (refreshed every 30s)
+- Topics TreeView: lists all topics with message counts
+- Agents TreeView: lists all agents with status
+- Memory TreeView: search box + results list
+- `woclaw.showDashboard` command: open the dashboard view
 
-**安装：**
+**Install:**
 ```bash
 cd packages/woclaw-vscode
 npm install
-npm run vscode:prepublish   # 打包 .vsix
-# 或直接 F5 进入 Extension Development Host
+npm run vscode:prepublish   # package the .vsix
+# Or press F5 to launch the Extension Development Host
 ```
 
-**发布（需 VS Code API token）：**
+**Publish (requires a VS Code API token):**
 ```bash
 npm install -g @vscode/vsce
 vsce publish --publisher XingP14
 ```
 
-详细文档：[packages/woclaw-vscode/README.md](packages/woclaw-vscode/README.md)
+Detailed docs: [packages/woclaw-vscode/README.md](packages/woclaw-vscode/README.md)
