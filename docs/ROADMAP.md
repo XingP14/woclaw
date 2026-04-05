@@ -665,11 +665,17 @@ Federation 架构：
   - Hub 启动时注册到已知 peer Hub 列表
   - `POST /federation/peers` — 添加 federation peer Hub
 
-- [ ] **S24-2（10min）：实现 Hub-to-Hub WebSocket 连接** ⏳ 待开始
+- [x] **S24-2（10min）：实现 Hub-to-Hub WebSocket 连接** ✅ 2026-04-05
+  -  — 自动连接 peers, ping/reconnect, hub_info 交换 ✅
+  - vm153 已部署验证 ✅
   - 定期 ping peer Hub 保持连接
   - 跨 Hub 消息路由：agent 消息可发往其他 Hub 的 agent
 
-- [ ] **S24-3（10min）：实现跨 Hub 消息路由 REST API** ⏳ 待开始
+- [x] **S24-3（10min）：实现跨 Hub 消息路由 REST API** ✅ 2026-04-05
+  -  — 查看 peer 状态 ✅
+  -  — 添加 peer Hub ✅
+  -  — 向 peer Hub 的 agent 发送消息 ✅
+  - vm153 已部署验证 ✅
   - `POST /federation/send` — 向其他 Hub 的 agent 发送消息
   - 在 ws_server.ts 处理 `federation_send` 消息类型
 
