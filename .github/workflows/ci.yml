@@ -29,3 +29,28 @@ jobs:
       - name: Build
         working-directory: hub
         run: npm run build
+
+  plugin-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: plugin/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: plugin
+        run: npm install
+      
+      - name: TypeScript check
+        working-directory: plugin
+        run: npx tsc --noEmit
+      
+      - name: Build
+        working-directory: plugin
+        run: npm run build
