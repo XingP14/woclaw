@@ -185,7 +185,9 @@ woclaw migrate --all            # 执行所有迁移
 - [ ] Step 3（10min）：补充 Hermes 安装 / 迁移注意事项的文档链接位置
 
 #### Story H3: Hermes Agent 站点同步
-- [ ] Step 1（10min）：更新 `site/index.html` 的首页文案
+- [x] **Step 1（10min）：更新 `site/index.html` 的首页文案** ✅ 2026-04-10
+  - 更新 lead 文案，列出完整支持框架（OpenAI Codex CLI, Claude Code, Gemini CLI, OpenClaw, Hermes Agent）
+  - 强调跨框架共享记忆和 topic 消息路由能力
 - [ ] Step 2（10min）：更新 `site/quickstart.html` 的支持范围和提示
 - [ ] Step 3（10min）：更新 `site/dashboard.html` 的 tagline
 
