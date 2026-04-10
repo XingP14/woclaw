@@ -177,13 +177,24 @@ woclaw migrate --all            # 执行所有迁移
 #### Story H1: Hermes Agent 迁移兼容
 - [x] **Step 1（10min）：整理 Hermes dry-run 报告中的可迁移项与缺口** ✅ 2026-04-10
   - 输出：`docs/H1-1-HERMES-MIGRATION-DRYRUN.md`
+  - 输出：`docs/H1-1-HERMES-MIGRATION-DRYRUN.md`
   - 分析了 Hermes 数据源：state.db, MEMORY.md, USER.md, skills/, config.yaml
   - 确定 ✅ 可迁移项（sessions, memories, skills → hooks）
   - 确定 ⚠️ 需适配项（session search, skill self-creation）
   - 确定 ❌ 不兼容项（YAML config, hard limits, RL training）
   - 输出了迁移命令设计和实现估算
-- [ ] Step 2（10min）：确认 `skills` / `shared-skills` / `workspace-agents` / `model-config` 的目标路径映射
-- [ ] Step 3（10min）：记录 `messaging-settings` 与 `memory` 的不兼容点和回滚策略
+- [x] **Step 2（10min）：确认 `skills` / `shared-skills` / `workspace-agents` / `model-config` 的目标路径映射** ✅ 2026-04-10
+  - 输出：`docs/H1-2-HERMES-PATH-MAPPING.md`
+  - 确认 skills → `hermes:skill:<name>` Memory Pool
+  - 确认 shared-skills → `hermes:shared-skill:<name>` Memory Pool（tag 含 `shared`）
+  - 确认 workspace-agents → Agent Registry + Memory entries
+  - 确认 model-config → 文档参考（不迁移 API key）
+  - 确认 messaging-settings → ❌ 不兼容，回滚策略已记录
+- [x] **Step 3（10min）：记录 `messaging-settings` 与 `memory` 的不兼容点和回滚策略** ✅ 2026-04-10
+  - 输出：`docs/H1-3-HERMES-MESSAGING-INCOMPATIBILITY.md`
+  - Channel vs Topic 不兼容性、路由规则差异、消息模板缺失详细分析
+  - 回滚策略：迁移跳过 + 备份到 Memory + 手动重建指南
+  - 迁移命令设计（`--skip messaging-settings`）+ 输出示例
 
 #### Story H2: Hermes Agent 文档
 - [x] **Step 1（10min）：在根目录 README 增加 Hermes roadmap 说明** ✅ 2026-04-10
