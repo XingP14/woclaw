@@ -1,5 +1,6 @@
 ---
 name: woclaw
+version: "0.1.0"
 description: Connect to WoClaw Hub for shared memory and multi-agent topic messaging between AI agents
 homepage: https://github.com/XingP14/woclaw
 metadata:
