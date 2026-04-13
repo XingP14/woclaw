@@ -19,16 +19,15 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        working-directory: hub
         run: npm install
 
-      - name: TypeScript check
-        working-directory: hub
+      - name: TypeScript check (hub)
         run: npx tsc --noEmit
-
-      - name: Build
         working-directory: hub
+
+      - name: Build (hub)
         run: npm run build
+        working-directory: hub
 
   plugin-lint:
     runs-on: ubuntu-latest
@@ -42,13 +41,12 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        working-directory: plugin
         run: npm install
 
-      - name: TypeScript check
-        working-directory: plugin
+      - name: TypeScript check (plugin)
         run: npx tsc --noEmit
-
-      - name: Build
         working-directory: plugin
+
+      - name: Build (plugin)
         run: npm run build
+        working-directory: plugin
