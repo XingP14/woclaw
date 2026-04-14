@@ -224,6 +224,22 @@ export interface RateLimitStatus {
   oldestTimestamp: number | null;
 }
 
+// v1.0: Session Store — episodic memory
+export interface DBSession {
+  id: string; agentId: string; framework: string;
+  startedAt: number; endedAt?: number; transcript: string;
+  summary?: string; importance: number; accessCount: number;
+  lastAccessedAt?: number; tags: string[]; extracted: boolean; flagged: boolean; createdAt: number;
+}
+export interface DBSessionFeedback { sessionId: string; agentId: string; adjustment: number; reason?: string; createdAt: number; }
+export interface ExtractionQueueEntry { sessionId: string; queuedAt: number; priority: number; status: 'pending'|'processing'|'done'|'failed'; retryCount: number; }
+export interface ImportanceResult { score: number; labels?: string[]; reasoning?: string; }
+export interface ExtractionResult { summary: string; keyDecisions: string[]; importantFacts: string[]; preferences: string[]; filesModified: string[]; topics: string[]; importanceScore: number; suggestedTags: string[]; }
+export interface MemoryFeedback { key: string; agentId: string; adjustment: number; reason?: string; createdAt: number; }
+export interface AIProviderConfig { provider: 'openai'|'anthropic'|'ollama'|'custom'; model?: string; apiKey?: string; baseUrl?: string; }
+export interface ExtractionConfig { mode: 'sync'|'batch'; batchSize: number; batchIntervalMs: number; provider: AIProviderConfig; }
+export interface ForgettingConfig { enabled: boolean; schedule: 'daily'|'weekly'|'manual'; timeOfDay?: string; dayOfWeek?: number; importanceThreshold: number; dryRun: boolean; maxEvictPerRun: number; }
+
 // v1.0: Federation Types
 export interface FederationPeer {
   hubId: string;
