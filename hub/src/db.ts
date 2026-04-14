@@ -883,6 +883,17 @@ class MySqlStorage implements DbStorage {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // v1.0 migration: add importance/access_count/last_accessed_at to memory table
+    try {
+      await this.pool.execute(`ALTER TABLE memory ADD COLUMN importance_score DOUBLE NOT NULL DEFAULT 5.0`);
+    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+    try {
+      await this.pool.execute(`ALTER TABLE memory ADD COLUMN access_count INT NOT NULL DEFAULT 0`);
+    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+    try {
+      await this.pool.execute(`ALTER TABLE memory ADD COLUMN last_accessed_at BIGINT`);
+    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+
     await this.maybeImportLegacyData();
   }
 
@@ -1260,7 +1271,7 @@ class MySqlStorage implements DbStorage {
   }
 
   async getExtractionQueue(limit = 10): Promise<ExtractionQueueEntry[]> {
-    const [rows] = await this.pool.query(`SELECT * FROM extraction_queue WHERE status = 'pending' ORDER BY priority DESC, queued_at ASC LIMIT ?`, [limit]);
+    const [rows] = await this.pool.query(`SELECT * FROM extraction_queue ORDER BY priority DESC, queued_at ASC LIMIT ?`, [limit]);
     return (rows as any[]).map(r => ({ sessionId: r.session_id, queuedAt: Number(r.queued_at), priority: Number(r.priority), status: r.status, retryCount: Number(r.retry_count) }));
   }
 
@@ -1297,9 +1308,14 @@ class MySqlStorage implements DbStorage {
     const now = Date.now();
     const RECENCY_WINDOW = 90 * 24 * 60 * 60 * 1000;
     const [memRows]: any = await this.pool.query(`
-      SELECT \`key\`, importance, COALESCE(last_accessed_at, updated_at) as last_accessed_at, access_count
-      FROM memory WHERE importance < ?
-      ORDER BY (importance * 0.5) + ((1.0 - LEAST((COALESCE(last_accessed_at, updated_at) - ?), ?)) / ? * 0.3) + (LOG10(access_count + 1) / 2.0 * 0.2) ASC
+      SELECT m.key, COALESCE(m.importance_score, 5.0) + COALESCE(SUM(f.adjustment), 0) AS importance,
+             COALESCE(m.last_accessed_at, m.updated_at) AS last_accessed_at,
+             COALESCE(m.access_count, 0) AS access_count
+      FROM memory m
+      LEFT JOIN memory_feedback f ON m.key = f.key
+      GROUP BY m.key
+      HAVING importance < ?
+      ORDER BY (importance * 0.5) + ((1.0 - LEAST((COALESCE(m.last_accessed_at, m.updated_at) - ?), ?)) / ? * 0.3) + (LOG10(COALESCE(m.access_count, 0) + 1) / 2.0 * 0.2) ASC
       LIMIT ?
     `, [memoryThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit]);
     const [sessRows]: any = await this.pool.query(`
