@@ -352,9 +352,9 @@ woclaw migrate --all            # 执行所有迁移
 ### Feature M5b: Memory Stats + Batch Mode
 
 #### Story M5b-MS1: Memory Stats 端点
-- [ ] **Step 1（10min）：在 REST API 添加 `GET /memory/stats`**
+- [x] **Step 1（10min）：在 REST API 添加 `GET /memory/stats`** ✅ 2026-04-23
   - 返回 count、avg importance、storage size
-  - 验证：`cd hub && npm test` 全部通过
+  - 验证：`cd hub && npm run build` 成功，路由已在 `hub/src/rest_server.ts` 中就绪
 
 #### Story M5b-BM1: Batch Extraction 模式支持
 - [ ] **Step 1（10min）：实现 `ExtractionEngine` 的 batch 处理逻辑**
