@@ -4,7 +4,7 @@
  */
 
 export interface ImportanceResult {
-  success: true;
+  success: boolean;
   score: number;           // 0-10 importance score
   reasoning?: string;       // brief explanation
   suggestedTags?: string[]; // auto-tag suggestions
@@ -12,7 +12,7 @@ export interface ImportanceResult {
 }
 
 export interface ExtractionResult {
-  success: true;
+  success: boolean;
   summary: string;         // concise session summary
   tags: string[];          // extracted topic tags
   keyEvents?: string[];    // notable events/actions
@@ -29,6 +29,12 @@ export interface RerankedMemory {
 export interface UsageHistoryEntry {
   accessedAt: number;
   query?: string;
+}
+
+export interface ExtractionConfig {
+  provider?: 'openai' | 'anthropic' | 'ollama';
+  apiKey?: string;
+  baseUrl?: string;
 }
 
 export interface AIProvider {

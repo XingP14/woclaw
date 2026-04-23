@@ -6,8 +6,25 @@
  * DB layer to score, summarize, and rank memories.
  */
 
-import type { AIProvider } from './types.js';
+import { AnthropicProvider } from './providers/anthropic.js';
+import { OllamaProvider } from './providers/ollama.js';
+import { OpenAIProvider } from './providers/openai.js';
+import type { AIProvider, ExtractionConfig } from './types.js';
 import type { ImportanceResult, ExtractionResult, RerankedMemory } from './types.js';
+
+export function createExtractionProvider(config: ExtractionConfig = {}): AIProvider {
+  const provider = config.provider ?? 'openai';
+
+  switch (provider) {
+    case 'anthropic':
+      return new AnthropicProvider(config.apiKey);
+    case 'ollama':
+      return new OllamaProvider(config.baseUrl);
+    case 'openai':
+    default:
+      return new OpenAIProvider(config.apiKey);
+  }
+}
 
 export class ExtractionEngine {
   constructor(private provider: AIProvider) {}

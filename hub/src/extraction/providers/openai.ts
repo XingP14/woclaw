@@ -9,7 +9,7 @@ import type {
   ImportanceResult,
   ExtractionResult,
   UsageHistoryEntry,
-} from './types.js';
+} from '../types.js';
 
 const SCORE_MODEL = 'gpt-4o-mini';
 const EXTRACT_MODEL = 'gpt-4o';
