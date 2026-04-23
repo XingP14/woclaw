@@ -289,11 +289,11 @@ woclaw migrate --all            # 执行所有迁移
 ### Feature M5: REST API — Session 端点
 
 #### Story M5-API1: Session REST 路由
-- [ ] **Step 1（10min）：在 `hub/src/rest_server.ts` 引入 SessionStore 并注入**
+- [x] **Step 1（10min）：在 `hub/src/rest_server.ts` 引入 SessionStore 并注入** ✅ 2026-04-23
   - import SessionStore，构造函数注入实例
   - Build 验证
 
-- [ ] **Step 2（10min）：注册 Session 路由**
+- [x] **Step 2（10min）：注册 Session 路由** ✅ 2026-04-23
   - `GET /sessions` — 列表
   - `POST /sessions` — 注册新 session
   - `GET /sessions/:id` — 获取详情
