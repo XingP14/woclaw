@@ -138,6 +138,8 @@ export class RestServer {
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
+      } else if (path === '/memory/stats' && method === 'GET') {
+        await this.handleMemoryStats(res);
       // v0.4: Semantic Recall (must be before /memory/:key route)
       } else if (path.startsWith('/memory/recall')) {
         const q = url.searchParams.get('q');
@@ -479,6 +481,31 @@ const result = this.graph.findPath(from, to, maxDepth);
         updatedBy: m.updatedBy,
       }))
     }));
+  }
+
+  private async handleMemoryStats(res: http.ServerResponse): Promise<void> {
+    try {
+      const sessions = await this.sessionStore.listSessions(undefined, undefined, 10000, 0);
+      const count = sessions.length;
+      const avgImportance = count > 0
+        ? sessions.reduce((sum, session) => sum + (session.importance || 0), 0) / count
+        : 0;
+      const totalTranscriptChars = sessions.reduce((sum, session) => sum + (session.transcript?.length || 0), 0);
+      const totalSummaryChars = sessions.reduce((sum, session) => sum + (session.summary?.length || 0), 0);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        count,
+        avgImportance,
+        storageSize: {
+          transcriptChars: totalTranscriptChars,
+          summaryChars: totalSummaryChars,
+          approxBytes: totalTranscriptChars + totalSummaryChars,
+        },
+      }));
+    } catch (e: any) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
   }
 
   private async handleMemoryWrite(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
