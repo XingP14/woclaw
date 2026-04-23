@@ -365,7 +365,7 @@ woclaw migrate --all            # 执行所有迁移
 ### Feature M7: Ollama AI Provider + Graph Auto-node
 
 #### Story M7-OL1: Ollama Provider 完整实现
-- [ ] **Step 1（10min）：完善 `hub/src/extraction/providers/ollama.ts`**
+- [x] **Step 1（10min）：完善 `hub/src/extraction/providers/ollama.ts`** ✅ 2026-04-23
   - 实现 `scoreMemory()` 和 `extractSession()` 调用本地 Ollama API
   - 使用 `OLLAMA_BASE_URL` 环境变量（默认 `http://localhost:11434`）
   - 验证：本地 Ollama 运行 + `cd hub && npm run build`
