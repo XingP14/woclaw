@@ -213,6 +213,200 @@ woclaw migrate --all            # 执行所有迁移
 - [x] **Step 2（10min）：更新 `site/quickstart.html` 的支持范围和提示** ✅ 2026-04-10
 - [x] **Step 3（10min）：更新 `site/dashboard.html` 的 tagline** ✅ 2026-04-10
 
+## 🚀 v1.1 — All-in-One Memory Platform（Session Store + AI Extraction + Forgetting）
+
+> **核心目标：** 为 WoClaw Hub 添加 Session Store（情景记忆）、AI 提取引擎（自动生成摘要/重要性评分）、反馈 API 和遗忘调度器。
+> **技术栈：** TypeScript, better-sqlite3（已有）, OpenAI SDK, node-cron
+
+### Feature M1: 类型定义（Type Definitions）
+
+#### Story M1-T1: Session 类型定义
+- [x] **Step 1（10min）：在 `hub/src/types.ts` 追加 Session 相关类型** ✅ 2026-04-23
+  - 追加 `DBSession`, `DBSessionFeedback`, `ExtractionQueueEntry`, `ImportanceResult`, `ExtractionResult`, `MemoryFeedback`, `AIProviderConfig`, `ExtractionConfig`, `ForgettingConfig` 接口
+  - 验证 TypeScript build：`cd hub && npm run build`
+
+### Feature M2: 数据库 Schema — Session 表
+
+#### Story M2-DB1: Session 表初始化
+- [ ] **Step 1（10min）：在 `db.ts` 的 `ClawDB.init()` 中追加 session 相关表**
+  - `sessions` 表 + `idx_sessions_agent_id` + `idx_sessions_started_at` 索引
+  - `extraction_queue` 表
+  - `session_feedback` 表
+  - `memory_feedback` 表
+  - 验证：`cd hub && npm run build` 无报错
+
+#### Story M2-DB2: Session CRUD 方法
+- [ ] **Step 1（10min）：在 `ClawDB` 类追加 Session CRUD 方法**
+  - `setSession`, `getSession`, `getAllSessions`, `deleteSession`, `sessionSearch`, `mapSessionRow`
+  - 验证：`cd hub && npm run build`
+
+- [ ] **Step 2（10min）：追加 Extraction Queue + Feedback + Eviction 方法**
+  - `addToExtractionQueue`, `getExtractionQueue`, `updateExtractionQueueStatus`, `removeFromExtractionQueue`
+  - `addSessionFeedback`, `getSessionFeedbackHistory`, `addMemoryFeedback`, `getMemoryFeedbackHistory`
+  - `getEvictionCandidates`（带重要性/访问频率/时间衰减公式）
+  - 验证：`cd hub && npm test` 全部通过
+
+### Feature M3: Session Store 引擎
+
+#### Story M3-SS1: SessionStore 核心实现
+- [ ] **Step 1（10min）：编写 `hub/src/session_store.ts`**
+  - `SessionStore` 类：方法 `registerSession`, `updateSession`, `getSession`, `listSessions`, `deleteSession`, `searchSessions`, `flagSession`, `markExtracted`, `incrementAccessCount`, `addFeedback`
+  - Build 验证：`cd hub && npm run build`
+
+- [ ] **Step 2（10min）：编写 `hub/test/session_store.test.ts`**
+  - 6 个测试用例覆盖注册、更新、列表、搜索、flag、feedback
+  - 运行：`cd hub && npm test -- --grep "SessionStore"`
+
+### Feature M4: AI 提取引擎
+
+#### Story M4-AI1: 提取引擎核心架构
+- [ ] **Step 1（10min）：编写 `hub/src/extraction/engine.ts`**
+  - `AIProvider` 接口定义
+  - `ExtractionEngine` 类：根据 config 动态 `require()` 加载 provider
+  - Build 验证：`cd hub && npm run build`
+
+#### Story M4-AI2: OpenAI Provider 实现
+- [ ] **Step 1（10min）：编写 `hub/src/extraction/providers/openai.ts`**
+  - `OpenAIProvider` 实现 `AIProvider` 接口
+  - `scoreMemory()` — 调用 OpenAI Chat API（JSON mode）返回重要性评分
+  - `extractSession()` — 从 session transcript 提取 summary/keyDecisions/importantFacts/preferences/filesModified/topics/suggestedTags
+  - 验证：`cd hub && npm run build`
+
+#### Story M4-AI3: Anthropic / Ollama Provider Stub
+- [ ] **Step 1（10min）：编写 `hub/src/extraction/providers/anthropic.ts`**
+  - Stub 实现，返回默认 5.0 评分
+  - Build 验证
+
+- [ ] **Step 2（10min）：编写 `hub/src/extraction/providers/ollama.ts`**
+  - Stub 实现，返回默认 5.0 评分
+  - Build 验证
+
+#### Story M4-AI4: 提取引擎测试
+- [ ] **Step 1（10min）：编写 `hub/test/extraction_engine.test.ts`**
+  - Mock-based 测试验证接口契约
+  - `cd hub && npm test -- --grep "ExtractionEngine"` 全部 PASS
+
+### Feature M5: REST API — Session 端点
+
+#### Story M5-API1: Session REST 路由
+- [ ] **Step 1（10min）：在 `hub/src/rest_server.ts` 引入 SessionStore 并注入**
+  - import SessionStore，构造函数注入实例
+  - Build 验证
+
+- [ ] **Step 2（10min）：注册 Session 路由**
+  - `GET /sessions` — 列表
+  - `POST /sessions` — 注册新 session
+  - `GET /sessions/:id` — 获取详情
+  - `POST /sessions/:id/feedback` — 反馈
+  - `POST /sessions/:id/flag` — 标记
+  - `GET /sessions/search` — 搜索
+  - `DELETE /sessions/:id` — 删除
+  - `PUT /sessions/:id` — 更新
+  - 验证：`cd hub && npm test` 全部通过
+
+### Feature M6: Forgetting Scheduler（遗忘调度器）
+
+#### Story M6-FG1: ForgettingScheduler 核心实现
+- [ ] **Step 1（10min）：编写 `hub/src/scheduler.ts`**
+  - `ForgettingScheduler` 类：使用 `node-cron` 实现 daily/weekly/manual 调度
+  - `run(dryRun?)` 方法：按 eviction_score（重要性×0.5 + 时间衰减×0.3 + 访问频率×0.2）升序淘汰
+  - `getLastRun()`, `updateConfig()` 方法
+  - Build 验证
+
+#### Story M6-FG2: Hub 集成 + REST 端点
+- [ ] **Step 1（10min）：在 `hub/src/index.ts` 引入并实例化 ForgettingScheduler**
+  - 从环境变量/配置加载 ForgettingConfig
+  - Build 验证
+
+- [ ] **Step 2（10min）：在 `rest_server.ts` 注册 prune 路由**
+  - `POST /memory/prune` — 触发遗忘执行
+  - `GET /memory/prune/status` — 查询上次运行状态
+  - 验证：`cd hub && npm test` 全部通过
+
+#### Story M6-FG3: ForgettingScheduler 单元测试
+- [ ] **Step 1（10min）：编写 `hub/test/forgetting_scheduler.test.ts`**
+  - 测试 dry run 不删除、实际执行删除、调度逻辑
+  - `cd hub && npm test -- --grep "ForgettingScheduler"` 全部 PASS
+
+---
+
+## 🔮 v1.0+ — 高级特性
+
+#### Story M5-API1: Session REST 路由
+- [ ] **Step 1（10min）：在 `hub/src/rest_server.ts` 引入 SessionStore 并注入**
+  - import SessionStore，构造函数注入实例
+  - Build 验证
+
+- [ ] **Step 2（10min）：注册 Session 路由**
+  - `POST /sessions` — 注册新 session（session start 时调用）
+  - `PUT /sessions/:id` — 更新 session（session end 时调用，写入 transcript）
+  - `GET /sessions` — 列表（支持 agentId/framework/date range/importance 过滤）
+  - `GET /sessions/:id` — 获取完整 transcript
+  - `POST /sessions/:id/feedback` — 反馈调整重要性
+  - `POST /sessions/:id/flag` — 标记重要 session
+  - `GET /sessions/search` — 全文搜索 transcript
+  - `DELETE /sessions/:id` — 删除 session
+  - `GET /sessions/stats` — Session Store 统计（count、avg importance、storage size）
+  - 验证：`cd hub && npm test` 全部通过
+
+### Feature M5b: Memory Stats + Batch Mode
+
+#### Story M5b-MS1: Memory Stats 端点
+- [ ] **Step 1（10min）：在 REST API 添加 `GET /memory/stats`**
+  - 返回 count、avg importance、storage size
+  - 验证：`cd hub && npm test` 全部通过
+
+#### Story M5b-BM1: Batch Extraction 模式支持
+- [ ] **Step 1（10min）：实现 `ExtractionEngine` 的 batch 处理逻辑**
+  - `batchSize` + `batchIntervalMs` 配置驱动
+  - 后台 worker 从 extraction_queue 批量拉取 session 逐个处理
+  - 验证：`cd hub && npm test -- --grep "ExtractionEngine"`
+
+### Feature M7: Ollama AI Provider + Graph Auto-node
+
+#### Story M7-OL1: Ollama Provider 完整实现
+- [ ] **Step 1（10min）：完善 `hub/src/extraction/providers/ollama.ts`**
+  - 实现 `scoreMemory()` 和 `extractSession()` 调用本地 Ollama API
+  - 使用 `OLLAMA_BASE_URL` 环境变量（默认 `http://localhost:11434`）
+  - 验证：本地 Ollama 运行 + `cd hub && npm run build`
+
+#### Story M7-GN1: 提取引擎 → Graph Memory 自动关联
+- [ ] **Step 1（10min）：Session 提取完成后自动创建 Graph 节点和 entity 边**
+  - `ExtractionEngine.extractSession()` 完成后触发 `syncMemoryNode()`
+  - 自动为 summary/topics/importantFacts 创建 Memory 节点
+  - 自动创建 memory → agent、memory → topic 的 entity 边
+  - 验证：`cd hub && npm test -- --grep "Graph"` 全部通过
+
+---
+
+## 🔮 v1.2+ — 进阶特性
+
+### 生产化完善
+- [ ] **Session Archival** — 遗忘前归档到文件（JSONL/ZIP），支持恢复
+- [ ] **Memory Encryption at Rest** — SQLite 加密存储敏感记忆
+- [ ] **Federation-aware Shared Memory** — 联邦 Hub 间同步重要记忆
+
+### Web UI 增强
+- [ ] Memory Inspection Panel — 查看/搜索/导出记忆
+- [ ] Session Replay — 回放 session transcript
+- [ ] Importance Heatmap — 可视化记忆重要性分布
+
+### Repo 拆分计划
+> 目标：将 WoClaw 单 repo 拆分为独立子 repo，各自有独立发布周期
+
+| 子包 | 来源 | 目标 Repo | 状态 |
+|------|------|-----------|------|
+| `woclaw-hub` | `hub/` | [woclaw-hub](https://github.com/XingP14/woclaw-hub) | 待拆分 |
+| `woclaw-codex` | `packages/codex-woclaw` | [woclaw-codex](https://github.com/XingP14/woclaw-codex) | 待拆分 |
+| `woclaw-hooks` | `packages/woclaw-hooks` | [woclaw-hooks](https://github.com/XingP14/woclaw-hooks) | 待拆分 |
+| `woclaw-mcp` | `packages/mcp-bridge` | [woclaw-mcp](https://github.com/XingP14/woclaw-mcp) | 待拆分 |
+| `woclaw-vscode` | `packages/woclaw-vscode` | [woclaw-vscode](https://github.com/XingP14/woclaw-vscode) | 待拆分 |
+| `woclaw-plugin` | `plugin/` | [woclaw-plugin](https://github.com/XingP14/woclaw-plugin) | 待拆分 |
+
+**拆分顺序：** hub（核心）→ codex/hooks/mcp（集成）→ vscode/plugin（生态）→ meta repo
+
+---
+
 ## 🔮 v1.0+ — 高级特性
 
 ### 记忆增强
@@ -236,6 +430,8 @@ woclaw migrate --all            # 执行所有迁移
 
 | 版本 | 日期 | 里程碑 |
 |------|------|--------|
+| v1.1 | 2026-04-14+ | ⭐ **All-in-One Memory Platform**（Session Store + AI Extraction + Forgetting Scheduler） |
+| v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic、Web UI ✅ |
 | v0.4.3 | 2026-04-05 | SQLite/MySQL、GitHub Pages、精准搜索、迁移完整性、文档对齐 ✅ |
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
 | v0.2 | 2026-03-31 | REST API、npm 发布、跨框架集成 ✅ |
@@ -257,6 +453,49 @@ woclaw migrate --all            # 执行所有迁移
 | # | Story | 版本 | 步骤数 | 总工作量 | 状态 |
 |---|-------|------|--------|---------|------|
 | S1 | Gemini CLI Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
+| S2 | OpenCode Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
+| S3 | Codex Hook npm 发布 | v0.2 | 2 | ~20min | ✅ 2026-04-03 |
+| S4 | your-hub-host plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
+| S5 | VPS4 plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
+| S6 | Claude Code Hook 安装器验证 | v0.3 | 2 | ~30min | ✅ 2026-04-03 |
+| S7 | Codex Hook 安装器完善 | v0.3 | 2 | ~30min | ✅ 2026-04-04 |
+| S8 | MCP CLI serve 命令 | v0.3 | 4 | ~2h | ✅ 2026-04-04 |
+| S9 | Memory Versioning | v0.4 | 4 | ~2h | ✅ 2026-04-04 |
+| S10 | Semantic Recall | v0.4 | 5 | ~3h | ✅ 2026-04-04 |
+| S11 | Agent 发现 API | v0.4 | 2 | ~30min | ✅ 2026-04-04 |
+| S12 | 任务委托机制 | v0.4 | 5 | ~3h | ✅ 2026-04-04 |
+| S13 | Codex 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
+| S14 | Claude Code 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
+| S15 | Gemini CLI 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
+| S16 | OpenClaw 迁移工具 | v0.5 | 4 | ~2h | ✅ 2026-04-04 |
+| S17 | MCP Server 使用文档 | v0.6 | 3 | ~1h | ✅ 2026-04-04 |
+| S18 | TLS/SSL 支持 | v0.6 | 3 | ~30min | ✅ 2026-04-04 |
+| S19 | 连接限流 | v1.0 | 4 | ~40min | ✅ 2026-04-04 |
+| S20 | Graph Memory — 图数据库设计 | v1.0 | 2 | ~20min | ✅ 2026-04-05 |
+| S21 | Graph Memory — 核心实现 | v1.0 | 4 | ~3h | ✅ 2026-04-05 |
+| S22 | Token 轮换机制 | v1.0 | 3 | ~30min | ✅ 2026-04-05 |
+| S23 | 私有 Topic（邀请制）| v1.0 | 3 | ~30min | ✅ |
+| S24 | Multi-Hub Federation | v1.0 | 4 | ~40min | ✅ |
+| S25 | Semantic Recall（意图感知检索）| v1.0 | 3 | ~30min | ✅ |
+| S26 | Deduplication | v1.0 | 3 | ~30min | ✅ |
+| S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | ✅ |
+| S28 | VS Code Extension | v1.0+ | 2 | ~20min | ✅ 2026-04-05 |
+| M1-T1 | Session 类型定义 | v1.1 | 1 | ~10min | |
+| M2-DB1 | Session 表初始化 | v1.1 | 1 | ~10min | |
+| M2-DB2 | Session CRUD 方法 | v1.1 | 2 | ~20min | |
+| M3-SS1 | SessionStore 核心实现 | v1.1 | 2 | ~20min | |
+| M4-AI1 | 提取引擎核心架构 | v1.1 | 1 | ~10min | |
+| M4-AI2 | OpenAI Provider 实现 | v1.1 | 1 | ~10min | |
+| M4-AI3 | Anthropic/Ollama Provider Stub | v1.1 | 2 | ~20min | |
+| M4-AI4 | 提取引擎测试 | v1.1 | 1 | ~10min | |
+| M5-API1 | Session REST 路由 | v1.1 | 2 | ~20min | |
+| M6-FG1 | ForgettingScheduler 核心实现 | v1.1 | 1 | ~10min | |
+| M6-FG2 | Hub 集成 + REST 端点 | v1.1 | 2 | ~20min | |
+| M6-FG3 | ForgettingScheduler 单元测试 | v1.1 | 1 | ~10min | |
+| M5b-MS1 | Memory Stats 端点 | v1.1 | 1 | ~10min | |
+| M5b-BM1 | Batch Extraction 模式 | v1.1 | 1 | ~10min | |
+| M7-OL1 | Ollama Provider 完整实现 | v1.1+ | 1 | ~10min | |
+| M7-GN1 | 提取引擎 → Graph 自动关联 | v1.1+ | 1 | ~10min | |
 | S2 | OpenCode Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S3 | Codex Hook npm 发布 | v0.2 | 2 | ~20min | ✅ 2026-04-03 |
 | S4 | your-hub-host plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
@@ -917,4 +1156,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated:
+_Last updated: 2026-04-23_
