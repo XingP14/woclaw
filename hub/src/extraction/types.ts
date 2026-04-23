@@ -35,6 +35,9 @@ export interface ExtractionConfig {
   provider?: 'openai' | 'anthropic' | 'ollama';
   apiKey?: string;
   baseUrl?: string;
+  mode?: 'sync' | 'batch';
+  batchSize?: number;
+  batchIntervalMs?: number;
 }
 
 export interface AIProvider {
