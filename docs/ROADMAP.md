@@ -228,7 +228,7 @@ woclaw migrate --all            # 执行所有迁移
 ### Feature M2: 数据库 Schema — Session 表
 
 #### Story M2-DB1: Session 表初始化
-- [ ] **Step 1（10min）：在 `db.ts` 的 `ClawDB.init()` 中追加 session 相关表**
+- [x] **Step 1（10min）：在 `db.ts` 的 `ClawDB.init()` 中追加 session 相关表** ✅ 2026-04-23
   - `sessions` 表 + `idx_sessions_agent_id` + `idx_sessions_started_at` 索引
   - `extraction_queue` 表
   - `session_feedback` 表
