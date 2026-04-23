@@ -307,7 +307,7 @@ woclaw migrate --all            # 执行所有迁移
 ### Feature M6: Forgetting Scheduler（遗忘调度器）
 
 #### Story M6-FG1: ForgettingScheduler 核心实现
-- [ ] **Step 1（10min）：编写 `hub/src/scheduler.ts`**
+- [x] **Step 1（10min）：编写 `hub/src/scheduler.ts`** ✅ 2026-04-23
   - `ForgettingScheduler` 类：使用 `node-cron` 实现 daily/weekly/manual 调度
   - `run(dryRun?)` 方法：按 eviction_score（重要性×0.5 + 时间衰减×0.3 + 访问频率×0.2）升序淘汰
   - `getLastRun()`, `updateConfig()` 方法
