@@ -324,9 +324,9 @@ woclaw migrate --all            # 执行所有迁移
   - 验证：`cd hub && npm test` 全部通过
 
 #### Story M6-FG3: ForgettingScheduler 单元测试
-- [ ] **Step 1（10min）：编写 `hub/test/forgetting_scheduler.test.ts`**
+- [x] **Step 1（10min）：编写 `hub/test/forgetting_scheduler.test.ts`** ✅ 2026-04-23
   - 测试 dry run 不删除、实际执行删除、调度逻辑
-  - `cd hub && npm test -- --grep "ForgettingScheduler"` 全部 PASS
+  - 说明：Vitest 不支持 `--grep`，已改用 `npx vitest run test/forgetting_scheduler.test.ts` 验证通过
 
 ---
 
