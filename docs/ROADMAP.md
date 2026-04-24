@@ -358,7 +358,7 @@ woclaw migrate --all            # 执行所有迁移
   - 验证：`cd hub && npm run build` 成功，路由已在 `hub/src/rest_server.ts` 中就绪
 
 #### Story M5b-BM1: Batch Extraction 模式支持
-- [x] **Step 1（10min）：实现 `ExtractionEngine` 的 batch 处理逻辑** ✅ 2026-04-23
+- [x] **Step 1（10min）：实现 `ExtractionEngine` 的 batch 处理逻辑** ✅ 2026-04-24
   - `batchSize` + `batchIntervalMs` 配置驱动
   - 后台 worker 从 extraction_queue 批量拉取 session 逐个处理
   - 说明：`hub/src/extraction/engine.ts` 已具备 `processBatch()` 和 batch 配置入口
@@ -481,7 +481,7 @@ woclaw migrate --all            # 执行所有迁移
 | S26 | Deduplication | v1.0 | 3 | ~30min | ✅ |
 | S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | ✅ |
 | S28 | VS Code Extension | v1.0+ | 2 | ~20min | ✅ 2026-04-05 |
-| M1-T1 | Session 类型定义 | v1.1 | 1 | ~10min | |
+| M1-T1 | Session 类型定义 | v1.1 | 1 | ~10min | ✅ 2026-04-24 |
 | M2-DB1 | Session 表初始化 | v1.1 | 1 | ~10min | |
 | M2-DB2 | Session CRUD 方法 | v1.1 | 2 | ~20min | |
 | M3-SS1 | SessionStore 核心实现 | v1.1 | 2 | ~20min | ✅ 2026-04-23 |
