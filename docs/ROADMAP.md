@@ -482,8 +482,8 @@ woclaw migrate --all            # 执行所有迁移
 | S27 | Web UI 管理面板 | v1.0 | 3 | ~30min | ✅ |
 | S28 | VS Code Extension | v1.0+ | 2 | ~20min | ✅ 2026-04-05 |
 | M1-T1 | Session 类型定义 | v1.1 | 1 | ~10min | ✅ 2026-04-24 |
-| M2-DB1 | Session 表初始化 | v1.1 | 1 | ~10min | |
-| M2-DB2 | Session CRUD 方法 | v1.1 | 2 | ~20min | |
+| M2-DB1 | Session 表初始化 | v1.1 | 1 | ~10min | ✅ 2026-04-24 |
+| M2-DB2 | Session CRUD 方法 | v1.1 | 2 | ~20min | ✅ 2026-04-24 |
 | M3-SS1 | SessionStore 核心实现 | v1.1 | 2 | ~20min | ✅ 2026-04-23 |
 | M4-AI1 | 提取引擎核心架构 | v1.1 | 1 | ~10min | |
 | M4-AI2 | OpenAI Provider 实现 | v1.1 | 1 | ~10min | |
