@@ -484,7 +484,7 @@ woclaw migrate --all            # 执行所有迁移
 | M1-T1 | Session 类型定义 | v1.1 | 1 | ~10min | |
 | M2-DB1 | Session 表初始化 | v1.1 | 1 | ~10min | |
 | M2-DB2 | Session CRUD 方法 | v1.1 | 2 | ~20min | |
-| M3-SS1 | SessionStore 核心实现 | v1.1 | 2 | ~20min | |
+| M3-SS1 | SessionStore 核心实现 | v1.1 | 2 | ~20min | ✅ 2026-04-23 |
 | M4-AI1 | 提取引擎核心架构 | v1.1 | 1 | ~10min | |
 | M4-AI2 | OpenAI Provider 实现 | v1.1 | 1 | ~10min | |
 | M4-AI3 | Anthropic/Ollama Provider Stub | v1.1 | 2 | ~20min | |
@@ -493,7 +493,7 @@ woclaw migrate --all            # 执行所有迁移
 | M6-FG1 | ForgettingScheduler 核心实现 | v1.1 | 1 | ~10min | |
 | M6-FG2 | Hub 集成 + REST 端点 | v1.1 | 2 | ~20min | |
 | M6-FG3 | ForgettingScheduler 单元测试 | v1.1 | 1 | ~10min | |
-| M5b-MS1 | Memory Stats 端点 | v1.1 | 1 | ~10min | |
+| M5b-MS1 | Memory Stats 端点 | v1.1 | 1 | ~10min | ✅ 2026-04-23 |
 | M5b-BM1 | Batch Extraction 模式 | v1.1 | 1 | ~10min | |
 | M7-OL1 | Ollama Provider 完整实现 | v1.1+ | 1 | ~10min | |
 | M7-GN1 | 提取引擎 → Graph 自动关联 | v1.1+ | 1 | ~10min | |
