@@ -383,7 +383,7 @@ woclaw migrate --all            # 执行所有迁移
 ## 🔮 v1.2+ — 进阶特性
 
 ### 生产化完善
-- [ ] **Session Archival** — 遗忘前归档到文件（JSONL/ZIP），支持恢复
+- [x] **Session Archival** — 遗忘前归档到文件（JSONL/ZIP），支持恢复 ✅ (2026-04-25)
 - [ ] **Memory Encryption at Rest** — SQLite 加密存储敏感记忆
 - [ ] **Federation-aware Shared Memory** — 联邦 Hub 间同步重要记忆
 
