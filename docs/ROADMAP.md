@@ -496,8 +496,8 @@ woclaw migrate --all            # 执行所有迁移
 | M6-FG3 | ForgettingScheduler 单元测试 | v1.1 | 1 | ~10min | ✅ 2026-04-23 |
 | M5b-MS1 | Memory Stats 端点 | v1.1 | 1 | ~10min | ✅ 2026-04-23 |
 | M5b-BM1 | Batch Extraction 模式 | v1.1 | 1 | ~10min | ✅ 2026-04-24 |
-| M7-OL1 | Ollama Provider 完整实现 | v1.1+ | 1 | ~10min | |
-| M7-GN1 | 提取引擎 → Graph 自动关联 | v1.1+ | 1 | ~10min | |
+| M7-OL1 | Ollama Provider 完整实现 | v1.1+ | 1 | ~10min | ✅ 2026-04-23 |
+| M7-GN1 | 提取引擎 → Graph 自动关联 | v1.1+ | 1 | ~10min | ✅ 2026-04-23 |
 | S2 | OpenCode Hook 脚本 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
 | S3 | Codex Hook npm 发布 | v0.2 | 2 | ~20min | ✅ 2026-04-03 |
 | S4 | your-hub-host plugin 验证 | v0.2 | 3 | ~1h | ✅ 2026-04-03 |
