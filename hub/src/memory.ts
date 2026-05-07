@@ -263,8 +263,8 @@ export class MemoryPool {
         if (memText.includes(kw)) score += 1;
         // Word token match (weight 2)
         if (memTokens.some(t => t.includes(kw) || kw.includes(t))) score += 2;
-        // Tag match (weight 3)
-        if (mem.tags.some(t => t.toLowerCase().includes(kw))) score += 3;
+        // Tag match (weight 4, beats semantic similarity boost of +3)
+        if (mem.tags.some(t => t.toLowerCase().includes(kw))) score += 4;
       }
 
       // Intent matching: boost entries with matching tags
