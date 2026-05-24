@@ -113,6 +113,10 @@
   <div class="panel" id="panel-memory">
     <div class="panel-header">
       <div class="panel-title">Memory Search</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="refresh-btn" onclick="browseAllMemory()" title="Browse all memories">Browse All</button>
+        <button class="refresh-btn" onclick="exportMemoryJSON()" title="Export current results as JSON">Export JSON</button>
+      </div>
     </div>
     <div class="search-bar">
       <select id="memScope" aria-label="Search scope">
@@ -123,7 +127,7 @@
       <input type="text" id="memQuery" placeholder="Search memory (e.g. project config)..." onkeydown="if(event.key==='Enter')searchMemory()">
       <button onclick="searchMemory()">Search</button>
     </div>
-    <div id="memResults"><div class="empty">Enter a query to search shared memory</div></div>
+    <div id="memResults"><div class="empty">Enter a query to search shared memory, or click Browse All</div></div>
   </div>
 
   <div class="panel" id="panel-fed">
@@ -301,6 +305,8 @@ async function loadFederation() {
 }
 
 // Search memory
+let _lastMemResults = []; // track for export
+
 async function searchMemory() {
   const q = document.getElementById('memQuery').value.trim();
   const scope = document.getElementById('memScope').value || 'all';
@@ -308,23 +314,71 @@ async function searchMemory() {
   if (!q) { results.innerHTML = '<div class="empty">Enter a query to search</div>'; return; }
   results.innerHTML = '<div class="loading">Searching...</div>';
   try {
-    const r = await api('/memory/search?q=' + encodeURIComponent(q) + '&limit=20&scope=' + encodeURIComponent(scope));
+    const r = await api('/memory/search?q=' + encodeURIComponent(q) + '&limit=50&scope=' + encodeURIComponent(scope));
     const memCount = r.count;
     document.getElementById('statMemory').textContent = memCount;
+    _lastMemResults = r.memories || [];
     if (!r.memories || r.memories.length === 0) {
       results.innerHTML = '<div class="empty">No results for "' + esc(q) + '" in ' + esc(scope) + '</div>';
       return;
     }
-    results.innerHTML = r.memories.map(m => `
-      <div class="memory-result clickable" onclick="showMemoryDetail(decodeURIComponent('${encodeURIComponent(m.key)}'))">
-        <div class="key">${esc(m.key)}</div>
-        <div class="value">${esc(String(m.value).substring(0, 300))}</div>
-        <div class="meta">by ${esc(m.updatedBy)} &middot; ${timeAgo(m.updatedAt)} &middot; tags: ${(m.tags || []).join(', ') || 'none'} &middot; scope: ${esc(scope)}</div>
-      </div>
-    `).join('');
+    results.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="color:#8b949e;font-size:12px">' + r.memories.length + ' result(s)</span></div>' +
+      r.memories.map(m => `
+        <div class="memory-result clickable" onclick="showMemoryDetail(decodeURIComponent('${encodeURIComponent(m.key)}'))">
+          <div class="key">${esc(m.key)}</div>
+          <div class="value">${esc(String(m.value).substring(0, 300))}</div>
+          <div class="meta">by ${esc(m.updatedBy)} &middot; ${timeAgo(m.updatedAt)} &middot; tags: ${(m.tags || []).join(', ') || 'none'} &middot; scope: ${esc(scope)}</div>
+        </div>
+      `).join('');
   } catch (e) {
+    _lastMemResults = [];
     results.innerHTML = `<div class="error">Search failed: ${e}</div>`;
   }
+}
+
+// Browse all memories (no query needed)
+async function browseAllMemory() {
+  const results = document.getElementById('memResults');
+  results.innerHTML = '<div class="loading">Loading all memories...</div>';
+  document.getElementById('memQuery').value = '';
+  try {
+    const payload = await api('/memory');
+    const memories = Array.isArray(payload) ? payload : (payload.memories || []);
+    document.getElementById('statMemory').textContent = memories.length;
+    _lastMemResults = memories;
+    if (!memories || memories.length === 0) {
+      results.innerHTML = '<div class="empty">No memories stored yet</div>';
+      return;
+    }
+    results.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="color:#8b949e;font-size:12px">' + memories.length + ' memory(ies) — browse</span></div>' +
+      memories.map(m => `
+        <div class="memory-result clickable" onclick="showMemoryDetail(decodeURIComponent('${encodeURIComponent(m.key)}'))">
+          <div class="key">${esc(m.key)}</div>
+          <div class="value">${esc(String(m.value).substring(0, 300))}</div>
+          <div class="meta">by ${esc(m.updatedBy || '?')} &middot; ${timeAgo(m.updatedAt)} &middot; tags: ${(m.tags || []).join(', ') || 'none'}</div>
+        </div>
+      `).join('');
+  } catch (e) {
+    _lastMemResults = [];
+    results.innerHTML = `<div class="error">Failed to load memories: ${e}</div>`;
+  }
+}
+
+// Export current results as JSON
+function exportMemoryJSON() {
+  if (!_lastMemResults || _lastMemResults.length === 0) {
+    alert('No results to export. Search or browse first.');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(_lastMemResults, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'woclaw-memory-export-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function clearInspector() {

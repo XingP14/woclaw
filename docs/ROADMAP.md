@@ -389,7 +389,7 @@ woclaw migrate --all            # 执行所有迁移
 - [ ] **Federation-aware Shared Memory** — 联邦 Hub 间同步重要记忆
 
 ### Web UI 增强
-- [ ] Memory Inspection Panel — 查看/搜索/导出记忆
+- [x] Memory Inspection Panel — 查看/搜索/导出记忆 ✅ 2026-05-25
 - [ ] Session Replay — 回放 session transcript
 - [ ] Importance Heatmap — 可视化记忆重要性分布
 
