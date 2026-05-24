@@ -367,6 +367,9 @@ const result = this.graph.findPath(from, to, maxDepth);
             res.end(JSON.stringify({ error: e.message }));
           }
         });
+      // v1.0: Session Memory routes
+      } else if (path === '/sessions' || path.startsWith('/sessions/')) {
+        this.handleSessionRequest(req, res, path, method, url);
       } else {
         res.writeHead(405);
         res.end(JSON.stringify({ error: 'Method not allowed' }));
@@ -893,11 +896,6 @@ const result = this.graph.findPath(from, to, maxDepth);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(this.graph.getStats()));
       return;
-    }
-
-    // v1.0: Session Memory routes
-    if (path === '/sessions' || path.startsWith('/sessions/')) {
-      this.handleSessionRequest(req, res, path, method, url); return;
     }
 
     // v1.0: Memory eviction management
