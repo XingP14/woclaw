@@ -19,6 +19,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@vitest/coverage-v8": "^1.6.1",
     "typescript": "^5.4.5",
     "vitest": "^1.6.1"
   }
