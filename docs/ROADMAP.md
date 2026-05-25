@@ -390,7 +390,7 @@ woclaw migrate --all            # 执行所有迁移
 
 ### Web UI 增强
 - [x] Memory Inspection Panel — 查看/搜索/导出记忆 ✅ 2026-05-25
-- [ ] Session Replay — 回放 session transcript
+- [x] Session Replay — 回放 session transcript ✅ 2026-05-25
 - [ ] Importance Heatmap — 可视化记忆重要性分布
 
 ### Repo 拆分计划
