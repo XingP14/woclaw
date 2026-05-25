@@ -3,6 +3,7 @@ import { dirname, join } from 'path';
 import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, StorageConfig, DBSession, DBSessionFeedback, ExtractionQueueEntry, MemoryFeedback } from './types.js';
+import { createEncryption, encryptAndSerialize, deserializeAndDecrypt, type EncryptionProvider } from './crypto.js';
 
 type LegacyDbShape = {
   messages?: DBMessage[];
@@ -262,10 +263,15 @@ class SqliteStorage implements DbStorage {
   private db!: any;
   private dataDir: string;
   private sqlitePath: string;
+  private encryption: EncryptionProvider;
 
   constructor(config: Config) {
     this.dataDir = config.dataDir;
     this.sqlitePath = resolveSqlitePath(config);
+    this.encryption = createEncryption({
+      passphrase: config.encryption?.passphrase ?? '',
+      enabled: config.encryption?.enabled ?? false,
+    });
   }
 
   async init(): Promise<void> {
@@ -506,6 +512,10 @@ class SqliteStorage implements DbStorage {
   }
 
   async setMemory(key: string, value: string, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<void> {
+    // Encrypt value if encryption is enabled
+    const storedValue = this.encryption.enabled
+      ? encryptAndSerialize(value, this.encryption)
+      : value;
     const now = Date.now();
     const expireAt = ttl > 0 ? now + ttl * 1000 : 0;
     const tx = this.db.transaction((payload: {
@@ -577,6 +587,18 @@ class SqliteStorage implements DbStorage {
     tx({ key, value, updatedBy, tags, ttl, now, expireAt });
   }
 
+  /** Decrypt value if encryption is enabled */
+  private decryptValue(value: string): string {
+    if (!this.encryption.enabled) return value;
+    if (!this.encryption.isEncrypted(value)) return value;
+    try {
+      return this.encryption.decrypt(value as any);
+    } catch {
+      // If decryption fails (e.g. wrong passphrase, corrupted data), return as-is
+      return value;
+    }
+  }
+
   async getMemory(key: string): Promise<DBMemory | undefined> {
     const row = this.db.prepare(`
       SELECT key, value, tags, ttl, expire_at, updated_at, updated_by
@@ -586,6 +608,7 @@ class SqliteStorage implements DbStorage {
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
+    mem.value = this.decryptValue(mem.value);
     if (mem.expireAt > 0 && mem.expireAt < Date.now()) {
       await this.deleteMemory(key);
       return undefined;
@@ -605,7 +628,11 @@ class SqliteStorage implements DbStorage {
       FROM memory
       ORDER BY updated_at DESC, key ASC
     `).all() as any[];
-    return rows.map(mapMemoryRow);
+    return rows.map(r => {
+      const mem = mapMemoryRow(r);
+      mem.value = this.decryptValue(mem.value);
+      return mem;
+    });
   }
 
   async getMemoryVersions(key: string): Promise<DBMemoryVersion[]> {
@@ -615,7 +642,11 @@ class SqliteStorage implements DbStorage {
       WHERE key = ?
       ORDER BY version DESC
     `).all(key) as any[];
-    return rows.map(mapMemoryVersionRow);
+    return rows.map(r => {
+      const v = mapMemoryVersionRow(r);
+      v.value = this.decryptValue(v.value);
+      return v;
+    });
   }
 
   async cleanupExpired(): Promise<number> {
@@ -773,10 +804,15 @@ class MySqlStorage implements DbStorage {
   private pool: any;
   private config: MySqlStorageConfig;
   private dataDir: string;
+  private encryption: EncryptionProvider;
 
   constructor(config: Config) {
     this.config = resolveMysqlConfig(config);
     this.dataDir = config.dataDir;
+    this.encryption = createEncryption({
+      passphrase: config.encryption?.passphrase ?? '',
+      enabled: config.encryption?.enabled ?? false,
+    });
   }
 
   async init(): Promise<void> {
@@ -1054,7 +1090,22 @@ class MySqlStorage implements DbStorage {
     return rows.map(mapMessageRow);
   }
 
+  /** Decrypt value if encryption is enabled */
+  private decryptValue(value: string): string {
+    if (!this.encryption.enabled) return value;
+    if (!this.encryption.isEncrypted(value)) return value;
+    try {
+      return this.encryption.decrypt(value as any);
+    } catch {
+      return value;
+    }
+  }
+
   async setMemory(key: string, value: string, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<void> {
+    // Encrypt value if encryption is enabled
+    const storedValue = this.encryption.enabled
+      ? encryptAndSerialize(value, this.encryption)
+      : value;
     const conn = await this.pool.getConnection();
     const now = Date.now();
     const expireAt = ttl > 0 ? now + ttl * 1000 : 0;
@@ -1098,7 +1149,7 @@ class MySqlStorage implements DbStorage {
           SET value = ?, tags = ?, ttl = ?, expire_at = ?, updated_at = ?, updated_by = ?
           WHERE \`key\` = ?
         `, [
-          value,
+          storedValue,
           serializeTags(tags),
           ttl,
           expireAt,
@@ -1112,7 +1163,7 @@ class MySqlStorage implements DbStorage {
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `, [
           key,
-          value,
+          storedValue,
           serializeTags(tags),
           ttl,
           expireAt,
@@ -1140,6 +1191,7 @@ class MySqlStorage implements DbStorage {
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
+    mem.value = this.decryptValue(mem.value);
     if (mem.expireAt > 0 && mem.expireAt < Date.now()) {
       await this.deleteMemory(key);
       return undefined;
@@ -1159,7 +1211,11 @@ class MySqlStorage implements DbStorage {
       FROM memory
       ORDER BY updated_at DESC, \`key\` ASC
     `);
-    return (rows as any[]).map(mapMemoryRow);
+    return (rows as any[]).map(r => {
+      const mem = mapMemoryRow(r);
+      mem.value = this.decryptValue(mem.value);
+      return mem;
+    });
   }
 
   async getMemoryVersions(key: string): Promise<DBMemoryVersion[]> {
@@ -1169,7 +1225,11 @@ class MySqlStorage implements DbStorage {
       WHERE \`key\` = ?
       ORDER BY version DESC
     `, [key]);
-    return (rows as any[]).map(mapMemoryVersionRow);
+    return (rows as any[]).map(r => {
+      const v = mapMemoryVersionRow(r);
+      v.value = this.decryptValue(v.value);
+      return v;
+    });
   }
 
   async cleanupExpired(): Promise<number> {

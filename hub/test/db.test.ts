@@ -181,4 +181,91 @@ describe('ClawDB', () => {
       await db2.close();
     });
   });
+
+  describe('Memory Encryption at Rest', () => {
+    it('encrypts and decrypts memory values when encryption is enabled', async () => {
+      const encDir = '/tmp/woclaw-test-enc-' + Date.now();
+      mkdirSync(encDir, { recursive: true });
+      const encDb = new ClawDB({
+        port: 0,
+        restPort: 0,
+        host: '127.0.0.1',
+        dataDir: encDir,
+        authToken: '',
+        encryption: { enabled: true, passphrase: 'test-passphrase-123' },
+      });
+
+      await encDb.setMemory('secret', 'my-secret-value', 'agent1', [], 0);
+      const mem = await encDb.getMemory('secret');
+      expect(mem).toBeDefined();
+      expect(mem!.value).toBe('my-secret-value');
+
+      // Verify raw DB value is encrypted (not plaintext)
+      const Database = (await import('better-sqlite3')).default;
+      const rawDb = new Database(require('path').join(encDir, 'woclaw.sqlite'));
+      const raw = rawDb.prepare('SELECT value FROM memory WHERE key = ?').get('secret') as any;
+      expect(raw.value).toContain('ENC:v1:');
+      expect(raw.value).not.toBe('my-secret-value');
+      rawDb.close();
+
+      await encDb.close();
+      rmSync(encDir, { recursive: true, force: true });
+    });
+
+    it('stores plaintext when encryption is disabled', async () => {
+      await db.setMemory('plain', 'plain-value', 'agent1', [], 0);
+      const mem = await db.getMemory('plain');
+      expect(mem!.value).toBe('plain-value');
+    });
+
+    it('decrypts version history correctly', async () => {
+      const encDir = '/tmp/woclaw-test-enc-ver-' + Date.now();
+      mkdirSync(encDir, { recursive: true });
+      const encDb = new ClawDB({
+        port: 0,
+        restPort: 0,
+        host: '127.0.0.1',
+        dataDir: encDir,
+        authToken: '',
+        encryption: { enabled: true, passphrase: 'test-passphrase-123' },
+      });
+
+      await encDb.setMemory('versioned', 'v1', 'agent1', [], 0);
+      await encDb.setMemory('versioned', 'v2', 'agent2', [], 0);
+
+      const current = await encDb.getMemory('versioned');
+      expect(current!.value).toBe('v2');
+
+      const versions = await encDb.getMemoryVersions('versioned');
+      expect(versions.length).toBe(1);
+      expect(versions[0].value).toBe('v1');
+
+      await encDb.close();
+      rmSync(encDir, { recursive: true, force: true });
+    });
+
+    it('decrypts getAllMemory results', async () => {
+      const encDir = '/tmp/woclaw-test-enc-all-' + Date.now();
+      mkdirSync(encDir, { recursive: true });
+      const encDb = new ClawDB({
+        port: 0,
+        restPort: 0,
+        host: '127.0.0.1',
+        dataDir: encDir,
+        authToken: '',
+        encryption: { enabled: true, passphrase: 'test-passphrase-123' },
+      });
+
+      await encDb.setMemory('k1', 'secret1', 'agent1', [], 0);
+      await encDb.setMemory('k2', 'secret2', 'agent2', [], 0);
+
+      const all = await encDb.getAllMemory();
+      expect(all.length).toBe(2);
+      expect(all.find(m => m.key === 'k1')!.value).toBe('secret1');
+      expect(all.find(m => m.key === 'k2')!.value).toBe('secret2');
+
+      await encDb.close();
+      rmSync(encDir, { recursive: true, force: true });
+    });
+  });
 });

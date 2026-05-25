@@ -15,6 +15,11 @@ export interface Config {
   hubId?: string;          // Unique ID for this hub (auto-generated if not set)
   federationPeers?: FederationPeer[];  // List of peer hubs to connect to
   federationPingIntervalMs?: number;  // Ping interval for federation connections (default: 30s)
+  // v1.2: Memory Encryption at Rest
+  encryption?: {
+    enabled?: boolean;      // default: false
+    passphrase?: string;    // passphrase for key derivation (min 8 chars when enabled)
+  };
 }
 
 export interface StorageConfig {
