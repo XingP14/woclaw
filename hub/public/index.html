@@ -66,6 +66,12 @@
     @media (max-width: 900px) {
       .detail-grid { grid-template-columns: 1fr; }
     }
+    .replay-msg { padding: 8px 12px; margin-bottom: 6px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; }
+    .replay-user { border-left: 3px solid #58a6ff; }
+    .replay-agent { border-left: 3px solid #3fb950; }
+    .replay-head { font-size: 11px; color: #8b949e; margin-bottom: 4px; font-weight: 600; }
+    .replay-body { font-size: 13px; color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
@@ -464,6 +470,97 @@ async function searchSessions() {
   }
 }
 
+// ===== Session Replay =====
+let _replayTimer = null;
+let _replayIdx = 0;
+let _replayMessages = [];
+let _replayPlaying = false;
+let _replaySpeed = 800; // ms per message
+
+function replayParseMessages(transcript) {
+  if (!transcript) return [];
+  const lines = transcript.split('\n').filter(l => l.trim());
+  return lines.map((line, i) => {
+    const m = line.match(/^(\[.*?\]|\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}.*?|\w+:)(.*)/s);
+    if (m) return { idx: i, head: m[1].trim(), body: m[2].trim() };
+    return { idx: i, head: '', body: line.trim() };
+  });
+}
+
+function replayRenderUpTo(n) {
+  const el = document.getElementById('replayBody');
+  if (!el) return;
+  const slice = _replayMessages.slice(0, n);
+  el.innerHTML = slice.map(m => {
+    const roleGuess = m.head.toLowerCase();
+    const isUser = /user|human|you|parent|father|父亲/.test(roleGuess);
+    const isAgent = /agent|assistant|bot|星|xing|p14/.test(roleGuess);
+    const cls = isUser ? 'replay-msg replay-user' : isAgent ? 'replay-msg replay-agent' : 'replay-msg';
+    return `<div class="${cls}" style="animation:fadeIn .3s ease">
+      ${m.head ? '<div class="replay-head">' + esc(m.head) + '</div>' : ''}
+      <div class="replay-body">${esc(m.body)}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+  const counter = document.getElementById('replayCounter');
+  if (counter) counter.textContent = `${Math.min(n, _replayMessages.length)} / ${_replayMessages.length}`;
+  // Update step buttons
+  const prev = document.getElementById('replayPrev');
+  const next = document.getElementById('replayNext');
+  if (prev) prev.disabled = n <= 1;
+  if (next) next.disabled = n >= _replayMessages.length;
+}
+
+function replayPlay() {
+  if (_replayPlaying) return;
+  _replayPlaying = true;
+  updateReplayPlayBtn();
+  _replayTimer = setInterval(() => {
+    if (_replayIdx >= _replayMessages.length) { replayPause(); return; }
+    _replayIdx++;
+    replayRenderUpTo(_replayIdx);
+  }, _replaySpeed);
+}
+
+function replayPause() {
+  _replayPlaying = false;
+  clearInterval(_replayTimer);
+  _replayTimer = null;
+  updateReplayPlayBtn();
+}
+
+function replayToggle() {
+  _replayPlaying ? replayPause() : replayPlay();
+}
+
+function replayStep(dir) {
+  replayPause();
+  _replayIdx = Math.max(0, Math.min(_replayMessages.length, _replayIdx + dir));
+  replayRenderUpTo(_replayIdx);
+}
+
+function replayReset() {
+  replayPause();
+  _replayIdx = 0;
+  replayRenderUpTo(0);
+}
+
+function replaySkipToEnd() {
+  replayPause();
+  _replayIdx = _replayMessages.length;
+  replayRenderUpTo(_replayIdx);
+}
+
+function replaySetSpeed(ms) {
+  _replaySpeed = ms;
+  if (_replayPlaying) { replayPause(); replayPlay(); }
+}
+
+function updateReplayPlayBtn() {
+  const btn = document.getElementById('replayPlayBtn');
+  if (btn) btn.textContent = _replayPlaying ? '⏸ Pause' : '▶ Play';
+}
+
 // Show session detail in inspector
 async function showSessionDetail(id) {
   const el = document.getElementById('detailArea');
@@ -473,12 +570,11 @@ async function showSessionDetail(id) {
     const s = data.session || data;
     const transcript = s.transcript || '';
     const summary = s.summary || '';
-    const lines = transcript.split('\n').filter(l => l.trim());
-    const messages = lines.map(line => {
-      const m = line.match(/^(\[.*?\]|\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}.*?|\w+:)(.*)/s);
-      if (m) return `<div class="detail-item"><div class="head"><span>${esc(m[1].trim())}</span></div><div class="body">${esc(m[2].trim())}</div></div>`;
-      return `<div class="detail-item"><div class="body">${esc(line.trim())}</div></div>`;
-    });
+    const messages = replayParseMessages(transcript);
+    _replayMessages = messages;
+    _replayIdx = messages.length; // show all by default
+    _replayPlaying = false;
+    clearInterval(_replayTimer);
     el.innerHTML = `
       <div class="detail-grid">
         <div class="detail-box">
@@ -494,9 +590,33 @@ async function showSessionDetail(id) {
           ${s.tags && s.tags.length ? '<div class="detail-meta"><span>Tags: ' + s.tags.map(t => '<span class="badge badge-online" style="margin-right:4px">' + esc(t) + '</span>').join('') + '</span></div>' : ''}
         </div>
         <div class="detail-box">
-          <h3>Transcript (${lines.length} lines)</h3>
-          <div class="detail-list" style="max-height:400px;overflow-y:auto">
-            ${messages.length ? messages.join('') : '<div class="empty">No transcript available for this session.</div>'}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h3 style="margin:0">Transcript (${messages.length} messages)</h3>
+            <div style="display:flex;gap:6px;align-items:center;font-size:12px">
+              <button id="replayResetBtn" onclick="replayReset()" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px">⏮</button>
+              <button id="replayPrev" onclick="replayStep(-1)" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px">◀</button>
+              <button id="replayPlayBtn" onclick="replayToggle()" style="background:#238636;border:1px solid #2ea043;color:#fff;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px">▶ Play</button>
+              <button id="replayNext" onclick="replayStep(1)" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px">▶</button>
+              <button onclick="replaySkipToEnd()" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px">⏭</button>
+              <select onchange="replaySetSpeed(+this.value)" style="background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:2px 4px;border-radius:4px;font-size:11px">
+                <option value="200">Fast</option>
+                <option value="800" selected>Normal</option>
+                <option value="1500">Slow</option>
+              </select>
+              <span id="replayCounter" style="color:#8b949e">${messages.length} / ${messages.length}</span>
+            </div>
+          </div>
+          <div class="detail-list" id="replayBody" style="max-height:400px;overflow-y:auto">
+            ${messages.length ? messages.map(m => {
+              const roleGuess = m.head.toLowerCase();
+              const isUser = /user|human|you|parent|father|父亲/.test(roleGuess);
+              const isAgent = /agent|assistant|bot|星|xing|p14/.test(roleGuess);
+              const cls = isUser ? 'replay-msg replay-user' : isAgent ? 'replay-msg replay-agent' : 'replay-msg';
+              return `<div class="${cls}">
+                ${m.head ? '<div class="replay-head">' + esc(m.head) + '</div>' : ''}
+                <div class="replay-body">${esc(m.body)}</div>
+              </div>`;
+            }).join('') : '<div class="empty">No transcript available for this session.</div>'}
           </div>
         </div>
       </div>
