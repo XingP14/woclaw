@@ -392,7 +392,7 @@ woclaw migrate --all            # 执行所有迁移
     - `serializeEncrypted` / `deserializeEncrypted` 紧凑序列化（`ENC:v1:` 前缀）
     - `encryptAndSerialize` / `deserializeAndDecrypt` 便捷函数
     - `hub/test/crypto.test.ts` — 10 个单元测试全部通过
-  - [ ] **Step 2（10min）：集成到 ClawDB — 自动加解密 memory.value**
+  - [x] **Step 2（10min）：集成到 ClawDB — 自动加解密 memory.value** ✅ 2026-05-25
 - [ ] **Federation-aware Shared Memory** — 联邦 Hub 间同步重要记忆
 
 ### Web UI 增强
