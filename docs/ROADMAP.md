@@ -385,7 +385,7 @@ woclaw migrate --all            # 执行所有迁移
 
 ### 生产化完善
 - [x] **Session Archival** — 遗忘前归档到文件（JSONL/ZIP），支持恢复 ✅ (2026-04-25)
-- [ ] **Memory Encryption at Rest** — SQLite 加密存储敏感记忆
+- [x] **Memory Encryption at Rest** — SQLite 加密存储敏感记忆 ✅ (2026-05-25)
   - [x] **Step 1（10min）：创建 `hub/src/crypto.ts` 加密工具模块** ✅ 2026-05-25
     - AES-256-GCM 认证加密 + PBKDF2 密钥派生
     - `EncryptionProvider` 接口：encrypt / decrypt / isEncrypted
