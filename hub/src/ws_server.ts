@@ -43,6 +43,34 @@ export class WSServer {
     // v1.0: Initialize FederationManager
     if (!config.hubId) config.hubId = `hub-${uuidv4().slice(0, 8)}`;
     this.federationManager = new FederationManager(config);
+    // Wire up federation message handlers
+    this.federationManager.setRelayHandler((msg) => {
+      // Handle relayed agent messages from other hubs
+      if (msg.agentId && msg.payload) {
+        const agent = this.agents.get(msg.agentId);
+        if (agent && agent.ws.readyState === WebSocket.OPEN) {
+          agent.ws.send(JSON.stringify(msg.payload));
+        }
+      }
+    });
+    this.federationManager.setMemorySyncHandler(async (msg) => {
+      // Handle federated memory sync from peer hubs
+      if (msg.type === 'memory_sync' && msg.payload) {
+        const { key, value, tags, sourceHub, updatedAt } = msg.payload;
+        if (key && value) {
+          await this.memory.write(key, value, `federation:${msg.fromHubId}`, tags || ['federated'], 0);
+          console.log(`[WoClaw Federation] Received federated memory '${key}' from ${msg.fromHubId}`);
+        }
+      } else if (msg.type === 'memory_request' && msg.payload) {
+        // Respond to memory sync request: send all federated memories
+        const allMemories = await this.memory.getAll();
+        const federated = allMemories.filter(m => m.federated || (m.tags && m.tags.includes('federated')));
+        for (const mem of federated) {
+          this.federationManager.syncMemory(mem.key, mem.value, mem.tags || [], this.config.hubId!);
+        }
+        console.log(`[WoClaw Federation] Sent ${federated.length} federated memories to ${msg.fromHubId}`);
+      }
+    });
     this.federationManager.start();
 
     const useTLS = !!(config.tlsKey && config.tlsCert);

@@ -47,6 +47,8 @@ function mapMemoryRow(row: any): DBMemory {
     expireAt: asNumber(row.expire_at ?? row.expireAt, 0),
     updatedAt: asNumber(row.updated_at ?? row.updatedAt, 0),
     updatedBy: row.updated_by ?? row.updatedBy ?? '',
+    federated: row.federated === 1 || row.federated === true,
+    sourceHub: row.source_hub ?? row.sourceHub ?? undefined,
   };
 }
 
@@ -297,7 +299,9 @@ class SqliteStorage implements DbStorage {
         ttl INTEGER NOT NULL,
         expire_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        updated_by TEXT NOT NULL
+        updated_by TEXT NOT NULL,
+        federated INTEGER DEFAULT 0,
+        source_hub TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_memory_expire_at
         ON memory(expire_at);
@@ -847,6 +851,8 @@ class MySqlStorage implements DbStorage {
         expire_at BIGINT NOT NULL,
         updated_at BIGINT NOT NULL,
         updated_by VARCHAR(191) NOT NULL,
+        federated TINYINT(1) DEFAULT 0,
+        source_hub VARCHAR(191),
         INDEX idx_memory_expire_at (expire_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);

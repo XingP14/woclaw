@@ -20,6 +20,13 @@ export interface Config {
     enabled?: boolean;      // default: false
     passphrase?: string;    // passphrase for key derivation (min 8 chars when enabled)
   };
+  // v1.2: Federation-aware Shared Memory
+  federationSync?: {
+    enabled?: boolean;          // default: false
+    importanceThreshold?: number;  // min importance to sync (default: 7.0)
+    syncIntervalMs?: number;      // periodic sync interval (default: 300000 = 5min)
+    maxSyncPerRound?: number;     // max memories per sync round (default: 50)
+  };
 }
 
 export interface StorageConfig {
@@ -114,6 +121,11 @@ export interface DBMemory {
   expireAt: number;   // Unix timestamp when this entry expires, 0 = no expiry
   updatedAt: number;
   updatedBy: string;
+  federated?: boolean;  // v1.0: shared across federated hubs
+  sourceHub?: string;   // v1.0: originating hub ID for federated entries
+  importanceScore?: number;  // v1.2: importance score (0-10, default 5.0)
+  accessCount?: number;      // v1.2: number of times accessed
+  lastAccessedAt?: number;   // v1.2: last access timestamp
 }
 
 export interface DBMemoryVersion {
@@ -256,7 +268,7 @@ export interface FederationPeer {
 }
 
 export interface FederationMessage {
-  type: 'hub_info' | 'agent_message' | 'relay';
+  type: 'hub_info' | 'agent_message' | 'relay' | 'memory_sync' | 'memory_request';
   fromHubId: string;
   toHubId: string;
   agentId?: string;
