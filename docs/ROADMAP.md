@@ -153,7 +153,7 @@ woclaw migrate --all            # 执行所有迁移
 
 ### 生态集成
 - [x] ClawHub Skill 发布 ✅ 2026-04-13（skill k97bq7et0sw5vm2meqc9yh6s5184sshr）
-- [ ] GitHub Actions CI/CD 完善
+- [x] GitHub Actions CI/CD 完善 ✅ 2026-06-02
   - [x] Step 1：在 README/README_zh 添加 CI workflow status + Docker Hub image 徽章 ✅ 2026-06-01
   - [x] Step 2：增强 `.github/workflows/ci.yml` — 重命名 job 为 `hub (lint + build + test)`，添加 `npm test` 步骤 ✅ 2026-06-02
 - [ ] VS Code / Cursor 插件（可选）
@@ -1175,4 +1175,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-02_
+_Last updated: 2026-06-02 (CI-1 parent complete)_
