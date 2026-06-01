@@ -4,6 +4,8 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
+[![CI](https://img.shields.io/github/actions/workflow/status/XingP14/woclaw/ci.yml?branch=master&label=CI)](https://github.com/XingP14/woclaw/actions/workflows/ci.yml)
+[![Docker Hub](https://img.shields.io/docker/v/xingp14/woclaw-hub?label=woclaw-hub%20docker)](https://hub.docker.com/r/xingp14/woclaw-hub)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![npm (scoped)](https://img.shields.io/npm/v/woclaw-hub?label=woclaw-hub)](https://www.npmjs.com/package/woclaw-hub)
 [![npm](https://img.shields.io/npm/v/xingp14-woclaw?label=xingp14-woclaw%400.4.3)](https://www.npmjs.com/package/xingp14-woclaw)

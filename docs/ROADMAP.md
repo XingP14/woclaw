@@ -154,6 +154,7 @@ woclaw migrate --all            # 执行所有迁移
 ### 生态集成
 - [x] ClawHub Skill 发布 ✅ 2026-04-13（skill k97bq7et0sw5vm2meqc9yh6s5184sshr）
 - [ ] GitHub Actions CI/CD 完善
+  - [x] Step 1：在 README/README_zh 添加 CI workflow status + Docker Hub image 徽章 ✅ 2026-06-01
 - [ ] VS Code / Cursor 插件（可选）
 
 ### 文档
@@ -460,6 +461,11 @@ woclaw migrate --all            # 执行所有迁移
 > 每个步骤 = 1 次心跳内可完成的最小可提交单元
 
 ### Stories 完成状态（全部 ✅）
+
+| # | Story | 版本 | 步骤数 | 总工作量 | 状态 |
+|---|-------|------|--------|---------|------|
+| ... | (all previously completed) | ... | ... | ... | ✅ |
+| CI-1 | CI/Docker 徽章显式化 | v0.6 | 1 | ~5min | ✅ 2026-06-01 |
 
 | # | Story | 版本 | 步骤数 | 总工作量 | 状态 |
 |---|-------|------|--------|---------|------|
