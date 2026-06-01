@@ -42,3 +42,6 @@ coverage/
 # Site static (use site/ for versioned files)
 site-static/
 .worktrees/
+
+# Local memory notes (workspace daily logs accidentally in this dir)
+memory/
