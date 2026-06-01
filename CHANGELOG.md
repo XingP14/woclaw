@@ -1,5 +1,59 @@
 # Changelog
 
+## [Unreleased]
+
+> 占位条目：自 0.4.3 (2026-04-05) 起已完成但尚未打 tag / 发布到 npm 的工作。
+> 下一版本（0.5.0 / 1.0.0 候选）发布时把此段合并到具体版本块并填写日期。
+
+### Added
+
+- **All-in-One Memory Platform (v1.1, 2026-04-23~05-30)**
+  - Session Store（`hub/src/session_store.ts`）：session 注册 / 更新 / 列表 / 搜索 / flag / feedback / access-count
+  - AI 提取引擎（`hub/src/extraction/engine.ts`）：动态加载 provider，支持 batch 模式
+  - OpenAI / Anthropic / Ollama 三个 provider（Ollama 完整实现，非 stub）
+  - ForgettingScheduler（`hub/src/scheduler.ts`）：按 `importance×0.5 + 时间衰减×0.3 + 访问频率×0.2` 淘汰，支持 dryRun
+  - Session / Memory / Extraction Queue / Feedback 表及索引
+  - REST 端点：`GET/POST/PUT/DELETE /sessions`、`/sessions/search`、`/sessions/stats`、`/sessions/:id/feedback|flag`、`/memory/prune`、`/memory/prune/status`、`/memory/stats`
+- **Memory Encryption at Rest (2026-05-25)**
+  - `hub/src/crypto.ts`：AES-256-GCM 认证加密 + PBKDF2 密钥派生，`ENC:v1:` 紧凑序列化
+  - `EncryptionProvider` 接口 + `encryptAndSerialize` / `deserializeAndDecrypt` 便捷函数
+  - 集成到 `ClawDB`，自动加解密 `memory.value`
+  - 10 个 `crypto.test.ts` 单元测试全部通过
+- **Federation-aware Shared Memory (2026-05-27)**
+  - Hub 之间自动同步高重要性记忆（`syncImportantMemories`）
+  - 修复 federation 同步链路上的 `syncImportantMemories` 缺失问题
+- **Session Archival (2026-04-25)**
+  - ForgettingScheduler 淘汰前归档到 JSONL/ZIP，支持恢复
+- **Web UI 增强 (2026-05-25~05-30)**
+  - Memory Inspection Panel：浏览 / 搜索 / 导出（Browse All & Export JSON）
+  - Session Replay：play / pause / step 控制条
+  - Sessions Tab：列表 + 搜索 + 详情回放
+  - Importance Heatmap：grid + histogram 双视图
+- **GitHub Actions CI/CD 完善 (CI-1 Story, 2026-06-01~06-02)**
+  - README / README_zh 顶部加 CI status + Docker Hub image 徽章
+  - `.github/workflows/ci.yml` 添加 `npm test` 步骤，job 重命名为 `hub (lint + build + test)`
+  - Node.js 18 → 22 升级 + npm cache 提速
+
+### Fixed
+
+- 路由重构：session 路由移入 `else-if` 链，避免通配匹配冲突
+- Federation 同步：补齐 `syncImportantMemories` 方法，避免高重要性记忆跨 Hub 同步失败
+
+### Documentation
+
+- ROADMAP 持续同步：v1.1 / v1.1+ / v0.6 完成项全部勾选，progress 表刷新
+- `.gitignore` 忽略 `memory/`（workspace 日常日志不入库）
+- `vitest` 引入 `coverage-v8` 配置
+
+### Package versions (npm)
+
+- `woclaw-hooks`: 0.4.3 → **0.5.0**（本地已发布）
+- `woclaw-mcp`: 0.1.2（无变化）
+- `woclaw-codex`: 0.1.2（无变化）
+- `xingp14-woclaw` (workspace): 0.4.3（待发布下一版）
+
+---
+
 ## [0.4.3] - 2026-04-05
 
 ### Added
