@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
-> 占位条目：自 0.4.3 (2026-04-05) 起已完成但尚未打 tag / 发布到 npm 的工作。
-> 下一版本（0.5.0 / 1.0.0 候选）发布时把此段合并到具体版本块并填写日期。
+> 当前开发版本，等待下一批工作累积。
+
+## [0.5.0] - 2026-06-02
+
+> 自 0.4.3 (2026-04-05) 起完成的核心工作：All-in-One Memory Platform (Session Store / AI Extraction / Forgetting Scheduler)、Memory Encryption at Rest、Federation-aware Shared Memory、Session Archival、Web UI 增强、CI/CD 完善。
+> npm 已发布：`woclaw-hub@0.5.0`（hub 子包），`woclaw-hooks@0.5.0`（hooks 子包）。Hub 子包版本领先 workspace meta-package 是设计：hub 走独立发布周期。
 
 ### Added
 
