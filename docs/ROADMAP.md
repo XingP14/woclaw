@@ -156,7 +156,9 @@ woclaw migrate --all            # 执行所有迁移
 - [x] GitHub Actions CI/CD 完善 ✅ 2026-06-02
   - [x] Step 1：在 README/README_zh 添加 CI workflow status + Docker Hub image 徽章 ✅ 2026-06-01
   - [x] Step 2：增强 `.github/workflows/ci.yml` — 重命名 job 为 `hub (lint + build + test)`，添加 `npm test` 步骤 ✅ 2026-06-02
-- [ ] VS Code / Cursor 插件（可选）
+- [x] VS Code / Cursor 插件（可选） ✅ 2026-04-05
+  - [x] Step 1：`packages/woclaw-vscode/` 脚手架 + 状态栏（hub 连接状态 / agents count）✅
+  - [x] Step 2：Tree View（Topics / Agents / Memory）+ package.json vsce 发布配置（publisher: XingP14）✅
 
 ### 文档
 - [x] Hook 集成指南 — Claude Code（`docs/CLAUDE-CODE-HOOKS.md`）✅ 2026-04-04
@@ -1175,4 +1177,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-02 (CI-1 parent complete)_
+_Last updated: 2026-06-02 (VS Code Extension parent complete — S28-1/2 both ✅)_
