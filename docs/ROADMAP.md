@@ -155,6 +155,7 @@ woclaw migrate --all            # 执行所有迁移
 - [x] ClawHub Skill 发布 ✅ 2026-04-13（skill k97bq7et0sw5vm2meqc9yh6s5184sshr）
 - [ ] GitHub Actions CI/CD 完善
   - [x] Step 1：在 README/README_zh 添加 CI workflow status + Docker Hub image 徽章 ✅ 2026-06-01
+  - [x] Step 2：增强 `.github/workflows/ci.yml` — 重命名 job 为 `hub (lint + build + test)`，添加 `npm test` 步骤 ✅ 2026-06-02
 - [ ] VS Code / Cursor 插件（可选）
 
 ### 文档
@@ -465,7 +466,7 @@ woclaw migrate --all            # 执行所有迁移
 | # | Story | 版本 | 步骤数 | 总工作量 | 状态 |
 |---|-------|------|--------|---------|------|
 | ... | (all previously completed) | ... | ... | ... | ✅ |
-| CI-1 | CI/Docker 徽章显式化 | v0.6 | 1 | ~5min | ✅ 2026-06-01 |
+| CI-1 | CI/Docker 徽章显式化 | v0.6 | 2 | ~10min | ✅ 2026-06-02 |
 
 | # | Story | 版本 | 步骤数 | 总工作量 | 状态 |
 |---|-------|------|--------|---------|------|
