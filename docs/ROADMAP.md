@@ -173,7 +173,7 @@ woclaw migrate --all            # 执行所有迁移
 ### 发布到生态
 - [x] Docker Hub 发布（credentials 配置）✅ 2026-04-04
 - [x] ClawHub Skill 发布 ✅ 2026-04-13（skill k97bq7et0sw5vm2meqc9yh6s5184sshr）
-- [ ] VS Code / Cursor 插件（可选）
+- [x] VS Code / Cursor 插件（可选） ✅ 2026-04-05（详见「生态集成」段，parent + S28-1/2 均已完成）
 
 ### Hermes Agent 支持（roadmap）
 > 下面把 Hermes 相关工作拆成 10 分钟内可完成的最小步骤，方便按心跳推进。
@@ -1177,4 +1177,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-02 (VS Code Extension parent complete — S28-1/2 both ✅)_
+_Last updated: 2026-06-02 (v0.6 「发布到生态」段 VS Code/Cursor 插件 同步勾选 — 与「生态集成」段对齐)_
