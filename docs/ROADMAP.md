@@ -447,6 +447,7 @@ woclaw migrate --all            # 执行所有迁移
 | v1.1+ | 2026-04-23→05-30 | Session Store、AI Extraction (OpenAI/Anthropic/Ollama Providers)、Forgetting Scheduler、Memory Stats、Batch Extraction ✅ |
 | v1.1+ | 2026-05-25→05-30 | **Web UI 增强**：Sessions Tab + Session Replay、Memory Browse/Export、Memory Encryption at Rest、Federation-aware Shared Memory、Importance Heatmap ✅ |
 | v0.6 | 2026-06-01→06-02 | **CI-1 Story** 完成：README 顶部加 CI/Docker Hub 徽章 + `.github/workflows/ci.yml` 添加 `npm test` 步骤（job 重命名 `hub (lint + build + test)`）✅ |
+| v0.5.0 | 2026-06-02 | **GitHub Release** for `hub/v0.5.0` 已发布：<https://github.com/XingP14/woclaw/releases/tag/hub/v0.5.0>（All-in-One Memory Platform + Memory Encryption + Federation-aware Sync + Session Archival + Web UI 增强 + CI/CD 完善）✅ |
 | v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic、Web UI ✅ |
 | v0.4.3 | 2026-04-05 | SQLite/MySQL、GitHub Pages、精准搜索、迁移完整性、文档对齐 ✅ |
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
@@ -1177,4 +1178,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-02 (v0.6 「发布到生态」段 VS Code/Cursor 插件 同步勾选 — 与「生态集成」段对齐)_
+_Last updated: 2026-06-02 (v0.6 「发布到生态」段 VS Code/Cursor 插件 同步勾选 — 与「生态集成」段对齐; GitHub Release `hub/v0.5.0` 已发布)_
