@@ -106,6 +106,8 @@ export class RestServer {
     try {
       if (path === '/health') {
         this.handleHealth(res);
+      } else if (path === '/ready') {
+        this.handleReady(res);
       } else if (path === '/topics') {
         if (method === 'GET') {
           await this.handleTopicsList(res);
@@ -422,6 +424,32 @@ const result = this.graph.findPath(from, to, maxDepth);
       timestamp: Date.now(),
       agents: stats.totalAgents,
       topics: stats.totalTopics,
+    }));
+  }
+
+  /**
+   * /ready — Cloud-native readiness probe (k8s-style).
+   * Returns 200 only when the hub is fully initialized and can serve traffic.
+   * Differs from /health (liveness) which only confirms the process is running.
+   *
+   * Currently ready iff:
+   *   - DB is initialized (this.db is not null)
+   *   - TopicsManager + MemoryPool are wired (this.topics is not null)
+   *   - WebSocket server is up (this.wsServer exists)
+   */
+  private handleReady(res: http.ServerResponse): void {
+    const checks: Record<string, { ok: boolean; detail?: string }> = {
+      db: { ok: this.db != null },
+      topics: { ok: this.topics != null },
+      memoryPool: { ok: this.memory != null },
+      wsServer: { ok: this.wsServer != null }
+    };
+    const allOk = Object.values(checks).every(c => c.ok);
+    res.writeHead(allOk ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: allOk ? 'ready' : 'not-ready',
+      timestamp: Date.now(),
+      checks
     }));
   }
 

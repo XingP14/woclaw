@@ -387,6 +387,13 @@ woclaw migrate --all            # 执行所有迁移
 
 ## 🔮 v1.2+ — 进阶特性
 
+### Cloud-Native 可观测性
+- [x] **`/ready` 端点** — 区别于 `/health` 的 liveness check，返回 200 + 4 项组件检查（db/topics/memoryPool/wsServer）✅ 2026-06-04
+  - Step 1（10min）：在 `hub/src/rest_server.ts` 加 `handleReady()` 方法 + 路由注册
+  - Step 2（10min）：`hub/test/rest_server.test.ts` — 4 个单元测试（ready 200 / not-ready 503 / 边界场景）
+  - 验证：`npx vitest run test/rest_server.test.ts` 4/4 通过，全量 164/164 通过
+  - 背景：k8s/容器化部署需要区分 liveness (在跑) 和 readiness (能服务)，原有 `/health` 只回 process 状态
+
 ### 生产化完善
 - [x] **Session Archival** — 遗忘前归档到文件（JSONL/ZIP），支持恢复 ✅ (2026-04-25)
 - [x] **Memory Encryption at Rest** — SQLite 加密存储敏感记忆 ✅ (2026-05-25)
