@@ -51,11 +51,13 @@ clawhub sync --all
 
 ## Docker Hub Publishing
 
+> 🏷️ 下方 `0.5.0` 为当前 `woclaw-hub` 最新版本（截至 2026-06-04）。发布新版本时把 `0.5.0` 替换为新版本号即可。
+
 ### Build
 ```bash
 cd hub
 docker build -t xingp14/woclaw-hub:latest ./hub
-docker tag xingp14/woclaw-hub:latest xingp14/woclaw-hub:0.1.0
+docker tag xingp14/woclaw-hub:latest xingp14/woclaw-hub:0.5.0
 ```
 
 ### Login
@@ -66,7 +68,7 @@ docker login
 ### Push
 ```bash
 docker push xingp14/woclaw-hub:latest
-docker push xingp14/woclaw-hub:0.1.0
+docker push xingp14/woclaw-hub:0.5.0
 ```
 
 ## GitHub Actions Auto-Sync
