@@ -23,6 +23,7 @@ npm run vscode:prepublish
 |--------|--------|------|
 | `woclaw.hubUrl` | `http://localhost:8083` | WoClaw Hub REST API 地址 |
 | `woclaw.statusBar` | `true` | 是否在状态栏显示 |
+| `woclaw.pollInterval` | `30` | 状态栏刷新间隔（秒） |
 
 ## 发布
 

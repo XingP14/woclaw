@@ -1202,6 +1202,8 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
+_Last updated: 2026-06-05 05:43 (**woclaw-vscode `woclaw.pollInterval` config 漏接 — 漏更模式第 15 处** — `packages/woclaw-vscode/src/extension.ts:146` `setInterval(updateStatusBar, 30_000)` 硬编码 30 秒未读 `vscode.workspace.getConfiguration('woclaw').get('pollInterval')`, 但 `package.json` 第 27-31 行已声明 `woclaw.pollInterval` (type: number, default: 30) 等于用户改 VS Code settings.json 也无效; `README.md`「## 配置」表格也漏这一行 (只有 hubUrl + statusBar 两行); 修复: extension.ts 146 改 `const pollIntervalSec = ...get<number>('pollInterval') ?? 30; pollTimer = setInterval(updateStatusBar, pollIntervalSec * 1000);` + README 表格补 1 行; 默认值不变所以零行为变更, 父端零阻塞, 纯 config + doc 修复; 与 04:23 轮 codex-woclaw README 漏 PreCompact 是同型「子包 README 没跟上 code 实际能力」)_
+
 _Last updated: 2026-06-05 03:03 (**CHANGELOG.md 修辞统一性 — 候选池第 4/4 新类型完成** — 移错位 preamble 「All notable changes...」(原 0.4.0↔0.3.1 之间) → 顶部 + Keep a Changelog 1.1.0 + SemVer 引用; 5 个版本 (0.4.0/0.4.1/0.3.1/0.3.0/0.2.0) `### Added (Topic)` 父代式标题 → 裸 `### Added` + bold 首项 (与 0.5.0 / 0.4.3 风格一致); 0.3.1/0.3.0 段加 blank line 分隔 `### Documentation` / `### Technical Details`; 候选池 0/4 已清空 (RS-1 / /ready / 视频 / 官方托管 父端阻塞不变, 下一轮候选池待父 22:10 提示或父端解锁后另开新类型))_
 
 _Last updated: 2026-06-05 01:43 (**社区文件漏更 — 候选池第 3/4 新类型** — `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1 全文 + WoClaw 范围/联系渠道, 7.1 KB) 完成, `CONTRIBUTING.md` 删除 'is on the roadmap' 措辞并加交叉引用; 候选池剩 1/4: CHANGELOG 修辞统一性 (跨 8 个 npm 包版本历史 0.1.0→0.5.0 段间一致性))_

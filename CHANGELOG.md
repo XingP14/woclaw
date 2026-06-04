@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **packages/woclaw-vscode — `woclaw.pollInterval` config 漏接 (2026-06-05, 漏更模式第 15 处)** — 暴露的配置项没被代码读
+  - 现状：`package.json` 第 27-31 行声明了 `woclaw.pollInterval` 配置项（type: number, default: 30, description: "Status bar poll interval in seconds"），但 `packages/woclaw-vscode/src/extension.ts` 第 146 行写的是 `pollTimer = setInterval(updateStatusBar, 30_000)` —— 硬编码 30 秒，从未调用 `vscode.workspace.getConfiguration('woclaw').get('pollInterval')`。等于用户改 VS Code settings.json 也无效。
+  - 矛盾点：`packages/woclaw-vscode/README.md` 「## 配置」段表格也漏了 `woclaw.pollInterval` 这一行（只有 `woclaw.hubUrl` + `woclaw.statusBar` 两行），但 `package.json` 已经声明了 3 个，README 表格跟 package.json 不齐（与 04:23 轮 codex-woclaw README 漏 PreCompact 是同型问题——子包 README 没跟上 code 实际能力）
+  - 验证：`grep "woclaw\." packages/woclaw-vscode/src/extension.ts` 没有任何 `getConfiguration('woclaw').get('pollInterval')` 调用，只有 `getConfiguration('woclaw').get<string>('hubUrl')` 一处用到 config 系统；`package.json` 第 27-31 行 + `README.md` 第 14-17 行表格内容互为佐证
+  - 修复：`extension.ts` 第 146 行改成 `const pollIntervalSec = vscode.workspace.getConfiguration('woclaw').get<number>('pollInterval') ?? 30; pollTimer = setInterval(updateStatusBar, pollIntervalSec * 1000);` / `README.md`「## 配置」段补 `woclaw.pollInterval` 行
+  - 父端零阻塞（pure config + doc 修复，默认值不变所以零行为变更），与前 14 处漏更模式（版本号/自相矛盾/安装方式/子包列表/单文件过时/子包 README 缺能力）相比，本处是「VS Code settings 配置项未生效」型
+
 - **packages/codex-woclaw/README.md — PreCompact 钩子漏更 (2026-06-05, 漏更模式第 14 处)** — `woclaw-codex` 自己的 README 不说自己支持 PreCompact
   - 现状：`packages/codex-woclaw/` 实际包含 3 个 hook 脚本（`session_start.py` / `stop.py` / `precompact.py`），`install.py` 在 `for script in ["session_start.py", "stop.py", "precompact.py"]` 循环里同时安装 3 个，并在 `hooks.json` 里注册 `SessionStart` / `Stop` / `PreCompact` 三个事件（15 秒 timeout，statusMessage: "Saving checkpoint to WoClaw before compaction"），HOOKS_DIR 在 uninstall 循环里也只清理这 3 个。但 `packages/codex-woclaw/README.md` 全文 3 处都漏了 PreCompact：
     - `## What It Does` 段只列 SessionStart Hook + Stop Hook 两行

@@ -143,7 +143,8 @@ export function activate(_context: vscode.ExtensionContext) {
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.command = 'woclaw.showDashboard';
   updateStatusBar();
-  pollTimer = setInterval(updateStatusBar, 30_000);
+  const pollIntervalSec = vscode.workspace.getConfiguration('woclaw').get<number>('pollInterval') ?? 30;
+  pollTimer = setInterval(updateStatusBar, pollIntervalSec * 1000);
 
   const memoryProvider = new MemoryTreeDataProvider();
   const topicsProvider = new TopicsTreeDataProvider();
