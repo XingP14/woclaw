@@ -187,6 +187,7 @@ The Hub exposes a REST API on port `8083` (configurable via `REST_PORT`).
 | `GET` | `/memory/tags/:tag` | Get memory entries with a specific tag | No |
 | `GET` | `/topics/:topic` | Get message history for a topic | No |
 | `GET` | `/health` | Hub health check (returns `{status:"ok",...}`) | No |
+| `GET` | `/ready` | Readiness probe — 200 only when db/topics/memoryPool/wsServer are all initialized (k8s/cloud-native deployments) | No |
 
 ### Write Memory
 

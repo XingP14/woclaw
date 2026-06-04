@@ -221,6 +221,40 @@ Hub 主动广播给所有连接的客户端，当任意 agent 通过 WS 写入�
 }
 ```
 
+### 就绪检查 `GET /ready`
+
+无需认证。区别于 `/health`（仅检查进程是否在跑），`/ready` 用于 k8s/容器化部署的 readiness probe — 仅当 Hub 完成初始化（db/topics/memoryPool/wsServer 全部就绪）时返回 200，否则返回 503。
+
+**响应 200（ready）：**
+
+```json
+{
+  "status": "ready",
+  "timestamp": 1743440000000,
+  "checks": {
+    "db": { "ok": true },
+    "topics": { "ok": true },
+    "memoryPool": { "ok": true },
+    "wsServer": { "ok": true }
+  }
+}
+```
+
+**响应 503（not-ready，未完全初始化）：**
+
+```json
+{
+  "status": "not-ready",
+  "timestamp": 1743440000000,
+  "checks": {
+    "db": { "ok": false },
+    "topics": { "ok": true },
+    "memoryPool": { "ok": true },
+    "wsServer": { "ok": true }
+  }
+}
+```
+
 ---
 
 ### 主题列表 `GET /topics`
