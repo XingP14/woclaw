@@ -108,12 +108,13 @@
   <!-- Health -->
   <div class="card">
     <div class="card-header">
-      <h2>System Health</h2>
+      <h2>System Health <span class="cell-muted" style="font-weight:400;font-size:12px">/health + /ready</span></h2>
       <span class="badge" id="statusBadge">—</span>
     </div>
     <div class="stats" id="healthStats">
       <div class="loading">Loading...</div>
     </div>
+    <div id="readinessArea" style="padding:0 14px 12px"></div>
   </div>
 
   <!-- Topics -->
@@ -237,6 +238,35 @@ async function loadHealth() {
   }
 }
 
+// === READINESS PROBE ===
+// /ready was added in hub/v0.5.0 (commit 4ba380e, 2026-06-04). It distinguishes
+// liveness (process up) from readiness (db/topics/memoryPool/wsServer all init).
+// On older hubs the endpoint 404s — we render a "not deployed" hint instead of
+// failing the whole card.
+async function loadReadiness() {
+  const el = document.getElementById('readinessArea');
+  try {
+    const d = await api('/ready');
+    const comps = d.components || {};
+    const failed = Object.entries(comps).filter(([, v]) => !v).map(([k]) => k);
+    const ok = d.status === 'ready' && failed.length === 0;
+    const labels = Object.keys(comps).map(k => {
+      const on = comps[k];
+      return `<span class="cell-muted" style="color:var(--${on ? 'ok' : 'err'})">${on ? '●' : '○'} ${esc(k)}</span>`;
+    }).join(' &nbsp;·&nbsp; ');
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="badge badge-${ok ? 'ok' : 'err'}" title="k8s readiness probe">${ok ? 'Ready' : 'Not Ready'}</span>
+        <span class="cell-muted" style="font-size:12px">${labels}</span>
+      </div>
+      ${failed.length ? `<div class="error-msg" style="margin-top:6px">⚠ Not ready: ${esc(failed.join(', '))}</div>` : ''}
+    `;
+  } catch(e) {
+    // Older hub without /ready (pre hub/v0.5.0+4ba380e) — show a soft hint, don't fail
+    el.innerHTML = `<div class="cell-muted" style="font-size:12px">/ready not available (Hub &lt; v0.5.0 — requires <code>4ba380e</code>).</div>`;
+  }
+}
+
 async function loadTopics() {
   const el = document.getElementById('topicsArea');
   const badge = document.getElementById('topicsCount');
@@ -312,7 +342,7 @@ async function loadMemory() {
 
 // === CONTROLS ===
 async function refresh() {
-  await Promise.all([loadHealth(), loadTopics(), loadMemory()]);
+  await Promise.all([loadHealth(), loadReadiness(), loadTopics(), loadMemory()]);
 }
 
 function changeHub() {
