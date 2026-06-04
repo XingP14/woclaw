@@ -206,8 +206,11 @@ cd packages/codex-woclaw && python3 install.py
 **OpenCode (plugin — see [packages/opencode-woclaw-plugin](../packages/opencode-woclaw-plugin/)):**
 
 ```bash
-# Install plugin
+# Option 1: Local copy
 cp packages/opencode-woclaw-plugin/index.js ~/.config/opencode/plugins/woclaw.js
+
+# Option 2: npm install
+npm install -g opencode-woclaw@0.1.0
 
 # Configure env vars
 export WOCLAW_HUB_URL=ws://your-hub:8082
@@ -414,6 +417,7 @@ RATE_LIMIT_MESSAGES=500 RATE_LIMIT_WINDOW_MS=60000 node dist/index.js
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.4.3 | OpenClaw plugin |
 | [woclaw-mcp](https://www.npmjs.com/package/woclaw-mcp) | 0.1.2 | MCP Bridge for MCP clients |
 | [woclaw-hooks](https://www.npmjs.com/package/woclaw-hooks) | 0.5.0 | Claude Code / Gemini / OpenCode hook scripts |
+| [opencode-woclaw](https://www.npmjs.com/package/opencode-woclaw) | 0.1.0 | OpenCode plugin |
 | [woclaw-codex](https://www.npmjs.com/package/woclaw-codex) | 0.1.2 | OpenAI Codex CLI hooks (Python) |
 
 ## Links

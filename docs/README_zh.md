@@ -243,8 +243,8 @@ woclaw/
 See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 
 ### 已完成 ✅
-- [x] WebSocket 中继服务器
-- [x] REST API 管理接口
+- [x] WebSocket 中继服务器（woclaw-hub@0.5.0）
+- [x] REST API 管理接口（woclaw-hub@0.5.0）
 - [x] Topic 管理（加入/离开/广播）
 - [x] 共享内存池（Tags + TTL）
 - [x] SQLite 默认存储 / MySQL 可选
@@ -253,7 +253,9 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 - [x] OpenClaw Channel Plugin（xingp14-woclaw@0.4.3）
 - [x] MCP Bridge（woclaw-mcp@0.1.2）
 - [x] Claude Code Hook Scripts（woclaw-hooks@0.5.0）
+- [x] OpenCode Plugin（opencode-woclaw@0.1.0）
 - [x] OpenAI Codex CLI Hook Scripts（woclaw-codex@0.1.2）
+- [x] VS Code / Cursor 扩展（woclaw-vscode@0.1.0，VS Code Marketplace, publisher: XingP14）
 - [x] Web Dashboard / GitHub Pages
 - [x] 记忆搜索、版本历史、Graph Memory
 - [x] 连接限流、私有 Topic、Multi-Hub Federation
@@ -261,8 +263,8 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 - [x] npm 全部包发布
 
 ### 计划中 📋
-- [ ] ClawHub Skill 发布（~2026-04-13）
-- [ ] VS Code / Cursor 等生态插件继续完善与发布
+- [x] ClawHub Skill 发布（~2026-04-13）
+- [x] VS Code / Cursor 等生态插件完成（woclaw-vscode@0.1.0，已上架 VS Code Marketplace）
 - [ ] 官方托管服务
 
 ## 🤝 参与贡献

@@ -6,6 +6,22 @@
 
 ### Fixed
 
+- **subpackage README ↔ 根 README 一致性漏更 (2026-06-04, 漏更模式第 12 处)** — docs 目录子包列表与 npm 实际发布状态错位
+  - `docs/README_zh.md`「已完成 ✅」清单 (line 253-261) 4 处漏更：
+    - `WebSocket 中继服务器` 和 `REST API 管理接口` 两行没标 `woclaw-hub@0.5.0`（本仓库的 Hub server 自身是核心子包，但清单中所有项目都标了 @version，唯独 Hub 自身 2 项漏了）。补 `（woclaw-hub@0.5.0）`
+    - 漏列 `OpenCode Plugin（opencode-woclaw@0.1.0）` — OpenCode 是已 npm 发布的子包（2026-04-03 S2 完成），但清单漏列。补 1 行
+    - 漏列 `VS Code / Cursor 扩展（woclaw-vscode@0.1.0，VS Code Marketplace, publisher: XingP14）` — S28-1/2 (2026-04-05) 完成，vsce → Marketplace 走非 npm 分发。20:40 轮已修根 README「Connect Your Agents」漏更，但未扫到 `docs/README_zh.md` 清单
+  - `docs/README_zh.md`「计划中 📋」清单 (line 264-265) 完成态错位：
+    - `[ ] ClawHub Skill 发布（~2026-04-13）` → `[x]`。实际 2026-04-13 已发布（skill `k97bq7et0sw5vm2meqc9yh6s5184sshr`）
+    - `[ ] VS Code / Cursor 等生态插件继续完善与发布` → `[x] VS Code / Cursor 等生态插件完成（woclaw-vscode@0.1.0，已上架 VS Code Marketplace）`
+  - `docs/README.md`「OpenCode」段 (line 206-210) 漏 npm 安装方式：只给了本地 copy 一种方式，没提 `npm install -g opencode-woclaw@0.1.0`。与 `packages/opencode-woclaw-plugin/README.md` 的「Option 1: Local plugin / Option 2: npm package」二选一不一致。补 Option 2
+  - `docs/README.md`「npm Packages」表格 (line 413-417) 漏 `opencode-woclaw@0.1.0` — 同表格其他 5 项都是 npm 已发布子包，唯独 OpenCode 漏列。补 1 行（与 `docs/PUBLISH.md` 表格 6 行齐）
+  - 验证：`npm view <pkg> version` 6 个 npm 子包权威值 = `woclaw-hub@0.5.0` / `xingp14-woclaw@0.4.3` / `woclaw-mcp@0.1.2` / `woclaw-hooks@0.5.0` / `opencode-woclaw@0.1.0` / `woclaw-codex@0.1.2`；`woclaw-vscode@0.1.0` vsce → VS Code Marketplace（非 npm 设计）
+  - 根因：与 20:40 轮「跨子包版本矩阵」扫描互补——上次扫的是版本号/徽章/CLI banner 这种**单文件版本号过时**，本轮扫的是**子包列表与 npm 实际发布状态错位**（清单漏列/完成态误标/安装方式不一致），是同一漏更模式的不同切面
+  - 修复：2 个文档 4 处微调，diff +11/-5 行，0 行为变更
+
+### Fixed
+
 - **跨子包版本矩阵漏更 (2026-06-04, 漏更模式第 11 处)** — cross-subpackage version matrix drift
   - `docs/ROADMAP.md` line 66「v0.2 → 核心已上线」一栏 `npm 包发布` 描述仍写 `xingp14-woclaw@0.3.0, woclaw-hooks@0.1.0, woclaw-mcp@0.1.2`, 这是 2026-03-31 当时的快照, 早已与 `npm view <pkg> version` 权威值 (`xingp14-woclaw@0.4.3` / `woclaw-hooks@0.5.0` / `woclaw-mcp@0.1.2`) 不一致。`woclaw-mcp@0.1.2` 是 v0.2 至今未动, 不动; `xingp14-woclaw` 从 0.3.0 升 0.4.3 (2026-04-13 ClawHub 发布的版本) / `woclaw-hooks` 从 0.1.0 升 0.5.0 (2026-06-02 0.5.0 大版本)。三值对齐 npm registry
   - `README.md` (en) + `README_zh.md` 「Connect Your Agents / 接入 Agent」一节漏列 `woclaw-vscode` 子包。该子包 2026-04-05 完成 S28-1/2 (脚手架 + Tree View + package.json vsce 配置), 已在 `packages/woclaw-vscode/` 编译通过 (`out/extension.js` 存在), publisher 为 `XingP14`, 部署目标是 VS Code Marketplace (不是 npm, 与 vsce 约定一致), 此前文档未告知用户如何安装。补一行「VS Code / Cursor: 在 VS Code Marketplace 搜索 WoClaw 安装」, 中英一致
