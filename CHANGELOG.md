@@ -26,6 +26,7 @@
   - 4 个 README 现与根 `README.md`（权威 5 徽章）对齐, npmjs.com 页面点击跳转一致
   - **`docs/README.md` 表格漏更**（同一 fix 的延伸）—「npm Packages」表格里 `woclaw-hub` 仍标 `0.4.1`（15:10 轮只动了徽章, 没扫到表格行）。修正为 `0.5.0`，与 hub/package.json 权威版本对齐
   - **`plugin/bin/woclaw.js` CLI banner 漏更**（同一类问题）— 两处硬编码的 `v0.4.0` 字面量（usage banner line 55 + interactive shell banner line 216）未随 `package.json` 从 `0.4.0` 升到 `0.4.3` 同步。修正为 `v0.4.3`，与 `xingp14-woclaw@0.4.3` 权威版本对齐。`dist/bin/` 是 gitignored 的 build 产物, 不入库, 重新 `npm run build` 即同步
+  - **`docs/PUBLISH.md`「Published Packages」表格 3 处漏更**（同一类问题）— `xingp14-woclaw` 仍标 `0.3.0`（实际 `0.4.3`）/ `woclaw-hub` 仍标 `0.3.0`（实际 `0.5.0`）/ `woclaw-hooks` 仍标 `0.4.0`（实际 `0.5.0`）。`woclaw-mcp@0.1.2` / `opencode-woclaw@0.1.0` 正确不动。三行对齐 `npm view <pkg> version` 权威值。`docs/PUBLISH.md` 是 4 处 npm 文档（README 徽章 / README 表格 / PUBLISH 表格 / CLI banner）的第 3 处漏更, 是漏更扫描的延伸。注：`docs/PUBLISH.md` 底部「Current Status」清单 `[x] npm publish xingp14-woclaw@0.3.0 - 2026-04-01` 是历史 release log 格式, 不应修改（动了会改写历史）；表格本身是「当前状态」快照, 该改
 
 ## [0.5.0] - 2026-06-02
 

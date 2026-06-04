@@ -1199,4 +1199,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-04 (v0.6+ 「RS-1 Repo 拆分」Step 1 方案设计完成; hub/v0.5.0 GitHub Release 已发布; site/quickstart.html Step 2 同步 /ready curl 例子 + 区分 liveness/readiness probe; 4 个 README npm 徽章与 npm registry 对齐)_
+_Last updated: 2026-06-04 16:40 (v0.6+ 「RS-1 Repo 拆分」Step 1 方案设计完成; hub/v0.5.0 GitHub Release 已发布; site/quickstart.html Step 2 同步 /ready curl 例子 + 区分 liveness/readiness probe; 4 个 README npm 徽章与 npm registry 对齐; plugin/bin/woclaw.js CLI banner v0.4.0 → v0.4.3; **docs/PUBLISH.md「Published Packages」表格 3 处漏更 (xingp14-woclaw 0.3.0→0.4.3 / woclaw-hub 0.3.0→0.5.0 / woclaw-hooks 0.4.0→0.5.0) 对齐 npm view 权威值**)_

@@ -4,12 +4,14 @@
 
 ## Published Packages
 
+_Last updated 2026-06-04 (verified via `npm view <pkg> version`) — 3 stale entries (xingp14-woclaw / woclaw-hub / woclaw-hooks) aligned with current npm-published versions_
+
 | Package | Version | Status | Registry |
 |---------|---------|--------|----------|
-| `xingp14-woclaw` | 0.3.0 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
-| `woclaw-hub` | 0.3.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
+| `xingp14-woclaw` | 0.4.3 | ✅ Done | [npm](https://www.npmjs.com/package/xingp14-woclaw) |
+| `woclaw-hub` | 0.5.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hub) |
 | `woclaw-mcp` | 0.1.2 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-mcp) |
-| `woclaw-hooks` | 0.4.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hooks) |
+| `woclaw-hooks` | 0.5.0 | ✅ Done | [npm](https://www.npmjs.com/package/woclaw-hooks) |
 | `opencode-woclaw` | 0.1.0 | ✅ Done | [npm](https://www.npmjs.com/package/opencode-woclaw) |
 | WoClaw Skill | — | ⏳ Blocked | ClawHub (~2026-04-13) |
 | Docker Hub | latest | ✅ Done | [Docker Hub](https://hub.docker.com/r/xingp14/woclaw-hub) |
