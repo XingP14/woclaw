@@ -168,7 +168,7 @@ woclaw migrate --all            # 执行所有迁移
 - [x] Hook 集成指南 — Hermes Agent（`docs/HERMES-HOOKS.md`）✅ 2026-04-11
 - [x] Security Policy — `SECURITY.md` (vulnerability reporting + supported versions) ✅ 2026-06-04
 - [x] Contributing Guide — `CONTRIBUTING.md` (PR process + dev flow + conventional commits) ✅ 2026-06-05
-- [ ] Code of Conduct — `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1 full text)
+- [x] Code of Conduct — `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1 full text + WoClaw 范围/联系渠道) ✅ 2026-06-05
 - [ ] 视频演示
 
 ## 🔧 v0.6 — 生态完善
@@ -1202,7 +1202,7 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-05 00:23 (**社区文件漏更** — 候选池第 2 项新类型 `CONTRIBUTING.md` 完成 (PR 流程 / dev flow / Conventional Commits / monorepo 布局 / 发布流程), 跨 7 npm 包的提交 / 发布 / 测试速查表, 复用 22:48 SECURITY.md 同源模板; 候选池剩 1/3: `CODE_OF_CONDUCT.md` 全文 + CHANGELOG 修辞统一性)_
+_Last updated: 2026-06-05 01:43 (**社区文件漏更 — 候选池第 3/4 新类型** — `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1 全文 + WoClaw 范围/联系渠道, 7.1 KB) 完成, `CONTRIBUTING.md` 删除 'is on the roadmap' 措辞并加交叉引用; 候选池剩 1/4: CHANGELOG 修辞统一性 (跨 8 个 npm 包版本历史 0.1.0→0.5.0 段间一致性))_
 
 _Last updated: 2026-06-04 21:50 (**woclaw-hooks README self-矛盾** — `packages/woclaw-hooks/README.md` line 11 Multi-Framework 写「Supports Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI」与 line 3 顶描述「Claude Code, Gemini CLI, OpenCode」+ line 13 「use `woclaw-codex` instead」+ `docs/README.md` line 419 「woclaw-hooks = Claude/Gemini/OpenCode」+ 根 README 4 处一致, 改 line 11 为「Claude Code, Gemini CLI, and OpenCode. (For OpenAI Codex CLI, use `woclaw-codex` for full PreCompact + config.toml auto-enable support; `woclaw-hooks` covers SessionStart/Stop only.)」, 漏更模式第 13 处命中, 跨文档段间自相矛盾, 与前 12 轮版本号/漏写不同)_
 
