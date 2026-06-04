@@ -25,6 +25,7 @@
   - `docs/README_zh.md` 顶部徽章：补缺失的 4 行（`woclaw-hub@0.5.0` / `woclaw-mcp@0.1.2` / `woclaw-hooks@0.5.0` / `woclaw-codex@0.1.2`）
   - 4 个 README 现与根 `README.md`（权威 5 徽章）对齐, npmjs.com 页面点击跳转一致
   - **`docs/README.md` 表格漏更**（同一 fix 的延伸）—「npm Packages」表格里 `woclaw-hub` 仍标 `0.4.1`（15:10 轮只动了徽章, 没扫到表格行）。修正为 `0.5.0`，与 hub/package.json 权威版本对齐
+  - **`plugin/bin/woclaw.js` CLI banner 漏更**（同一类问题）— 两处硬编码的 `v0.4.0` 字面量（usage banner line 55 + interactive shell banner line 216）未随 `package.json` 从 `0.4.0` 升到 `0.4.3` 同步。修正为 `v0.4.3`，与 `xingp14-woclaw@0.4.3` 权威版本对齐。`dist/bin/` 是 gitignored 的 build 产物, 不入库, 重新 `npm run build` 即同步
 
 ## [0.5.0] - 2026-06-02
 

@@ -52,7 +52,7 @@ const out = (d) => { JSON_MODE ? console.log(JSON.stringify(d, null, 2)) : null;
 
 // === USAGE ===
 function usage() {
-  log(bold('WoClaw CLI') + ' v0.4.0 \u2014 Connect to WoClaw Hub');
+  log(bold('WoClaw CLI') + ' v0.4.3 \u2014 Connect to WoClaw Hub');
   log('');
   log(bold('REST API Commands:'));
   log('  ' + cyan('status') + '                Hub health check');
@@ -213,7 +213,7 @@ async function shell() {
     path: HISTORY_FILE,
   });
   if (!JSON_MODE) {
-    console.log(bold('WoClaw CLI') + ' v0.4.0 \u2014 Interactive (type ' + cyan('help') + dim(' for commands)'));
+    console.log(bold('WoClaw CLI') + ' v0.4.3 \u2014 Interactive (type ' + cyan('help') + dim(' for commands)'));
     console.log(dim('Hub: ' + HUB_REST + ' | Token: ' + HUB_TOKEN.slice(0,4) + '***'));
     console.log('');
   }
