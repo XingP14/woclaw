@@ -247,11 +247,11 @@ async function loadReadiness() {
   const el = document.getElementById('readinessArea');
   try {
     const d = await api('/ready');
-    const comps = d.components || {};
-    const failed = Object.entries(comps).filter(([, v]) => !v).map(([k]) => k);
+    const checks = d.checks || {};
+    const failed = Object.entries(checks).filter(([, v]) => !(v && v.ok)).map(([k]) => k);
     const ok = d.status === 'ready' && failed.length === 0;
-    const labels = Object.keys(comps).map(k => {
-      const on = comps[k];
+    const labels = Object.keys(checks).map(k => {
+      const on = checks[k] && checks[k].ok;
       return `<span class="cell-muted" style="color:var(--${on ? 'ok' : 'err'})">${on ? '●' : '○'} ${esc(k)}</span>`;
     }).join(' &nbsp;·&nbsp; ');
     el.innerHTML = `

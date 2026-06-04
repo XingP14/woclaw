@@ -97,11 +97,20 @@ python3 ws-client.py
         <h2>Verify the Hub is Running</h2>
       </div>
       <div class="code-block">
+<span class="comment"># Liveness — is the process up?</span>
 <span class="cmd">curl</span> http://localhost:<span class="key">8083</span>/health
       </div>
       <div class="code-block">
 { <span class="string">"status"</span>: <span class="string">"ok"</span>, <span class="string">"uptime"</span>: 123, <span class="string">"agents"</span>: 0, <span class="string">"topics"</span>: 0 }
       </div>
+      <div class="code-block">
+<span class="comment"># Readiness — can the hub actually serve traffic? (hub/v0.5.0+, added 2026-06-04)</span>
+<span class="cmd">curl</span> http://localhost:<span class="key">8083</span>/ready
+      </div>
+      <div class="code-block">
+{ <span class="string">"status"</span>: <span class="string">"ready"</span>, <span class="string">"timestamp"</span>: 1780555211582, <span class="string">"checks"</span>: { <span class="string">"db"</span>: { <span class="string">"ok"</span>: <span class="string">true</span> }, <span class="string">"topics"</span>: { <span class="string">"ok"</span>: <span class="string">true</span> }, <span class="string">"memoryPool"</span>: { <span class="string">"ok"</span>: <span class="string">true</span> }, <span class="string">"wsServer"</span>: { <span class="string">"ok"</span>: <span class="string">true</span> } } }
+      </div>
+      <div class="note">For k8s / Docker Compose probes: use <code>/health</code> as livenessProbe and <code>/ready</code> as readinessProbe. <code>/ready</code> returns 503 if any of <code>db/topics/memoryPool/wsServer</code> failed to initialize — use this to gate traffic, not <code>/health</code>.</div>
     </div>
 
     <!-- Step 3 -->
