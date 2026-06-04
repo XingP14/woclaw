@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WoClaw CLI v0.4 - Interactive CLI for WoClaw Hub
+ * WoClaw CLI v0.4.3 - Interactive CLI for WoClaw Hub
  * REST API + WebSocket support, interactive shell, JSON mode
  */
 import WebSocket from 'ws';
