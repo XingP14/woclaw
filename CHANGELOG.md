@@ -4,6 +4,19 @@
 
 > 当前开发版本，等待下一批工作累积。
 
+### Added
+
+- **Cloud-Native Readiness Probe (2026-06-04)** — k8s/容器化部署可观测性
+  - 新增 `GET /ready` 端点（`hub/src/rest_server.ts` 的 `handleReady`）：仅当 `db / topics / memoryPool / wsServer` 4 个核心组件全部初始化完成时返回 200 + `{status:"ready", components:{...}}`；任一未就绪则返回 503 + `{status:"not-ready", ...}`。区别于 `/health`（仅检查进程是否在跑），`/ready` 是 k8s readiness probe 的正确选择 —— 流量只在 hub 真就绪时才会被路由过来
+  - 新增 `hub/test/rest_server.test.ts` 中 4 个单测：`/ready` 200 全就绪 / 503 任一未就绪 / 503 部分未就绪 / handleReady mock 直返
+  - 文档同步：`docs/API.md` 新增「就绪检查 `GET /ready`」小节（含 200/503 双响应示例 + 与 `/health` 区别说明）；`hub/README.md` REST API 表加一行
+
+### Docs
+
+- **Repo 拆分计划**（v0.6+ `RS-1: woclaw-hub 仓拆分`）
+  - `docs/RS-1-REPO-SPLIT-HUB-PLAN.md`（Step 1）—— 拆分方案设计：审计 hub/ 自包含资源 + 识别需处理项 + 设计 3 步执行 + 风险评估
+  - `docs/RS-1-EXECUTION-RUNBOOK.md`（Step 1.5）—— 父端执行 Step 2-4 的 turn-key 指南：`gh repo create` / `gh secret set` / `git filter-repo` 一键命令 + 验收清单 + 回滚方案
+
 ## [0.5.0] - 2026-06-02
 
 > 自 0.4.3 (2026-04-05) 起完成的核心工作：All-in-One Memory Platform (Session Store / AI Extraction / Forgetting Scheduler)、Memory Encryption at Rest、Federation-aware Shared Memory、Session Archival、Web UI 增强、CI/CD 完善。
