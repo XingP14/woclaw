@@ -1199,4 +1199,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-04 17:40 (**plugin/bin/woclaw.js** 文件头注释 `WoClaw CLI v0.4` → `v0.4.3` — 17:10 轮 7ca440b 修了 line 55/216 banner 但漏扫 file-header JSDoc 注释; 第 3 行同文件不完整版本号是漏更模式第 6 处命中; 修复后 3 处 CLI 版本号全部对齐 plugin/package.json 0.4.3 权威值)_
+_Last updated: 2026-06-04 18:10 (**docs/INSTALL.md** Docker 镜像 tag `hub/v0.3.0` → `hub/v0.5.0` — 第 188 行「部署到云服务器」`docker run` 拉取 2 个月前镜像, 错过 0.4.0→0.5.0 全部修复与功能; 漏更模式第 7 处命中, 是 17:40 轮 6 处漏更对齐完成后继续扫描的延伸)_

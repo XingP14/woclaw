@@ -185,7 +185,7 @@ docker run -d \
   -p 8082:8082 \
   -e AUTH_TOKEN=your-token \
   --restart unless-stopped \
-  xingp14/woclaw-hub:hub/v0.3.0
+  xingp14/woclaw-hub:hub/v0.5.0
 ```
 
 ### Nginx 反向代理（可选）
