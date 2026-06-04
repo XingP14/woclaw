@@ -24,6 +24,7 @@
   - `README_zh.md` 顶部徽章：补 `woclaw-hub@0.5.0` / `woclaw-mcp@0.1.2` 版本号 + 补缺失的 `woclaw-codex@0.1.2` 整行
   - `docs/README_zh.md` 顶部徽章：补缺失的 4 行（`woclaw-hub@0.5.0` / `woclaw-mcp@0.1.2` / `woclaw-hooks@0.5.0` / `woclaw-codex@0.1.2`）
   - 4 个 README 现与根 `README.md`（权威 5 徽章）对齐, npmjs.com 页面点击跳转一致
+  - **`docs/README.md` 表格漏更**（同一 fix 的延伸）—「npm Packages」表格里 `woclaw-hub` 仍标 `0.4.1`（15:10 轮只动了徽章, 没扫到表格行）。修正为 `0.5.0`，与 hub/package.json 权威版本对齐
 
 ## [0.5.0] - 2026-06-02
 

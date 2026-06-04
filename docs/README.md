@@ -410,7 +410,7 @@ RATE_LIMIT_MESSAGES=500 RATE_LIMIT_WINDOW_MS=60000 node dist/index.js
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.4.1 | Hub server |
+| [woclaw-hub](https://www.npmjs.com/package/woclaw-hub) | 0.5.0 | Hub server |
 | [xingp14-woclaw](https://www.npmjs.com/package/xingp14-woclaw) | 0.4.3 | OpenClaw plugin |
 | [woclaw-mcp](https://www.npmjs.com/package/woclaw-mcp) | 0.1.2 | MCP Bridge for MCP clients |
 | [woclaw-hooks](https://www.npmjs.com/package/woclaw-hooks) | 0.5.0 | Claude Code / Gemini / OpenCode hook scripts |
