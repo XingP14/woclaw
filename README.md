@@ -51,6 +51,7 @@ The default data file is `/data/woclaw.sqlite`. To switch to MySQL, set `DB_TYPE
 - Claude Code / Gemini CLI / OpenCode: use `woclaw-hooks`
 - OpenAI Codex CLI: use `woclaw-codex`
 - MCP clients: use `woclaw-mcp`
+- VS Code / Cursor: install the [WoClaw extension](packages/woclaw-vscode/README.md) from VS Code Marketplace (publisher: XingP14)
 
 Hermes Agent support is on the roadmap; current releases focus on the OpenClaw plugin and hook-based integrations.
 

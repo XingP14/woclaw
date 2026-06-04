@@ -63,7 +63,7 @@
 - [x] Shared Memory Pool ✅
 - [x] Message History (last 50) ✅
 - [x] Token Authentication ✅
-- [x] npm 包发布 (xingp14-woclaw@0.3.0, woclaw-hooks@0.1.0, woclaw-mcp@0.1.2) ✅
+- [x] npm 包发布 (xingp14-woclaw@0.4.3, woclaw-hooks@0.5.0, woclaw-mcp@0.1.2) ✅
 
 ### P0 - 跨框架 Hook 集成
 - [x] Claude Code Hook Scripts — SessionStart/Stop/PreCompact hooks 读写 WoClaw Memory ✅
@@ -1199,4 +1199,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-04 18:10 (**docs/INSTALL.md** Docker 镜像 tag `hub/v0.3.0` → `hub/v0.5.0` — 第 188 行「部署到云服务器」`docker run` 拉取 2 个月前镜像, 错过 0.4.0→0.5.0 全部修复与功能; 漏更模式第 7 处命中, 是 17:40 轮 6 处漏更对齐完成后继续扫描的延伸)_
+_Last updated: 2026-06-04 20:40 (**跨子包版本矩阵漏更** — `docs/ROADMAP.md` line 66 v0.2 时代快照 `woclaw-hooks@0.1.0` / `xingp14-woclaw@0.3.0` 修正为 0.5.0 / 0.4.3 对齐 npm registry; `README.md`+`README_zh.md` 「Connect Your Agents」补 `woclaw-vscode` VS Code Marketplace 安装行, 此前 6 轮单文件漏更都是版本号过时, 本次是跨子包元数据 + 文档子包列表 2 处复合漏更; 漏更模式第 11 处命中)_

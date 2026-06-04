@@ -4,6 +4,14 @@
 
 > 当前开发版本，等待下一批工作累积。
 
+### Fixed
+
+- **跨子包版本矩阵漏更 (2026-06-04, 漏更模式第 11 处)** — cross-subpackage version matrix drift
+  - `docs/ROADMAP.md` line 66「v0.2 → 核心已上线」一栏 `npm 包发布` 描述仍写 `xingp14-woclaw@0.3.0, woclaw-hooks@0.1.0, woclaw-mcp@0.1.2`, 这是 2026-03-31 当时的快照, 早已与 `npm view <pkg> version` 权威值 (`xingp14-woclaw@0.4.3` / `woclaw-hooks@0.5.0` / `woclaw-mcp@0.1.2`) 不一致。`woclaw-mcp@0.1.2` 是 v0.2 至今未动, 不动; `xingp14-woclaw` 从 0.3.0 升 0.4.3 (2026-04-13 ClawHub 发布的版本) / `woclaw-hooks` 从 0.1.0 升 0.5.0 (2026-06-02 0.5.0 大版本)。三值对齐 npm registry
+  - `README.md` (en) + `README_zh.md` 「Connect Your Agents / 接入 Agent」一节漏列 `woclaw-vscode` 子包。该子包 2026-04-05 完成 S28-1/2 (脚手架 + Tree View + package.json vsce 配置), 已在 `packages/woclaw-vscode/` 编译通过 (`out/extension.js` 存在), publisher 为 `XingP14`, 部署目标是 VS Code Marketplace (不是 npm, 与 vsce 约定一致), 此前文档未告知用户如何安装。补一行「VS Code / Cursor: 在 VS Code Marketplace 搜索 WoClaw 安装」, 中英一致
+  - 验证: `npm view` 7 个子包 (含本地未发的 `woclaw-vscode`) 与各自 `package.json` `version` 字段一致; `woclaw-vscode` 唯一非 npm 包属设计 (vsce 走 marketplace) 不是漏更
+  - 注: 本轮是「跨子包版本矩阵」扫描的延伸, 之前 10 轮漏更都是单文件版本号过时, 本次是 ROADMAP 历史快照 + README 子包列表 2 处复合漏更, 实际命中 1 个独立问题 (跨子包元数据)
+
 ### Added
 
 - **Cloud-Native Readiness Probe (2026-06-04)** — k8s/容器化部署可观测性
