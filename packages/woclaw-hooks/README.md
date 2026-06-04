@@ -7,7 +7,7 @@ Share memory and context between coding agents (Claude Code, Gemini CLI, OpenCod
 - **Session Start**: Load shared project context from WoClaw Hub when an agent starts
 - **Session Stop**: Save session summary back to WoClaw Hub for next session
 - **PreCompact**: Checkpoint important context before agents compress their context
-- **Multi-Framework**: Supports Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI
+- **Multi-Framework**: Supports Claude Code, Gemini CLI, and OpenCode. (For OpenAI Codex CLI, use [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex) for full PreCompact + config.toml auto-enable support; `woclaw-hooks` covers SessionStart/Stop only.)
 
 ## OpenAI Codex CLI — Recommended: use `woclaw-codex` package instead
 

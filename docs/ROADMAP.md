@@ -1199,6 +1199,8 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
+_Last updated: 2026-06-04 21:50 (**woclaw-hooks README self-矛盾** — `packages/woclaw-hooks/README.md` line 11 Multi-Framework 写「Supports Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI」与 line 3 顶描述「Claude Code, Gemini CLI, OpenCode」+ line 13 「use `woclaw-codex` instead」+ `docs/README.md` line 419 「woclaw-hooks = Claude/Gemini/OpenCode」+ 根 README 4 处一致, 改 line 11 为「Claude Code, Gemini CLI, and OpenCode. (For OpenAI Codex CLI, use `woclaw-codex` for full PreCompact + config.toml auto-enable support; `woclaw-hooks` covers SessionStart/Stop only.)」, 漏更模式第 13 处命中, 跨文档段间自相矛盾, 与前 12 轮版本号/漏写不同)_
+
 _Last updated: 2026-06-04 21:21 (**子包 README ↔ 根 README 一致性漏更** — 根 `README.md`+`README_zh.md` 顶部 npm badge block 缺 `opencode-woclaw@0.1.0`, 与 `docs/README.md` line 8-12 完整 6 包 badge 块及 line 420 npm packages 表格不一致, 漏更模式第 12 处命中, 复用 20:54 llm-benchmark README 段间漏更扫描模式补齐)_
 
 _上次更新: 2026-06-04 20:40 (**跨子包版本矩阵漏更** — `docs/ROADMAP.md` line 66 v0.2 时代快照 `woclaw-hooks@0.1.0` / `xingp14-woclaw@0.3.0` 修正为 0.5.0 / 0.4.3 对齐 npm registry; `README.md`+`README_zh.md` 「Connect Your Agents」补 `woclaw-vscode` VS Code Marketplace 安装行, 此前 6 轮单文件漏更都是版本号过时, 本次是跨子包元数据 + 文档子包列表 2 处复合漏更; 漏更模式第 11 处命中)_
