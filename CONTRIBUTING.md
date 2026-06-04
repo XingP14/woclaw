@@ -10,7 +10,7 @@ WoClaw is a small monorepo: contributions of all sizes — typo fixes, doc clari
 ## 🧭 Code of Conduct
 
 By participating, you agree to follow the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
-Please be respectful and constructive. (A standalone `CODE_OF_CONDUCT.md` file is on the roadmap; in the meantime, the upstream Covenant applies.)
+Please read [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the full text, enforcement process, and contact channel. Be respectful and constructive.
 
 ## 🐛 Reporting Bugs
 
