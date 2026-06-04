@@ -434,7 +434,7 @@ woclaw migrate --all            # 执行所有迁移
   - 识别需处理：`.github/workflows/{ci,docker,docker-publish,hub-publish}.yml` 主仓副本、`docs/PUBLISH.md` / `docs/INSTALL.md` / `docs/README*.md` 部署命令、根 `package.json` workspaces
   - 设计 3 步执行：Step 2 创建新仓 + Secrets → Step 3 `git filter-repo --subdirectory-filter hub/` → Step 4 主仓文档改写
   - 风险评估：filter-repo 漏 dotfiles / monorepo 失去 hub 单元测试覆盖（已记录解决）
-- [ ] **Step 2 (10min): 在 GitHub 创建 `XingP14/woclaw-hub` 仓 + 配置 Secrets + branch protection**
+- [ ] **Step 2 (10min): 在 GitHub 创建 `XingP14/woclaw-hub` 仓 + 配置 Secrets + branch protection** — 父端操作；turn-key 指南见 [`docs/RS-1-EXECUTION-RUNBOOK.md`](./RS-1-EXECUTION-RUNBOOK.md)
 - [ ] **Step 3 (10min): `git filter-repo --subdirectory-filter hub/` 提取 hub/ 历史到新仓 + 推送 + 验证 CI**
 - [ ] **Step 4 (10min): 主仓调整引用** — 删 hub 相关 CI workflow / `docs/{PUBLISH,INSTALL,README,README_zh}.md` 改写为指向新仓 / 根 `package.json` workspaces 移除 `hub` / ROADMAP 表更新 / CHANGELOG 加 unreleased 段
 
