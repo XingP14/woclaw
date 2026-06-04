@@ -4,6 +4,16 @@
 
 > 当前开发版本，等待下一批工作累积。
 
+### Added
+
+- **SECURITY.md — Vulnerability disclosure policy** (2026-06-04, 新类型首推，避开 13 轮漏更扫耗尽)
+  - 项目根 `SECURITY.md` (5.8 KB)：覆盖 6 个 npm 包 + Docker Hub + VS Code Marketplace 7 路发布的统一安全策略
+  - 内容：Supported Versions 表（每包 latest minor 仅接收安全修复）/ Reporting via GitHub Private Vulnerability Reporting (advisories/new) / 备用 private security discussion / 报告应附内容清单 / SLA 表 (ack 7d / triage 14d / patch 30d@High-Critical) / 协调披露默认 patch+14d / In-scope 与 Out-of-scope 清单 / Reporter 致谢机制（commit / CHANGELOG / Advisory） / Security Architecture Notes (TLS / Token rotation / AES-256-GCM at-rest / Rate limit / Federation) / 政策版本 v1.0
+  - 设计取舍：仅维护 latest minor（项目全 0.x 阶段，无 LTS 承诺）；私有披露走 GitHub Security Advisories 而非 maintainer 邮箱（公开 maintainer 邮箱是 anti-pattern）；SLA 7/14/30/90 天分级参考 GitHub 协调披露规范；In-scope 直接点出 `hub/src/crypto.ts` / `hub/src/ws_server.ts` S22 / `hub/src/topics.ts` 等具体模块路径供 reviewer 关联
+  - 验证：`grep` 6 个 package.json `version` 字段与表格权威值一致（`woclaw-hub@0.5.0` / `xingp14-woclaw@0.4.3` / `woclaw-hooks@0.5.0` / `woclaw-mcp@0.1.2` / `woclaw-codex@0.1.2` / `opencode-woclaw@0.1.0` / `woclaw-vscode@0.1.0`）；`docs/INSTALL.md` line 277-307 + line 291「🔐 TLS/SSL 加密连接」确为 TLS env var 权威位置
+  - 意义：把项目从「隐式依赖 GitHub Issues 报告漏洞」升级为「显式 private disclosure + SLA」，是 npm/Docker Hub 双发布的 7 路包 + 公开 Hub 端口（8082/8083/8084）必要的 governance 闭环；父 22:10 提示「候选池耗尽 → 换新类型 (CHANGELOG/CONTRIBUTING/CODE_OF_CONDUCT/SECURITY) → 或跳轮」是直接按此 hint 落子
+  - 修复：1 个新文件 + 1 行 CHANGELOG，diff +0/-0 实际代码改动
+
 ### Fixed
 
 - **subpackage README ↔ 根 README 一致性漏更 (2026-06-04, 漏更模式第 12 处)** — docs 目录子包列表与 npm 实际发布状态错位
