@@ -409,7 +409,7 @@ woclaw migrate --all            # 执行所有迁移
 
 | 子包 | 来源 | 目标 Repo | 状态 |
 |------|------|-----------|------|
-| `woclaw-hub` | `hub/` | [woclaw-hub](https://github.com/XingP14/woclaw-hub) | 待拆分 |
+| `woclaw-hub` | `hub/` | [woclaw-hub](https://github.com/XingP14/woclaw-hub) | 🚧 Step 1 done（方案设计 2026-06-04） |
 | `woclaw-codex` | `packages/codex-woclaw` | [woclaw-codex](https://github.com/XingP14/woclaw-codex) | 待拆分 |
 | `woclaw-hooks` | `packages/woclaw-hooks` | [woclaw-hooks](https://github.com/XingP14/woclaw-hooks) | 待拆分 |
 | `woclaw-mcp` | `packages/mcp-bridge` | [woclaw-mcp](https://github.com/XingP14/woclaw-mcp) | 待拆分 |
@@ -417,6 +417,19 @@ woclaw migrate --all            # 执行所有迁移
 | `woclaw-plugin` | `plugin/` | [woclaw-plugin](https://github.com/XingP14/woclaw-plugin) | 待拆分 |
 
 **拆分顺序：** hub（核心）→ codex/hooks/mcp（集成）→ vscode/plugin（生态）→ meta repo
+
+#### Story RS-1: woclaw-hub 仓拆分
+> hub/ 已自包含（独立 package.json `woclaw-hub@0.5.0` / Dockerfile / README / test / systemd unit / CI workflow），拆为独立仓可让 hub 走自己的发布周期。
+
+- [x] **Step 1 (10min): woclaw-hub 拆分方案设计** ✅ 2026-06-04
+  - 输出：`docs/RS-1-REPO-SPLIT-HUB-PLAN.md`
+  - 审计：hub/ 已具备全部独立资源（package.json / Dockerfile / README / test / CI workflow / npm `woclaw-hub@0.5.0` / Docker Hub `xingp14/woclaw-hub`）
+  - 识别需处理：`.github/workflows/{ci,docker,docker-publish,hub-publish}.yml` 主仓副本、`docs/PUBLISH.md` / `docs/INSTALL.md` / `docs/README*.md` 部署命令、根 `package.json` workspaces
+  - 设计 3 步执行：Step 2 创建新仓 + Secrets → Step 3 `git filter-repo --subdirectory-filter hub/` → Step 4 主仓文档改写
+  - 风险评估：filter-repo 漏 dotfiles / monorepo 失去 hub 单元测试覆盖（已记录解决）
+- [ ] **Step 2 (10min): 在 GitHub 创建 `XingP14/woclaw-hub` 仓 + 配置 Secrets + branch protection**
+- [ ] **Step 3 (10min): `git filter-repo --subdirectory-filter hub/` 提取 hub/ 历史到新仓 + 推送 + 验证 CI**
+- [ ] **Step 4 (10min): 主仓调整引用** — 删 hub 相关 CI workflow / `docs/{PUBLISH,INSTALL,README,README_zh}.md` 改写为指向新仓 / 根 `package.json` workspaces 移除 `hub` / ROADMAP 表更新 / CHANGELOG 加 unreleased 段
 
 ---
 
@@ -448,6 +461,7 @@ woclaw migrate --all            # 执行所有迁移
 | v1.1+ | 2026-05-25→05-30 | **Web UI 增强**：Sessions Tab + Session Replay、Memory Browse/Export、Memory Encryption at Rest、Federation-aware Shared Memory、Importance Heatmap ✅ |
 | v0.6 | 2026-06-01→06-02 | **CI-1 Story** 完成：README 顶部加 CI/Docker Hub 徽章 + `.github/workflows/ci.yml` 添加 `npm test` 步骤（job 重命名 `hub (lint + build + test)`）✅ |
 | v0.5.0 | 2026-06-02 | **GitHub Release** for `hub/v0.5.0` 已发布：<https://github.com/XingP14/woclaw/releases/tag/hub/v0.5.0>（All-in-One Memory Platform + Memory Encryption + Federation-aware Sync + Session Archival + Web UI 增强 + CI/CD 完善）✅ |
+| v0.6+ | 2026-06-04 | **RS-1 Step 1**: woclaw-hub 仓拆分方案设计完成（`docs/RS-1-REPO-SPLIT-HUB-PLAN.md`）✅ |
 | v1.0 | 2026-04-05 | Graph Memory、Federation、Token Rotation、私有 Topic、Web UI ✅ |
 | v0.4.3 | 2026-04-05 | SQLite/MySQL、GitHub Pages、精准搜索、迁移完整性、文档对齐 ✅ |
 | v0.1 | 2026-03-30 | 项目立项、Hub 部署 ✅ |
@@ -1178,4 +1192,4 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
-_Last updated: 2026-06-02 (v0.6 「发布到生态」段 VS Code/Cursor 插件 同步勾选 — 与「生态集成」段对齐; GitHub Release `hub/v0.5.0` 已发布)_
+_Last updated: 2026-06-04 (v0.6+ 「RS-1 Repo 拆分」Step 1 方案设计完成; hub/v0.5.0 GitHub Release 已发布)_
