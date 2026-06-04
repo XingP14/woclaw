@@ -7,6 +7,10 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/XingP14/woclaw?style=social)](https://github.com/XingP14/woclaw)
 [![npm](https://img.shields.io/badge/npm-xingp14--woclaw@0.4.3-blue)](https://www.npmjs.com/package/xingp14-woclaw)
+[![npm (scoped)](https://img.shields.io/npm/v/woclaw-hub?label=woclaw-hub%400.5.0)](https://www.npmjs.com/package/woclaw-hub)
+[![npm](https://img.shields.io/npm/v/woclaw-mcp?label=woclaw-mcp%400.1.2)](https://www.npmjs.com/package/woclaw-mcp)
+[![npm](https://img.shields.io/npm/v/woclaw-hooks?label=woclaw-hooks%400.5.0)](https://www.npmjs.com/package/woclaw-hooks)
+[![npm](https://img.shields.io/npm/v/woclaw-codex?label=woclaw-codex%400.1.2)](https://www.npmjs.com/package/woclaw-codex)
 
 **🏠 生产Hub**: `ws://your-hub-host:8082` · REST: `http://your-hub-host:8083`
 

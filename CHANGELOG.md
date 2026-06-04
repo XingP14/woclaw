@@ -17,6 +17,14 @@
   - `docs/RS-1-REPO-SPLIT-HUB-PLAN.md`（Step 1）—— 拆分方案设计：审计 hub/ 自包含资源 + 识别需处理项 + 设计 3 步执行 + 风险评估
   - `docs/RS-1-EXECUTION-RUNBOOK.md`（Step 1.5）—— 父端执行 Step 2-4 的 turn-key 指南：`gh repo create` / `gh secret set` / `git filter-repo` 一键命令 + 验收清单 + 回滚方案
 
+### Fixed
+
+- **README npm 徽章漏更 / 过时 (2026-06-04)** — 4 个 README 文件与 npm registry 不一致
+  - `docs/README.md` 顶部徽章 `woclaw-hub%400.4.1` → `400.5.0`（Hub 子包已发 v0.5.0 / GitHub Release, 徽章停留在 v0.4.1）
+  - `README_zh.md` 顶部徽章：补 `woclaw-hub@0.5.0` / `woclaw-mcp@0.1.2` 版本号 + 补缺失的 `woclaw-codex@0.1.2` 整行
+  - `docs/README_zh.md` 顶部徽章：补缺失的 4 行（`woclaw-hub@0.5.0` / `woclaw-mcp@0.1.2` / `woclaw-hooks@0.5.0` / `woclaw-codex@0.1.2`）
+  - 4 个 README 现与根 `README.md`（权威 5 徽章）对齐, npmjs.com 页面点击跳转一致
+
 ## [0.5.0] - 2026-06-02
 
 > 自 0.4.3 (2026-04-05) 起完成的核心工作：All-in-One Memory Platform (Session Store / AI Extraction / Forgetting Scheduler)、Memory Encryption at Rest、Federation-aware Shared Memory、Session Archival、Web UI 增强、CI/CD 完善。
