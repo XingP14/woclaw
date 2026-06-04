@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 当前开发版本，等待下一批工作累积。
 
+### Fixed
+
+- **packages/codex-woclaw/README.md — PreCompact 钩子漏更 (2026-06-05, 漏更模式第 14 处)** — `woclaw-codex` 自己的 README 不说自己支持 PreCompact
+  - 现状：`packages/codex-woclaw/` 实际包含 3 个 hook 脚本（`session_start.py` / `stop.py` / `precompact.py`），`install.py` 在 `for script in ["session_start.py", "stop.py", "precompact.py"]` 循环里同时安装 3 个，并在 `hooks.json` 里注册 `SessionStart` / `Stop` / `PreCompact` 三个事件（15 秒 timeout，statusMessage: "Saving checkpoint to WoClaw before compaction"），HOOKS_DIR 在 uninstall 循环里也只清理这 3 个。但 `packages/codex-woclaw/README.md` 全文 3 处都漏了 PreCompact：
+    - `## What It Does` 段只列 SessionStart Hook + Stop Hook 两行
+    - `## Quick Install` 段「This will:」只提 `session_start.py` 和 `stop.py` 两个文件
+    - `## How It Works` 段只列 2 个 lifecycle step（SessionStart + Stop）
+    - `## Environment Variables` 段只列 `WOCLAW_HUB_URL` / `WOCLAW_TOKEN` / `WOCLAW_KEY` 3 个 env var，漏 `WOCLAW_PROJECT_KEY`（precompact.py 用的 memory key，默认 `project:context`）和 `CODEX_CONTEXT_FILE`（precompact.py 用的可选 context 文件路径）
+  - 矛盾点：上周 21:50 轮修复的 `packages/woclaw-hooks/README.md` 里有专门的对比表声称 `woclaw-codex (install.py)` 支持 PreCompact ✅，但 `woclaw-codex` 自己的 README 一直没说这个能力，等于 woclaw-hooks 帮 woclaw-codex 打广告，woclaw-codex 自己的「我能做什么」段反而是缺货 —— **跨子包文档自相矛盾**（同一种漏更模式「子包对外承诺 ≠ 子包自我描述」的不同切面）
+  - 验证：`precompact.py` 第 1-12 行 docstring 明确写「Triggers before Codex context compaction. Saves critical project context to WoClaw Hub before it gets compressed.」；`precompact.py` 第 27-29 行 `os.environ.get("WOCLAW_PROJECT_KEY", "project:context")` 与 install.py `PreCompact: [...] statusMessage: "Saving checkpoint to WoClaw before compaction"` 互为佐证；`woclaw-hooks/README.md` 对比表 PreCompact 列 woclaw-codex 是 ✅；`docs/ROADMAP.md` 「OpenAI Codex CLI 支持」段 PreCompact Hook ✅ v0.1.2；`docs/CHANGELOG.md` 0.4.0 段也含 PreCompact
+  - 修复：`## What It Does` 补第 3 行 PreCompact Hook 说明 / `## Quick Install` 「This will:」第 1 项补 `precompact.py` 第 2 项补「(SessionStart + Stop + PreCompact)」 / `## How It Works` 补第 3 步 / `## Environment Variables` 补 `WOCLAW_PROJECT_KEY` + `CODEX_CONTEXT_FILE` 两行，1 file changed, +7/-3
+  - 父端零阻塞（纯 doc 修复，零行为变更），与 13 处漏更模式（版本号 / 自相矛盾 / 安装方式不一致 / 子包列表错位 / 单文件过时）相比，本处是「子包 README 缺能力描述」型
+
 ### Added
 
 - **SECURITY.md — Vulnerability disclosure policy** (2026-06-04, 新类型首推，避开 13 轮漏更扫耗尽)
