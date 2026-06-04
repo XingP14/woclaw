@@ -1,5 +1,10 @@
 # Changelog
 
+All notable changes to WoClaw will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
 
 > 当前开发版本，等待下一批工作累积。
@@ -145,56 +150,62 @@
 
 ## [0.4.1] - 2026-04-02
 
-### Added (Codex CLI PreCompact Hook)
-- **precompact.py** — Codex context compaction checkpoint hook: saves critical context to WoClaw Hub before Codex compresses its context window
-  - Scans `~/.codex/sessions/` for latest session transcript (last 30 lines)
+### Added
+
+- **Codex CLI PreCompact Hook** — Codex context compaction checkpoint hook: saves critical context to WoClaw Hub before Codex compresses its context window
+  - `precompact.py` — Scans `~/.codex/sessions/` for latest session transcript (last 30 lines)
   - Writes checkpoint as `compact:{project_key}:{timestamp}` to Hub memory
   - Registered as Codex `PreCompact` hook via `~/.codex/hooks.json`
   - Updated `install.py` to install/uninstall precompact.py automatically
 
 ## [0.4.0] - 2026-04-02
 
-### Added (Codex CLI Integration ⭐)
-- **woclaw-codex package** — `packages/codex-woclaw/` with Python hooks for OpenAI Codex CLI
+### Added
+
+- **Codex CLI Integration ⭐** — `packages/codex-woclaw/` with Python hooks for OpenAI Codex CLI
   - `session_start.py` — reads shared context from WoClaw Hub on session start, injects as additionalContext
   - `stop.py` — reads session transcript and writes summary to WoClaw Hub on session end
   - `install.py` — one-command installer: creates `~/.codex/hooks/` + `~/.codex/hooks.json` + enables `codex_hooks` in config
   - `bin/cli.js` — npm entry point (`npx woclaw-codex install`)
   - README with usage docs
 
-
-All notable changes to WoClaw will be documented in this file.
-
 ## [0.3.1] - 2026-04-02
 
-### Fixed (woclaw-hooks)
-- REST URL format fixed (removed trailing /api prefix)
-- Default Hub address corrected
-- JSON injection format fixed in hook scripts
+### Fixed
+
+- **woclaw-hooks** — REST URL / default Hub / JSON injection fixes
+  - REST URL format fixed (removed trailing /api prefix)
+  - Default Hub address corrected
+  - JSON injection format fixed in hook scripts
 
 ### Documentation
+
 - Added woclaw-hooks npm version badge to README
 - Fixed version display in README
 
 ## [0.3.0] - 2026-04-01
 
-### Changed (Plugin Refactoring)
-- **OpenClaw v2026.3+ compatibility**: Plugin now uses `defineChannelPluginEntry` API
-- Plugin entry point refactored: `index.ts` uses `defineChannelPluginEntry` wrapper
-- Channel implementation moved to `channel.ts` with proper TypeScript types
-- `ws` module proper type declarations via `types/ws.d.ts`
-- Plugin types moved to `plugin-types.d.ts` (ambient module declaration)
-- Improved TypeScript strictness and type safety
+### Changed
+
+- **Plugin Refactoring** — OpenClaw v2026.3+ compatibility: Plugin now uses `defineChannelPluginEntry` API
+  - Plugin entry point refactored: `index.ts` uses `defineChannelPluginEntry` wrapper
+  - Channel implementation moved to `channel.ts` with proper TypeScript types
+  - `ws` module proper type declarations via `types/ws.d.ts`
+  - Plugin types moved to `plugin-types.d.ts` (ambient module declaration)
+  - Improved TypeScript strictness and type safety
 
 ### Technical Details
+
 - Uses `openclaw/plugin-sdk/core` for proper plugin SDK integration
 - Separate `types/` directory for ambient type declarations
 - Proper ESM module exports for OpenClaw plugin loading
 
 ## [0.2.0] - 2026-03-31
 
-### Added (v0.4 - Memory Tags + TTL)
-- **Memory Tags**: `memory.write(key, value, tags)` — tag memory entries with labels (`project`, `fact`, `decision`, `config`)
+### Added
+
+- **v0.4 — Memory Tags + TTL** — `memory.write(key, value, tags, ttl)` with tag queries and auto-expiry
+  - **Memory Tags**: `memory.write(key, value, tags)` — tag memory entries with labels (`project`, `fact`, `decision`, `config`)
 - **Memory TTL**: `memory.write(key, value, tags, ttl)` — set expiry time in seconds (0 = permanent)
 - **Auto-Expiry**: `memory.read()` and `memory.getAll()` automatically filter expired entries
 - **Tag Queries**: REST `GET /memory/tags/:tag` and `GET /memory?tags=filter`

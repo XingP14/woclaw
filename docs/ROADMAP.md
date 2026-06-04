@@ -1202,6 +1202,8 @@ Web UI = 纯静态 HTML + Vanilla JS（无框架依赖）
   - `hub/test/semantic_recall.test.ts`
   - README 新增 Semantic Recall 章节
 
+_Last updated: 2026-06-05 03:03 (**CHANGELOG.md 修辞统一性 — 候选池第 4/4 新类型完成** — 移错位 preamble 「All notable changes...」(原 0.4.0↔0.3.1 之间) → 顶部 + Keep a Changelog 1.1.0 + SemVer 引用; 5 个版本 (0.4.0/0.4.1/0.3.1/0.3.0/0.2.0) `### Added (Topic)` 父代式标题 → 裸 `### Added` + bold 首项 (与 0.5.0 / 0.4.3 风格一致); 0.3.1/0.3.0 段加 blank line 分隔 `### Documentation` / `### Technical Details`; 候选池 0/4 已清空 (RS-1 / /ready / 视频 / 官方托管 父端阻塞不变, 下一轮候选池待父 22:10 提示或父端解锁后另开新类型))_
+
 _Last updated: 2026-06-05 01:43 (**社区文件漏更 — 候选池第 3/4 新类型** — `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1 全文 + WoClaw 范围/联系渠道, 7.1 KB) 完成, `CONTRIBUTING.md` 删除 'is on the roadmap' 措辞并加交叉引用; 候选池剩 1/4: CHANGELOG 修辞统一性 (跨 8 个 npm 包版本历史 0.1.0→0.5.0 段间一致性))_
 
 _Last updated: 2026-06-04 21:50 (**woclaw-hooks README self-矛盾** — `packages/woclaw-hooks/README.md` line 11 Multi-Framework 写「Supports Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI」与 line 3 顶描述「Claude Code, Gemini CLI, OpenCode」+ line 13 「use `woclaw-codex` instead」+ `docs/README.md` line 419 「woclaw-hooks = Claude/Gemini/OpenCode」+ 根 README 4 处一致, 改 line 11 为「Claude Code, Gemini CLI, and OpenCode. (For OpenAI Codex CLI, use `woclaw-codex` for full PreCompact + config.toml auto-enable support; `woclaw-hooks` covers SessionStart/Stop only.)」, 漏更模式第 13 处命中, 跨文档段间自相矛盾, 与前 12 轮版本号/漏写不同)_
