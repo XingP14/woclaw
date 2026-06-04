@@ -12,6 +12,7 @@
 [![npm](https://img.shields.io/npm/v/woclaw-mcp?label=woclaw-mcp%400.1.2)](https://www.npmjs.com/package/woclaw-mcp)
 [![npm](https://img.shields.io/npm/v/woclaw-hooks?label=woclaw-hooks%400.5.0)](https://www.npmjs.com/package/woclaw-hooks)
 [![npm](https://img.shields.io/npm/v/woclaw-codex?label=woclaw-codex%400.1.2)](https://www.npmjs.com/package/woclaw-codex)
+[![npm](https://img.shields.io/npm/v/opencode-woclaw?label=opencode-woclaw%400.1.0)](https://www.npmjs.com/package/opencode-woclaw)
 
 WoClaw 的当前定位是三层：
 - **Hub** 负责记忆、Topic、Graph Memory、鉴权和存储
