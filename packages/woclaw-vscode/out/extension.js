@@ -116,7 +116,7 @@ class TopicsTreeDataProvider {
     }
     async refresh() {
         this.topics = await httpGet('/topics') || [];
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
     }
 }
 class AgentsTreeDataProvider {
@@ -136,7 +136,7 @@ class AgentsTreeDataProvider {
     }
     async refresh() {
         this.agents = await httpGet('/agents') || [];
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
     }
 }
 class MemoryTreeDataProvider {
@@ -152,7 +152,7 @@ class MemoryTreeDataProvider {
             ? ((await httpGet(`/memory?limit=50`)) || []).filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
                 m.value.toLowerCase().includes(q.toLowerCase()))
             : ((await httpGet(`/memory?limit=50`)) || []);
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
     }
     getTreeItem(el) { return el; }
     async getChildren() {
@@ -170,7 +170,8 @@ function activate(_context) {
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     statusBarItem.command = 'woclaw.showDashboard';
     updateStatusBar();
-    pollTimer = setInterval(updateStatusBar, 30000);
+    const pollIntervalSec = vscode.workspace.getConfiguration('woclaw').get('pollInterval') ?? 30;
+    pollTimer = setInterval(updateStatusBar, pollIntervalSec * 1000);
     const memoryProvider = new MemoryTreeDataProvider();
     const topicsProvider = new TopicsTreeDataProvider();
     const agentsProvider = new AgentsTreeDataProvider();
@@ -182,7 +183,7 @@ function activate(_context) {
     vscode.window.registerTreeDataProvider('woclaw-agents', agentsProvider);
     vscode.window.registerTreeDataProvider('woclaw-memory', memoryProvider);
     // Register commands
-    vscode.commands.registerCommand('woclaw.showDashboard', async () => {
+    vscode.commands.registerCommand('woclaw.showDashboard', async (_args) => {
         const health = await fetchHubHealth();
         const url = getHubUrl();
         if (health) {
@@ -192,12 +193,12 @@ function activate(_context) {
             vscode.window.showWarningMessage(`WoClaw Hub unreachable at ${url}`);
         }
     });
-    vscode.commands.registerCommand('woclaw.refreshAll', async () => {
+    vscode.commands.registerCommand('woclaw.refreshAll', async (_args) => {
         await updateStatusBar();
         memoryProvider.search(memoryProvider.query);
         vscode.window.showInformationMessage('WoClaw: Refreshed');
     });
-    vscode.commands.registerCommand('woclaw.memorySearch', async () => {
+    vscode.commands.registerCommand('woclaw.memorySearch', async (_args) => {
         const q = await vscode.window.showInputBox({ prompt: 'Search WoClaw memory…' });
         if (q !== undefined)
             memoryProvider.search(q);

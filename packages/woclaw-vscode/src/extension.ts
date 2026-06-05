@@ -84,7 +84,7 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   }
   async refresh(): Promise<void> {
     this.topics = await httpGet('/topics') || [];
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(undefined);
   }
 }
 
@@ -104,7 +104,7 @@ class AgentsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   }
   async refresh(): Promise<void> {
     this.agents = await httpGet('/agents') || [];
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(undefined);
   }
 }
 
@@ -119,7 +119,7 @@ class MemoryTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
           m.key.toLowerCase().includes(q.toLowerCase()) ||
           m.value.toLowerCase().includes(q.toLowerCase()))
       : ((await httpGet(`/memory?limit=50`)) || []);
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
@@ -160,7 +160,7 @@ export function activate(_context: vscode.ExtensionContext) {
   vscode.window.registerTreeDataProvider('woclaw-memory', memoryProvider);
 
   // Register commands
-  vscode.commands.registerCommand('woclaw.showDashboard', async () => {
+  vscode.commands.registerCommand('woclaw.showDashboard', async (_args: unknown) => {
     const health = await fetchHubHealth();
     const url = getHubUrl();
     if (health) {
@@ -171,13 +171,13 @@ export function activate(_context: vscode.ExtensionContext) {
     }
   });
 
-  vscode.commands.registerCommand('woclaw.refreshAll', async () => {
+  vscode.commands.registerCommand('woclaw.refreshAll', async (_args: unknown) => {
     await updateStatusBar();
     memoryProvider.search(memoryProvider.query);
     vscode.window.showInformationMessage('WoClaw: Refreshed');
   });
 
-  vscode.commands.registerCommand('woclaw.memorySearch', async () => {
+  vscode.commands.registerCommand('woclaw.memorySearch', async (_args: unknown) => {
     const q = await vscode.window.showInputBox({ prompt: 'Search WoClaw memory…' });
     if (q !== undefined) memoryProvider.search(q);
   });

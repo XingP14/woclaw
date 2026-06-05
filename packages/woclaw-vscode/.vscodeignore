@@ -1,0 +1,52 @@
+# WoClaw VS Code Extension — files excluded from the published VSIX
+# (vsce's built-in defaults also exclude node_modules/, **/*.ts, tsconfig.json,
+#  **/*.map, .git/, .DS_Store etc. — see https://github.com/microsoft/vscode-vsce)
+#
+# Be explicit so the package stays small and reproducible regardless of
+# future vsce default-list changes.
+
+# Source artifacts (extension is shipped as compiled JS in out/)
+src/**
+tsconfig.json
+**/*.ts
+**/*.map
+
+# Lockfile & dev-only metadata
+package-lock.json
+.eslintrc*
+.prettierrc*
+.editorconfig
+.gitignore
+.gitattributes
+
+# Test scaffolding
+out/test/**
+.vscode-test/**
+.vscode/**
+**/__tests__/**
+**/*.test.ts
+
+# CI / VCS / IDE
+.github/**
+.git/**
+.gitlab-ci.yml
+.idea/**
+.vscode/**
+
+# Logs / OS junk
+**/*.log
+**/.DS_Store
+**/Thumbs.db
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Docs that are not useful inside the VSIX (README is intentionally kept)
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+docs/**
+
+# Reaffirm: never ship node_modules even if vsce defaults change
+node_modules/**
