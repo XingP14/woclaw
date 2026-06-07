@@ -255,7 +255,7 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 - [x] Claude Code Hook Scripts（woclaw-hooks@0.5.0）
 - [x] OpenCode Plugin（opencode-woclaw@0.1.0）
 - [x] OpenAI Codex CLI Hook Scripts（woclaw-codex@0.1.2）
-- [x] VS Code / Cursor 扩展（woclaw-vscode@0.1.0，VS Code Marketplace, publisher: XingP14）
+- [x] VS Code / Cursor 扩展（woclaw-vscode@0.1.0，本地构建；Marketplace 发布待父端 vsce publish，publisher: XingP14）
 - [x] Web Dashboard / GitHub Pages
 - [x] 记忆搜索、版本历史、Graph Memory
 - [x] 连接限流、私有 Topic、Multi-Hub Federation
@@ -264,7 +264,7 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plans.
 
 ### 计划中 📋
 - [x] ClawHub Skill 发布（~2026-04-13）
-- [x] VS Code / Cursor 等生态插件完成（woclaw-vscode@0.1.0，已上架 VS Code Marketplace）
+- [x] VS Code / Cursor 等生态插件完成（woclaw-vscode@0.1.0，本地构建；Marketplace 发布待父端 vsce publish）
 - [ ] 官方托管服务
 
 ## 🤝 参与贡献

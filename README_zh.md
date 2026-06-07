@@ -52,7 +52,7 @@ docker run -d \
 - Claude Code / Gemini CLI / OpenCode：使用 `woclaw-hooks`
 - OpenAI Codex CLI：使用 `woclaw-codex`
 - MCP 客户端：使用 `woclaw-mcp`
-- VS Code / Cursor：在 VS Code Marketplace 搜索 WoClaw 安装（publisher: XingP14，详见 [packages/woclaw-vscode/README.md](packages/woclaw-vscode/README.md)）
+- VS Code / Cursor：本地构建 [WoClaw extension](packages/woclaw-vscode/README.md)（Marketplace 发布待父端 vsce publish，publisher: XingP14）
 
 Hermes Agent 支持已列入路线图；当前版本主要聚焦 OpenClaw 插件和 Hook 方案。
 
