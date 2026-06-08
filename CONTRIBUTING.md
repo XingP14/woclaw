@@ -157,7 +157,7 @@ Maintainers handle releases:
 | `woclaw-mcp` | npm | Manual `npm publish` in `packages/mcp-bridge/` | — |
 | `opencode-woclaw` | npm | Manual `npm publish` in `packages/opencode-woclaw/` | — |
 | `xingp14-woclaw` (plugin) | npm | Manual `npm publish` in `plugin/` | — |
-| `woclaw-vscode` | VS Code Marketplace | `vsce publish` | publisher: `XingP14` |
+| `woclaw-vscode` | Local build (`packages/woclaw-vscode/`) → VS Code Marketplace (pending) | `vsce publish` (maintainer-side blocker; not yet published) | publisher: `XingP14` |
 
 You do **not** need to bump versions in your PR — maintainers will do that as part of release.
 

@@ -13,7 +13,7 @@
 | `woclaw-mcp` | [npm](https://www.npmjs.com/package/woclaw-mcp) | `0.1.x` | Active. MCP bridge (stdio JSON-RPC) |
 | `woclaw-codex` | [npm](https://www.npmjs.com/package/woclaw-codex) | `0.1.x` | Active. OpenAI Codex CLI hooks |
 | `opencode-woclaw` | [npm](https://www.npmjs.com/package/opencode-woclaw) | `0.1.x` | Active. OpenCode plugin |
-| `woclaw-vscode` | VS Code Marketplace (publisher: `XingP14`) | `0.1.x` | Active |
+| `woclaw-vscode` | Local build (`packages/woclaw-vscode/`); Marketplace publishing pending `vsce publish` from maintainer (publisher: `XingP14`) | `0.1.x` | Active (compiled locally; VS Code Marketplace not yet published — `vsce publish` is a maintainer-side blocker) |
 
 > All packages are **pre-1.0** (`0.x.y`). Only the **latest minor release** of each package receives security fixes.
 > Older minor versions are not patched — please upgrade.
