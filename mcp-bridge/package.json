@@ -14,5 +14,10 @@
   "dependencies": {
     "ws": "^8.20.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ]
 }

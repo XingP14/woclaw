@@ -37,6 +37,13 @@
     "collaboration"
   ],
   "license": "MIT",
+  "files": [
+    "dist/**/*",
+    "bin/**/*",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
   "publishConfig": {
     "access": "public"
   },

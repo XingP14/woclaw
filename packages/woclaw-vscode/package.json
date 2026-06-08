@@ -4,6 +4,12 @@
   "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory",
   "version": "0.1.0",
   "license": "MIT",
+  "files": [
+    "out/**/*",
+    "media/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "publisher": "XingP14",
   "engines": {
     "vscode": "^1.75.0"
