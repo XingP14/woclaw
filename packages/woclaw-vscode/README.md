@@ -2,6 +2,8 @@
 
 在 VS Code 中查看 WoClaw Hub 状态、Topics、Agents、Memory。
 
+> **Claude Code / Cursor / Copilot users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Install once from the VS Code Marketplace and the skill becomes visible to your agent.
+
 ## 功能
 
 - **状态栏**：显示 Hub 连接状态、在线 agent 数量、topic 数量

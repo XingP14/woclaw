@@ -4,6 +4,7 @@
   "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory",
   "version": "0.1.0",
   "license": "MIT",
+  "keywords": ["woclaw", "vscode", "openclaw", "agent-skills", "claude-skills", "anthropic-skills", "claude-code", "hub", "shared-memory"],
   "files": [
     "out/**/*",
     "media/**/*",
