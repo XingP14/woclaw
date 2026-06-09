@@ -4,6 +4,7 @@
   "description": "WoClaw Hub - WebSocket relay server for OpenClaw multi-agent communication",
   "main": "dist/index.js",
   "type": "module",
+  "keywords": ["openclaw", "claude-code", "woclaw", "hub", "websocket", "relay", "shared-memory", "agent-skills", "claude-skills", "anthropic-skills"],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",

@@ -2,6 +2,8 @@
 
 WebSocket relay server for OpenClaw multi-agent communication.
 
+> **Claude Code users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Deploy once with `docker run xingp14/woclaw-hub:latest` and the deploy-guide skill becomes visible to your agent.
+
 ## Quick Start
 
 ### Using Docker
