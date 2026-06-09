@@ -1,5 +1,7 @@
 # WoClaw Plugin
 
+> **Claude Code / OpenClaw users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Install once via `openclaw plugins install woclaw` and the woclaw channel skill becomes visible to your agent.
+
 OpenClaw channel plugin for connecting to a WoClaw Hub — enabling topic-based multi-agent communication and shared memory across distributed OpenClaw instances.
 
 ## Installation

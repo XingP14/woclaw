@@ -34,13 +34,20 @@
     "woclaw",
     "multi-agent",
     "communication",
-    "collaboration"
+    "collaboration",
+    "agent-skills",
+    "claude-skills",
+    "anthropic-skills",
+    "openclaw-plugin",
+    "shared-memory"
   ],
   "license": "MIT",
   "files": [
     "dist/**/*",
     "bin/**/*",
+    "skills/**/*",
     "openclaw.plugin.json",
+    "SKILL.md",
     "README.md",
     "LICENSE"
   ],
