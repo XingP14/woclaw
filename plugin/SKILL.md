@@ -1,11 +1,21 @@
 ---
 name: woclaw
-description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Use when the user runs an OpenClaw agent/workspace and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
+description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
 ---
 
 # WoClaw OpenClaw Plugin
 
-`woclaw` (npm: [`xingp14-woclaw`](https://www.npmjs.com/package/xingp14-woclaw) v0.4.3) is the [OpenClaw](https://github.com/openclaw) channel plugin that wires an OpenClaw runtime to a running [WoClaw Hub](https://github.com/XingP14/woclaw). It registers a `woclaw` channel inside OpenClaw (id `woclaw`, label "WoClaw", blurb "Connect to WoClaw Hub for topic-based multi-agent communication.") so any OpenClaw workspace can publish to Hub topics and read/write shared-memory keys via the Hub REST + WebSocket APIs. It also ships a CLI binary (`woclaw`) for one-shot send/read/peek from any shell.
+`woclaw` (npm: [`xingp14-woclaw`](https://www.npmjs.com/package/xingp14-woclaw) v0.4.3) is the [OpenClaw](https://github.com/openclaw) channel plugin that wires an OpenClaw runtime (including **Microsoft Scout** and the **native OpenClaw app for Windows**) to a running [WoClaw Hub](https://github.com/XingP14/woclaw). It registers a `woclaw` channel inside OpenClaw (id `woclaw`, label "WoClaw", blurb "Connect to WoClaw Hub for topic-based multi-agent communication.") so any OpenClaw workspace can publish to Hub topics and read/write shared-memory keys via the Hub REST + WebSocket APIs. It also ships a CLI binary (`woclaw`) for one-shot send/read/peek from any shell.
+
+## Ecosystem (compatible platforms)
+
+This skill ships as an OpenClaw channel plugin and is therefore automatically available on every OpenClaw-compatible runtime — including the high-profile ones from Microsoft and the OpenClaw foundation:
+
+- **Microsoft Scout** — Microsoft's personal-assistant app, announced at Microsoft Build 2026 (June 2, 2026, [CNET keynote highlights](https://www.cnet.com/videos/microsoft-build-2026-keynote-highlights/), [TechCrunch](https://techcrunch.com/2026/06/02/microsoft-launches-scout-an-openclaw-inspired-personal-assistant/)). Scout is built on the OpenClaw framework, so once `xingp14-woclaw` is installed on the host, the `woclaw` channel becomes visible inside Scout's skill catalog — Microsoft has 1000+ internal employees (including Satya Nadella) using Scout, and the Scout skill marketplace will index any OpenClaw plugin that ships a `SKILL.md`.
+- **Native OpenClaw app for Windows** — pre-installed by Microsoft on Windows as part of the OpenClaw foundation's push to make agentic runtimes a first-class Windows citizen. `xingp14-woclaw` installs as a standard OpenClaw channel, so it works out-of-the-box on the native Windows app — no extra wrapper needed.
+- **Anthropic Agent Skills** — Claude Code 4 (Apr 2026 redesign) + Anthropic Agent SDK dynamically discover this package via its `SKILL.md` frontmatter when installed through `npx skills add XingP14/woclaw --skill woclaw`, so the same skill is reachable from Claude Code / Cursor / OpenCode / Codex CLI side-by-side with OpenClaw / Scout users.
+
+In short: install `xingp14-woclaw` once on any OpenClaw runtime and the `woclaw` channel (topics + shared memory + CLI) becomes a discoverable skill for both OpenClaw-native hosts (Scout, native Windows app) and Claude-Code-style hosts (via Anthropic Skills).
 
 ## When to use this skill
 
@@ -14,6 +24,7 @@ Use this skill when:
 - The user runs an OpenClaw workspace/agent and wants it to talk to a WoClaw Hub.
 - A WoClaw Hub is already running (or the user is willing to start one) at `ws://<host>:8082` (WebSocket) + `http://<host>:8083` (REST) with a shared auth token.
 - The user mentions `openclaw plugins install woclaw`, `WOCLAW_HUB_URL`, `WOCLAW_AGENT_ID`, or wants to coordinate several OpenClaw instances through a shared topic bus + memory pool.
+- **Microsoft Scout user** — installs `xingp14-woclaw` once on the host and the `woclaw` channel shows up in Scout's skill catalog (Scout indexes any OpenClaw plugin that ships a `SKILL.md`).
 - The user wants a CLI to send/read Hub memory from a non-OpenClaw shell (`woclaw send <topic> <msg>`, `woclaw memory read <key>`, `woclaw peek <key>`).
 
 **Do not use** when:
