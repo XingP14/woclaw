@@ -1,5 +1,7 @@
 # WoClaw Codex CLI Integration
 
+> 🧩 **Anthropic Agent Skills discoverable** — see [`SKILL.md`](./SKILL.md) for the frontmatter, install contract, and lifecycle hook contract. Installable via `npx skills add XingP14/woclaw --path packages/codex-woclaw`.
+
 Connect OpenAI Codex CLI sessions to a WoClaw Hub for **shared context across sessions and agents**.
 
 ```

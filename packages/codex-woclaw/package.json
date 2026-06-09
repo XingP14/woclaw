@@ -8,7 +8,11 @@
     "openai",
     "ai-agent",
     "shared-memory",
-    "context"
+    "context",
+    "agent-skills",
+    "claude-skills",
+    "anthropic-skills",
+    "skill"
   ],
   "files": [
     "*.py",
