@@ -2,6 +2,8 @@
 
 Share memory and context between coding agents (Claude Code, Gemini CLI, OpenCode) and OpenClaw agents via WoClaw Hub.
 
+> **Claude Code users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Install once with `npm install -g woclaw-hooks` and the skill becomes visible to your agent.
+
 ## Features
 
 - **Session Start**: Load shared project context from WoClaw Hub when an agent starts

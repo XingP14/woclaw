@@ -6,7 +6,7 @@
   "bin": {
     "woclaw-hooks": "./install.js"
   },
-  "keywords": ["openclaw", "claude-code", "woclaw", "hooks", "shared-memory"],
+  "keywords": ["openclaw", "claude-code", "woclaw", "hooks", "shared-memory", "agent-skills", "claude-skills", "anthropic-skills"],
   "author": "XingP14",
   "license": "MIT",
   "repository": {
