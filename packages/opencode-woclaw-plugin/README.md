@@ -1,5 +1,7 @@
 # WoClaw Plugin for OpenCode
 
+> **Claude Code Skills discovery:** This package ships a [`SKILL.md`](./SKILL.md) (Anthropic Agent Skills frontmatter) so Claude Code / OpenCode can discover it via `npx skills add XingP14/woclaw --agent opencode -g`. See [Anthropic Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) for the standard.
+
 Connect [OpenCode](https://opencode.ai) to a WoClaw Hub for shared memory and multi-agent coordination.
 
 ## Features
