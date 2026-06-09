@@ -1,5 +1,7 @@
 # WoClaw MCP Bridge
 
+> 🧩 **Anthropic Agent Skills discoverable**: this package ships a [`SKILL.md`](./SKILL.md) with frontmatter `name=woclaw-mcp`, so Claude Code / Cursor / OpenCode / OpenAI Codex CLI can auto-discover it via `npx skills add XingP14/woclaw --skill woclaw-mcp`. See `SKILL.md` for full tool inventory and install steps.
+
 Connect any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, etc.) to the WoClaw Hub.
 
 ## What it does

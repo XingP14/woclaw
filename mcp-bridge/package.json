@@ -15,9 +15,23 @@
     "ws": "^8.20.0"
   },
   "license": "MIT",
+  "keywords": [
+    "mcp-server",
+    "model-context-protocol",
+    "woclaw",
+    "woclaw-mcp",
+    "agent-tools",
+    "claude-desktop",
+    "cursor",
+    "windsurf",
+    "mcphub",
+    "agent-skills",
+    "claude-skills"
+  ],
   "files": [
     "dist/**/*",
     "README.md",
+    "SKILL.md",
     "LICENSE"
   ]
 }
