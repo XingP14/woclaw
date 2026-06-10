@@ -1,7 +1,7 @@
 ---
 name: woclaw
-description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
-compatible_with: [openclaw, openclaw-runtime, microsoft-scout, claude-code, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes]
+description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Compatible with Claude Code, Codex CLI, and ChatGPT via the SKILL.md open format; indexable by LobeHub Skills Marketplace, ClawHub, SkillHub.club, and the Anthropic Agent Skills catalog. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
+compatible_with: [openclaw, openclaw-runtime, microsoft-scout, claude-code, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills]
 ---
 
 # WoClaw OpenClaw Plugin
@@ -17,6 +17,19 @@ This skill ships as an OpenClaw channel plugin and is therefore automatically av
 - **Anthropic Agent Skills** — Claude Code 4 (Apr 2026 redesign) + Anthropic Agent SDK dynamically discover this package via its `SKILL.md` frontmatter when installed through `npx skills add XingP14/woclaw --skill woclaw`, so the same skill is reachable from Claude Code / Cursor / OpenCode / Codex CLI side-by-side with OpenClaw / Scout users.
 
 In short: install `xingp14-woclaw` once on any OpenClaw runtime and the `woclaw` channel (topics + shared memory + CLI) becomes a discoverable skill for both OpenClaw-native hosts (Scout, native Windows app) and Claude-Code-style hosts (via Anthropic Skills).
+
+## Discover on (skills marketplaces)
+
+This `SKILL.md` ships with open-format frontmatter so the package is indexable by every major agent-skills aggregator. Install with one command from the host that the user is already in:
+
+- **LobeHub Skills Marketplace** — https://lobehub.com/skills — aggregates skills "compatible with Claude Code, Codex CLI, and ChatGPT, all in SKILL.md, the open format for AI coding assistants". Listed via frontmatter `name` + `description` keywords; searchable from a Claude Code / Codex CLI / ChatGPT host.
+- **ClawHub** — https://clawhub.ai — agent skills registry with security-purge curation (13,729 → 3,286 skills after May 2026 purge, see [Medium roundup](https://medium.com/@tentenco/the-best-clawhub-skills-worth-installing-now-a-category-by-category-guide-5221c4850d21)). Install: `npx clawhub install XingP14/woclaw`.
+- **SkillHub.club** — community-driven skills directory; install via `npx skillhub add XingP14/woclaw`.
+- **Anthropic Agent Skills (Claude Code)** — Claude Code 4 (April 2026 redesign) and Anthropic Agent SDK dynamically discover this package via its `SKILL.md` frontmatter. Install: `npx skills add XingP14/woclaw --skill woclaw`.
+- **Microsoft Scout** — Scout indexes any OpenClaw plugin that ships a `SKILL.md`. No additional command — Scout picks up the skill on host startup.
+- **Native OpenClaw app for Windows** — pre-installed skill catalog; no extra command.
+
+The same `xingp14-woclaw@0.4.3` package is therefore discoverable from Claude Code, Codex CLI, ChatGPT, Microsoft Scout, the native OpenClaw Windows app, and every Claude-Code-compatible skills aggregator (LobeHub / ClawHub / SkillHub.club / Anthropic catalog / vercel-labs/skills / anthropics/skills) — install once, surface everywhere.
 
 ## When to use this skill
 

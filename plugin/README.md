@@ -9,6 +9,15 @@
 >
 > See [SKILL.md → Ecosystem](./SKILL.md#ecosystem-compatible-platforms) for details.
 
+> **🔍 Discover on (skills marketplaces)** — `xingp14-woclaw` ships an open-format `SKILL.md` so it is indexable from every major agent-skills aggregator:
+> - **[LobeHub Skills Marketplace](https://lobehub.com/skills)** — open-format skills catalog for Claude Code / Codex CLI / ChatGPT
+> - **[ClawHub](https://clawhub.ai)** — agent skills registry (security-purged to 3,286 skills, May 2026)
+> - **[SkillHub.club](https://skillhub.club)** — community-driven skills directory
+> - **[Anthropic Agent Skills](https://github.com/anthropics/skills)** — Claude Code 4 + Anthropic Agent SDK
+> - **Microsoft Scout** + **Native OpenClaw app for Windows** — indexed on host startup
+>
+> Install once (`openclaw plugins install woclaw`), discoverable everywhere.
+
 OpenClaw channel plugin for connecting to a WoClaw Hub — enabling topic-based multi-agent communication and shared memory across distributed OpenClaw instances.
 
 ## Installation
