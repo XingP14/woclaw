@@ -74,6 +74,28 @@ npm start
 | `MYSQL_DATABASE` | - | MySQL database name |
 | `AUTH_TOKEN` | change-me | Authentication token |
 | `CONFIG_FILE` | - | JSON config file path |
+| `ANTHROPIC_API_KEY` | - | (optional) enables `provider: 'anthropic'` extraction backend — see [Supported Anthropic Models](#supported-anthropic-models) |
+
+## Supported Anthropic Models
+
+> **🆕 Mythos-tier available (2026-06-09)** — Claude Fable5 (first public Mythos-class release) and Mythos5 are now routable through the hub's extraction layer (`provider: 'anthropic'`). Pricing follows **2026-06-23 free-tier cutoff** — set `ANTHROPIC_API_KEY` before that date or migrate to pay-as-you-go.
+
+| Model ID | Anthropic name | Tier | Pricing (per 1M tokens) | SWE-bench Pro | Routing notes |
+|----------|----------------|------|-------------------------|---------------|---------------|
+| `claude-fable-5` | Claude Fable5 | **Mythos** | **$10 input / $50 output** | **80.3%** | First public Mythos-class release (2026-06-09); Stripe migrated 50M LOC in 1 day |
+| `claude-mythos-5` | Claude Mythos5 | **Mythos** | (Preview → pay-as-you-go after 2026-06-23) | (Fable5 tier; cyber/bio/chem auto-routed to Opus 4.8) | Same base model as Fable5; cyber/biology/chemistry requests auto-fallback to Opus 4.8 |
+| `claude-opus-4-8` | Claude Opus 4.8 | Opus | (Anthropic standard tier) | 69.2% (BenchLM SWE-bench Pro 2026-06) | Default cyber/bio/chem fallback for Mythos5 |
+| `claude-opus-4-7` | Claude Opus 4.7 (Adaptive) | Opus | (Anthropic standard tier) | 64.3% (BenchLM SWE-bench Pro 2026-06) | Adaptive reasoning mode |
+| `claude-sonnet-4-6` | Claude Sonnet 4.6 | Sonnet | (Anthropic standard tier) | 77.4% (Vals AI SWE-bench Verified 2026-06) | Cost-optimized tier |
+
+**To route through Fable5 / Mythos5**: set `ANTHROPIC_API_KEY` (subscribed tier) and pass `model: 'claude-fable-5'` (or `claude-mythos-5`) in the extraction config (`ExtractionConfig` in `src/extraction/types.ts`). Pricing reflects Anthropic's 2026-06-09 announcement — **2026-06-23 paid-subscription free quota cutoff**: migrate to API key billing before that date.
+
+Sources:
+- Fable5 launch: <https://thehackernews.com/2026/06/anthropic-releases-claude-fable-5-its.html>
+- Mythos5 + auto-fallback: <https://www.macrumors.com/2026/06/09/anthropic-fable-5/>
+- SWE-bench Pro 80.3% (Fable5): Stripe migration case study, 2026-06-09
+- SWE-bench Pro cross-validation: <https://benchlm.ai/benchmarks/swePro> (Opus 4.8 69.2% / Opus 4.7 64.3%)
+- Vals AI SWE-bench Verified: <https://vals.ai/benchmarks/swebench> (Sonnet 4.6 77.4%)
 
 ## WebSocket API
 

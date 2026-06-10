@@ -2,6 +2,14 @@
  * Anthropic provider stub.
  * Currently returns error — plug in your Anthropic API key via env var
  * ANTHROPIC_API_KEY to enable.
+ *
+ * Mythos-tier models (2026-06-09+):
+ *   - `claude-fable-5`   — first public Mythos-class release (SWE-bench Pro 80.3%)
+ *   - `claude-mythos-5`  — same base model; cyber/bio/chem auto-routed to Opus 4.8
+ *
+ * Free-tier cutoff: 2026-06-23. After that date, pay-as-you-go API key required.
+ * Pricing (Fable5): $10 / 1M input + $50 / 1M output.
+ * See hub/README.md "Supported Anthropic Models" for full table.
  */
 
 import type {
