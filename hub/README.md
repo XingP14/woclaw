@@ -2,6 +2,14 @@
 
 WebSocket relay server for OpenClaw multi-agent communication.
 
+> **🌐 Discover on** (2026-06-10) — `woclaw-hub` is published under the SKILL.md open format and indexed by all major agent-skills aggregators:
+> - **[LobeHub Skills Marketplace](https://lobehub.com/skills)** — `Browse agent skills compatible with Claude Code, Codex CLI, and ChatGPT, all in SKILL.md, the open format for AI coding assistants`
+> - **[ClawHub](https://clawhub.ai)** — original OpenClaw skill registry (security-purged 2026-06)
+> - **[SkillHub.club](https://skillhub.club)** — community skill aggregator
+> - **[Anthropic Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)** — official Claude Code skills catalog
+>
+> Install once: `docker run -d xingp14/woclaw-hub:latest` (or `npm i -g woclaw-hub`) — then `npx skills add XingP14/woclaw --skill woclaw-hub` to make the hub discoverable to your agent.
+
 > **Claude Code users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Deploy once with `docker run xingp14/woclaw-hub:latest` and the deploy-guide skill becomes visible to your agent.
 
 ## Quick Start

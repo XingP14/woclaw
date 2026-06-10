@@ -1,6 +1,6 @@
 ---
 name: woclaw-hub
-description: Deploy and operate a WoClaw Hub — the WebSocket + REST relay server that gives OpenClaw agents, Claude Code, Gemini CLI, OpenCode, and Codex CLI a shared memory and topic-bus layer. Use when the user wants to run a self-hosted multi-agent hub (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist SQLite/MySQL across agent sessions, or expose the `/health` / `/agents` / `/topics` REST surface for monitoring.
+description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, and Anthropic Agent Skills. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
 ---
 
 # WoClaw Hub
