@@ -1,6 +1,7 @@
 ---
 name: woclaw
 description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
+compatible_with: [openclaw, openclaw-runtime, microsoft-scout, claude-code, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes]
 ---
 
 # WoClaw OpenClaw Plugin
@@ -33,6 +34,7 @@ Use this skill when:
 - The user wants to expose the Hub as MCP tools to Claude Desktop / Cursor — use [`woclaw-mcp`](https://www.npmjs.com/package/woclaw-mcp) instead (the plugin speaks the Hub WebSocket directly, not MCP).
 - The user wants to deploy the Hub itself — use [`woclaw-hub`](https://www.npmjs.com/package/woclaw-hub) (Docker / systemd / `npm install -g woclaw-hub`) first; this plugin is a *client* that talks to a Hub.
 - The user wants a VS Code sidebar / status-bar view of Hub state — use [`woclaw-vscode`](https://marketplace.visualstudio.com/items?itemName=XingP14.woclaw-vscode) instead.
+- **Claude Managed Agents / Claude Platform on AWS users** — install `xingp14-woclaw` into a self-hosted sandbox running an OpenClaw runtime (or alongside Microsoft Scout on Windows), point `WOCLAW_HUB_URL` at a Hub reachable through an MCP tunnel, and the `woclaw` channel feeds Managed Agents a privately-hosted Hub. Compatible with dreaming / multiagent orchestration / outcomes workflows (Code with Claude 2026).
 
 ## What this skill installs
 
