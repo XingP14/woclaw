@@ -1,6 +1,7 @@
 ---
 name: woclaw-hub
 description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, and Anthropic Agent Skills. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime]
 ---
 
 # WoClaw Hub
@@ -21,6 +22,7 @@ Use this skill when:
 
 - The user only wants a client-side install of agent hooks — point them to [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) or [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex) instead.
 - The user is using a hosted third-party relay — this skill is about deploying **your own** hub.
+- **Claude Managed Agents / Claude Platform on AWS users** — deploy `woclaw-hub` inside a self-hosted sandbox (Docker or systemd), expose it through an MCP tunnel, and let Managed Agents reach the Hub REST/WS endpoint with a stable private URL. Compatible with dreaming / multiagent orchestration / outcomes / webhooks workflows (Code with Claude 2026).
 - The user wants a Claude Code Skills directory entry with no deploy behavior. This skill IS the deploy guide — for pure discoverability see the README.
 
 ## What this skill installs

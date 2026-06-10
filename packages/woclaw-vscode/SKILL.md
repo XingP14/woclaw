@@ -1,6 +1,7 @@
 ---
 name: woclaw-vscode
 description: View and manage a running WoClaw Hub directly from VS Code — status bar indicator, topic/agent/memory browser, and quick memory peek. Use when the user wants to see whether a WoClaw Hub is alive, browse shared topics, list connected agents, or inspect a `project:context` memory key without leaving the editor.
+compatible_with: [vscode, vs-code-marketplace, claude-code, claude-managed-agents, anthropic-agent-skills]
 ---
 
 # WoClaw VS Code Extension
@@ -21,6 +22,7 @@ Use this skill when:
 - The user wants to **install** WoClaw hooks for Claude Code / Gemini / OpenCode / Codex — use the [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) skill instead (this extension only **reads** Hub state, it does not write hooks).
 - The user wants **shared-memory lifecycle hooks** (SessionStart/SessionStop/PreCompact) wired into a CLI — use [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks).
 - The user wants **OpenAI Codex CLI** with PreCompact + config.toml auto-enable — use [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex).
+- **Claude Managed Agents users** — install this extension inside a VS Code window running inside a self-hosted sandbox and point it at a Hub reachable through an MCP tunnel so Managed Agents can peek Hub state from the editor.
 - The user is on Cursor / Windsurf / Copilot — this extension is published for VS Code Marketplace only; the Hub REST API is the same, so a generic REST client works.
 
 ## What this skill installs

@@ -1,6 +1,7 @@
 ---
 name: woclaw-codex
 description: Install and manage WoClaw shared-memory hooks for OpenAI Codex CLI. Use when the user wants cross-session context between Codex CLI runs and a running WoClaw Hub, or wants to wire SessionStart/Stop/PreCompact Python hooks to a Hub REST API. Complements woclaw-hooks (which targets Claude Code / Gemini / OpenCode) with full Codex-specific PreCompact coverage.
+compatible_with: [openai-codex-cli, codex, python-hooks, claude-managed-agents, aws-platform, mcp-tunnels]
 ---
 
 # WoClaw Codex CLI Integration
@@ -21,6 +22,7 @@ Use this skill when:
 
 - The user only wants a *Claude Code Skills directory entry* with no install behavior. This skill IS the install — if they just want discoverability, point them to the README instead.
 - The WoClaw Hub is not deployed and the user does not want to deploy it.
+- **Claude Managed Agents users (AWS deploy)** — pair this Codex skill with `woclaw-hooks` and run both inside a self-hosted sandbox, pointing `WOCLAW_HUB_URL` at a Hub reachable through an MCP tunnel. Codex-specific PreCompact coverage (which `woclaw-hooks` cannot enable) then feeds Managed Agents a private Hub.
 - The user wants a non-Codex framework — use `woclaw-hooks` instead.
 
 ## What this skill installs

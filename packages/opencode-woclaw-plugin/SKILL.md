@@ -1,6 +1,7 @@
 ---
 name: opencode-woclaw
 description: Install and use the WoClaw Hub plugin for OpenCode CLI — shared memory, topic messaging, and multi-agent context across OpenCode, Claude Code, Gemini CLI, and Codex. Use when the user runs OpenCode and wants to wire session.created/session.compacted/shell.env hooks to a running WoClaw Hub, or share project:context with other agents through one REST/WS API.
+compatible_with: [opencode, opencode-cli, claude-code, gemini-cli, codex, claude-managed-agents, aws-platform, mcp-tunnels, opencode-plugin]
 ---
 
 # WoClaw Plugin for OpenCode
@@ -22,6 +23,7 @@ Use this skill when:
 - The user only wants Claude Code / Gemini / Codex hooks — use [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) (Node-based, broader framework coverage).
 - The user wants a VS Code editor view of the Hub — use [`woclaw-vscode`](https://marketplace.visualstudio.com/items?itemName=XingP14.woclaw-vscode).
 - The WoClaw Hub is not deployed and the user does not want to deploy it.
+- **Claude Managed Agents users (AWS deploy)** — install this OpenCode plugin inside a self-hosted sandbox and route `WOCLAW_HUB_URL` through an MCP tunnel so OpenCode session.created / session.compacted / shell.env hooks can checkpoint memory to a privately-hosted Hub. Compatible with dreaming / multiagent orchestration / outcomes workflows.
 - The user wants MCP server discovery — use [`woclaw-mcp`](https://github.com/XingP14/woclaw/tree/master/mcp-bridge) instead.
 
 ## What this skill installs

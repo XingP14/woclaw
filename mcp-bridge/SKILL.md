@@ -1,6 +1,7 @@
 ---
 name: woclaw-mcp
 description: Bridge a running WoClaw Hub's memory pool and topic messaging to any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, mcphub). Use when the user wants to expose WoClaw shared memory and inter-agent topics as Model Context Protocol tools, or wants to wire `woclaw_memory_read/write/list` and `woclaw_topics_list/topic_messages/topic_send/topic_join` into Claude Desktop or Cursor MCP settings.
+compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels]
 ---
 
 # WoClaw MCP Bridge
@@ -20,6 +21,7 @@ Use this skill when:
 
 - The user only wants shell-level agent hooks for Claude Code / Gemini CLI / OpenCode / OpenAI Codex CLI — recommend the [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) skill instead (it covers SessionStart/Stop/PreCompact lifecycle hooks; `woclaw-mcp` is for IDE-side MCP tool exposure).
 - The user wants to interact with WoClaw Hub directly from a custom Node.js app — point them to the Hub's REST API at `http://<host>:8083` and WebSocket at `ws://<host>:8082` instead.
+- **Claude Managed Agents / Claude Platform on AWS users** — register `woclaw-mcp` as an MCP server inside a self-hosted sandbox and reach it through an MCP tunnel so Managed Agents can call `woclaw_memory_*` / `woclaw_topics_*` tools against a privately-hosted Hub.
 - The WoClaw Hub is not deployed and the user does not want to deploy it.
 
 ## What this skill installs

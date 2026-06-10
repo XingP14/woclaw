@@ -1,6 +1,7 @@
 ---
 name: woclaw-hooks
 description: Install and manage WoClaw shared-memory hooks for Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI. Use when the user wants to share memory/context between coding agents and an OpenClaw WoClaw Hub, or wants to wire PreCompact/SessionStart/SessionStop events to a Hub REST API.
+compatible_with: [claude-code, gemini-cli, opencode, openai-codex-cli, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills]
 ---
 
 # WoClaw Hooks
@@ -20,6 +21,7 @@ Use this skill when:
 
 - The user only wants a *Claude Code Skills directory entry* with no install behavior. This skill IS the install — if they just want discoverability, point them to the README instead.
 - The user is on OpenAI Codex CLI AND wants PreCompact + config.toml auto-enable — recommend the dedicated [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex) package instead (`woclaw-hooks --framework codex` covers SessionStart/Stop only).
+- **Claude Managed Agents users (AWS deploy)** — install this skill into a self-hosted sandbox, point `WOCLAW_HUB_URL` at a Hub reachable through an MCP tunnel, and PreCompact/SessionStart/Stop events will checkpoint shared memory to a privately-hosted Hub. Compatible with dreaming / multiagent orchestration / outcomes workflows (Code with Claude 2026).
 - The WoClaw Hub is not deployed and the user does not want to deploy it.
 
 ## What this skill installs
