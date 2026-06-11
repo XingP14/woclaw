@@ -588,7 +588,7 @@ class SqliteStorage implements DbStorage {
       }
     });
 
-    tx({ key, value, updatedBy, tags, ttl, now, expireAt });
+    tx({ key, value: storedValue, updatedBy, tags, ttl, now, expireAt });
   }
 
   /** Decrypt value if encryption is enabled */
@@ -596,7 +596,7 @@ class SqliteStorage implements DbStorage {
     if (!this.encryption.enabled) return value;
     if (!this.encryption.isEncrypted(value)) return value;
     try {
-      return this.encryption.decrypt(value as any);
+      return deserializeAndDecrypt(value, this.encryption);
     } catch {
       // If decryption fails (e.g. wrong passphrase, corrupted data), return as-is
       return value;
@@ -1101,7 +1101,7 @@ class MySqlStorage implements DbStorage {
     if (!this.encryption.enabled) return value;
     if (!this.encryption.isEncrypted(value)) return value;
     try {
-      return this.encryption.decrypt(value as any);
+      return deserializeAndDecrypt(value, this.encryption);
     } catch {
       return value;
     }
