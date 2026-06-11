@@ -4,6 +4,7 @@
 
 > **🌐 Ecosystem (2026-06-10)** — `xingp14-woclaw` works out-of-the-box on every OpenClaw-compatible runtime, including:
 > - **Microsoft Scout** (Build 2026 keynote, 1000+ Microsoft employees using it)
+> - **Microsoft MXC (Execution Containers) + Nvidia OpenShell Runtime** (Build 2026 OS-level agent sandbox; OpenClaw natively supported)
 > - **Native OpenClaw app for Windows** (pre-installed on Windows)
 > - **Anthropic Agent Skills** (Claude Code / Cursor / OpenCode / Codex CLI via `npx skills add XingP14/woclaw --skill woclaw`)
 >
