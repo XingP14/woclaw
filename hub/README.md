@@ -97,6 +97,65 @@ Sources:
 - SWE-bench Pro cross-validation: <https://benchlm.ai/benchmarks/swePro> (Opus 4.8 69.2% / Opus 4.7 64.3%)
 - Vals AI SWE-bench Verified: <https://vals.ai/benchmarks/swebench> (Sonnet 4.6 77.4%)
 
+## 🐝 Swarm orchestration (subagent coordination)
+
+> **WoClaw Hub is a subagent coordinator for the OpenClaw runtime** — it bridges the 2026 paradigm shift toward fan-out / fan-in agent workflows (Anthropic Opus 4.8 Dynamic Workflows, Hexo Labs SIA) with the local / private OpenClaw channel plugin fleet. Think of it as the "Opus 4.8 fan-out coordinator" layer, but with topics as parallel subagents and the hub WS bus as the dispatch verifier.
+
+**Why this matters (2026-06):**
+- **Anthropic Claude Opus 4.8** (released 2026-05-28, 41 days after Opus 4.7) introduced **Dynamic Workflows** — Claude plans a large task, fans out to 10s–100s of parallel subagents, verifies their outputs, then reports the consolidated result. Same $5/M input + $25/M output pricing as Opus 4.7.
+- **Hexo Labs SIA** (open-sourced 2026-05-29) is a self-improving agent that uses two Claude Sonnet 4.6 instances — a **Meta-Agent** that edits the harness and a **Feedback-Agent** that updates the model weights — coordinated over a shared memory channel.
+- Both releases make **"subagent swarm coordination"** the new main battleground for top-tier 2026 models.
+
+**WoClaw Hub's role in this paradigm:**
+- Each **`topic`** on the hub is a parallel subagent lane (multi-publisher, multi-subscriber, ordered message history).
+- The **WebSocket dispatch bus** (port `8082`) is the fan-out / fan-in coordinator — agents publish partial results, the hub preserves ordering, broadcasts to listeners, and writes shared memory checkpoints.
+- The **shared memory pool** (`/memory` REST + `memory_write` WS) is the verifier checkpoint — subagents write intermediate state, downstream consumers read and verify before accepting outputs.
+- The **extraction provider layer** (`provider: 'anthropic'` with `claude-fable-5` / `claude-opus-4-8`) routes high-reasoning steps through the Mythos-tier models while keeping cheap coordination local.
+
+### Capability mapping (Dynamic Workflows ↔ WoClaw Hub)
+
+| Anthropic Opus 4.8 Dynamic Workflows concept | WoClaw Hub equivalent |
+|-----------------------------------------------|------------------------|
+| Planner (parent Claude) | A coordinator agent publishing a `topic` with a task spec |
+| Fan-out to parallel subagents | Multiple agents joining the same `topic` and processing in parallel |
+| Subagent execution sandbox | Local OpenClaw runtime (`openclaw plugins install woclaw`) per agent |
+| Output verifier | `memory_write` checkpoints + downstream consumers reading `/memory/:key` |
+| Consolidated report | `GET /topics/:topic` history endpoint (last-N aggregation) |
+| Model routing per subagent | `ExtractionConfig.model` per provider call (`claude-fable-5`, `claude-opus-4-8`, etc.) |
+| Cross-run memory (SIA harness edits) | `POST /memory` with TTL + tags for cross-session persistence |
+
+### Minimal swarm pattern
+
+```javascript
+// 1. Coordinator publishes a fan-out task
+ws.send(JSON.stringify({
+  type: 'message',
+  topic: 'swarm.refactor.2026-06-12',
+  content: JSON.stringify({
+    task: 'migrate-stripe-50M-LOC',
+    subtasks: ['auth', 'billing', 'webhooks'],
+    verifier: 'memory://swarm.refactor.status'
+  })
+}));
+
+// 2. Three subagents join, each claims a subtask
+// (agent-a, agent-b, agent-c all ws.send({type:'join', topic:'swarm.refactor.2026-06-12'}))
+
+// 3. Subagents write intermediate checkpoints
+ws.send(JSON.stringify({
+  type: 'memory_write',
+  key: 'swarm.refactor.auth',
+  value: { status: 'done', loc: 12000000, ts: Date.now() }
+}));
+
+// 4. Coordinator polls the verifier checkpoint
+fetch('http://hub:8083/memory/swarm.refactor.auth').then(r => r.json())
+```
+
+**References:**
+- Anthropic Opus 4.8 Dynamic Workflows: <https://9to5mac.com/2026/05/28/anthropic-upgrades-claude-with-new-opus-4-8-model-heres-whats-new/> · <https://opentools.ai/news/claude-opus-4-8-dynamic-workflows-benchmarks-2026>
+- Hexo Labs SIA (Meta-Agent + Feedback-Agent): <https://www.marktechpost.com/2026/05/29/hexo-labs-open-sources-sia-a-self-improving-agent-that-updates-both-the-harness-and-the-model-weights/>
+
 ## WebSocket API
 
 ### Connect
