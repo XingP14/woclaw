@@ -1,7 +1,7 @@
 ---
 name: woclaw-hooks
 description: Install and manage WoClaw shared-memory hooks for Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI. Use when the user wants to share memory/context between coding agents and an OpenClaw WoClaw Hub, or wants to wire PreCompact/SessionStart/SessionStop events to a Hub REST API.
-compatible_with: [claude-code, gemini-cli, opencode, openai-codex-cli, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills]
+compatible_with: [claude-code, gemini-cli, opencode, openai-codex-cli, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh]
 ---
 
 # WoClaw Hooks
@@ -102,3 +102,4 @@ If `--status` reports `Hub reachable: false`, double-check `WOCLAW_HUB_URL` and 
 - Repo: [`packages/woclaw-hooks/`](https://github.com/XingP14/woclaw/tree/master/packages/woclaw-hooks)
 - Hub: [`WoClaw`](https://github.com/XingP14/woclaw)
 - Standard: [Anthropic Agent Skills — SKILL.md frontmatter](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+- Discover on: [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) — 8-marketplace coverage (publish on 2: one free-browsing + one vetted-paid).

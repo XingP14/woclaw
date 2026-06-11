@@ -1,7 +1,7 @@
 ---
 name: opencode-woclaw
 description: Install and use the WoClaw Hub plugin for OpenCode CLI — shared memory, topic messaging, and multi-agent context across OpenCode, Claude Code, Gemini CLI, and Codex. Use when the user runs OpenCode and wants to wire session.created/session.compacted/shell.env hooks to a running WoClaw Hub, or share project:context with other agents through one REST/WS API.
-compatible_with: [opencode, opencode-cli, claude-code, gemini-cli, codex, claude-managed-agents, aws-platform, mcp-tunnels, opencode-plugin]
+compatible_with: [opencode, opencode-cli, claude-code, gemini-cli, codex, claude-managed-agents, aws-platform, mcp-tunnels, opencode-plugin, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh]
 ---
 
 # WoClaw Plugin for OpenCode
@@ -122,3 +122,4 @@ If `woclaw_hub_status` fails, check `WOCLAW_HUB_URL` / `WOCLAW_REST_URL` and tha
 - Hub: [`WoClaw`](https://github.com/XingP14/woclaw)
 - Companion skills: [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) (Claude Code / Gemini / Codex), [`woclaw-vscode`](https://marketplace.visualstudio.com/items?itemName=XingP14.woclaw-vscode) (Hub status UI), [`woclaw-mcp`](https://github.com/XingP14/woclaw/tree/master/mcp-bridge) (MCP server)
 - Standard: [Anthropic Agent Skills — SKILL.md frontmatter](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+- Discover on: [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) — 8-marketplace coverage (publish on 2: one free-browsing + one vetted-paid).

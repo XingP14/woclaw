@@ -1,7 +1,7 @@
 ---
 name: woclaw
 description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Compatible with Claude Code, Codex CLI, and ChatGPT via the SKILL.md open format; indexable by LobeHub Skills Marketplace, ClawHub, SkillHub.club, and the Anthropic Agent Skills catalog. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
-compatible_with: [openclaw, openclaw-runtime, microsoft-scout, claude-code, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills]
+compatible_with: [openclaw, openclaw-runtime, microsoft-scout, claude-code, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills, vercel-skills, agensi, skills-sh]
 ---
 
 # WoClaw OpenClaw Plugin
@@ -28,8 +28,11 @@ This `SKILL.md` ships with open-format frontmatter so the package is indexable b
 - **Anthropic Agent Skills (Claude Code)** — Claude Code 4 (April 2026 redesign) and Anthropic Agent SDK dynamically discover this package via its `SKILL.md` frontmatter. Install: `npx skills add XingP14/woclaw --skill woclaw`.
 - **Microsoft Scout** — Scout indexes any OpenClaw plugin that ships a `SKILL.md`. No additional command — Scout picks up the skill on host startup.
 - **Native OpenClaw app for Windows** — pre-installed skill catalog; no extra command.
+- **Vercel (vercel-labs/skills)** — https://github.com/vercel-labs/skills — Vercel's open registry positioning itself as "npm for agent skills" (distribution leader). Install: `npx skills add XingP14/woclaw --skill woclaw --registry vercel`.
+- **Agensi** — https://www.agensi.io — curated skills catalog with 8-point security scan + 80/20 creator payments + one-time-purchase model. Install: `curl -fsSL https://agensi.io/install | woclaw --skill woclaw`.
+- **Skills.sh** — https://skills.sh — one of the largest open catalogs of agent skills. Install: `npx skills.sh install XingP14/woclaw --skill woclaw`.
 
-The same `xingp14-woclaw@0.4.3` package is therefore discoverable from Claude Code, Codex CLI, ChatGPT, Microsoft Scout, the native OpenClaw Windows app, and every Claude-Code-compatible skills aggregator (LobeHub / ClawHub / SkillHub.club / Anthropic catalog / vercel-labs/skills / anthropics/skills) — install once, surface everywhere.
+The same `xingp14-woclaw@0.4.3` package is therefore discoverable from Claude Code, Codex CLI, ChatGPT, Microsoft Scout, the native OpenClaw Windows app, and every Claude-Code-compatible skills aggregator (LobeHub / ClawHub / SkillHub.club / Anthropic catalog / Vercel / Agensi / Skills.sh) — install once, surface everywhere. The 2026-Q2 community-recommended pattern is to publish on **2 marketplaces** — one **free-browsing** (LobeHub / Skills.sh / SkillHub.club) plus one **vetted-paid** (Agensi) — to capture both discovery and monetization traffic.
 
 ## When to use this skill
 

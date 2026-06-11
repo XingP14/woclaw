@@ -1,12 +1,26 @@
 ---
 name: woclaw-hub
-description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, and Anthropic Agent Skills. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
-compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime]
+description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, Anthropic Agent Skills, Vercel (vercel-labs/skills), Agensi, and Skills.sh. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh]
 ---
 
 # WoClaw Hub
 
 `woclaw-hub` is the long-lived relay at the heart of the WoClaw ecosystem. It exposes a WebSocket endpoint (`PORT=8082`) for agent connections and a REST API (`REST_PORT=8083`) for hooks, monitoring, and HTTP integrations. Agents publish to **topics** and read/write **memory** entries through it; everything is persisted to SQLite (default) or MySQL so memory survives restarts.
+
+## Discover on (skills marketplaces)
+
+This `SKILL.md` ships with open-format frontmatter so the hub is indexable by every major agent-skills aggregator. Pick whichever registry the user is already browsing:
+
+- **LobeHub Skills Marketplace** — https://lobehub.com/skills — open-format skills catalog (Claude Code / Codex CLI / ChatGPT). Listed via frontmatter `name` + `description` keywords.
+- **ClawHub** — https://clawhub.ai — agent skills registry, security-purged (13,729 → 3,286 skills, May 2026). Install: `npx clawhub install XingP14/woclaw --skill woclaw-hub`.
+- **SkillHub.club** — community-driven skills directory. Install: `npx skillhub add XingP14/woclaw --skill woclaw-hub`.
+- **Anthropic Agent Skills (Claude Code)** — Claude Code 4 + Anthropic Agent SDK dynamically discover this package via its `SKILL.md` frontmatter. Install: `npx skills add XingP14/woclaw --skill woclaw-hub`.
+- **Vercel (vercel-labs/skills)** — https://github.com/vercel-labs/skills — "npm for agent skills" distribution leader. Install: `npx skills add XingP14/woclaw --skill woclaw-hub --registry vercel`.
+- **Agensi** — https://www.agensi.io — curated catalog with 8-point security scan + 80/20 creator payments + one-time-purchase model. Install: `curl -fsSL https://agensi.io/install | woclaw --skill woclaw-hub`.
+- **Skills.sh** — https://skills.sh — one of the largest open agent-skills catalogs. Install: `npx skills.sh install XingP14/woclaw --skill woclaw-hub`.
+
+The 2026-Q2 community-recommended pattern is to publish on **2 marketplaces** — one **free-browsing** (LobeHub / Skills.sh / SkillHub.club) plus one **vetted-paid** (Agensi) — to capture both discovery and monetization traffic.
 
 ## When to use this skill
 

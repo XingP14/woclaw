@@ -14,6 +14,9 @@
 > - **[ClawHub](https://clawhub.ai)** — agent skills registry (security-purged to 3,286 skills, May 2026)
 > - **[SkillHub.club](https://skillhub.club)** — community-driven skills directory
 > - **[Anthropic Agent Skills](https://github.com/anthropics/skills)** — Claude Code 4 + Anthropic Agent SDK
+> - **[Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills)** — "npm for agent skills" distribution leader
+> - **[Agensi](https://www.agensi.io)** — curated catalog with 8-point security scan + 80/20 creator payments
+> - **[Skills.sh](https://skills.sh)** — one of the largest open agent-skills catalogs
 > - **Microsoft Scout** + **Native OpenClaw app for Windows** — indexed on host startup
 >
 > Install once (`openclaw plugins install woclaw`), discoverable everywhere.

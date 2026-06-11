@@ -1,7 +1,7 @@
 ---
 name: woclaw-vscode
 description: View and manage a running WoClaw Hub directly from VS Code — status bar indicator, topic/agent/memory browser, and quick memory peek. Use when the user wants to see whether a WoClaw Hub is alive, browse shared topics, list connected agents, or inspect a `project:context` memory key without leaving the editor.
-compatible_with: [vscode, vs-code-marketplace, claude-code, claude-managed-agents, anthropic-agent-skills]
+compatible_with: [vscode, vs-code-marketplace, claude-code, claude-managed-agents, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh]
 ---
 
 # WoClaw VS Code Extension
@@ -100,3 +100,4 @@ If status bar is red, check `woclaw.hubUrl` and that `curl http://<host>:8083/he
 - Hub: [`WoClaw`](https://github.com/XingP14/woclaw)
 - Companion skills: [`woclaw-hooks`](https://www.npmjs.com/package/woclaw-hooks) (install hooks), [`woclaw-codex`](https://www.npmjs.com/package/woclaw-codex) (OpenAI Codex CLI)
 - Standard: [Anthropic Agent Skills — SKILL.md frontmatter](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+- Discover on: [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) — 8-marketplace coverage (publish on 2: one free-browsing + one vetted-paid).
