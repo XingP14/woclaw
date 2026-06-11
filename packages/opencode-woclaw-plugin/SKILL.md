@@ -1,7 +1,7 @@
 ---
 name: opencode-woclaw
 description: Install and use the WoClaw Hub plugin for OpenCode CLI — shared memory, topic messaging, and multi-agent context across OpenCode, Claude Code, Gemini CLI, and Codex. Use when the user runs OpenCode and wants to wire session.created/session.compacted/shell.env hooks to a running WoClaw Hub, or share project:context with other agents through one REST/WS API.
-compatible_with: [opencode, opencode-cli, claude-code, gemini-cli, codex, claude-managed-agents, aws-platform, mcp-tunnels, opencode-plugin, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh]
+compatible_with: [opencode, opencode-cli, claude-code, gemini-cli, codex, claude-managed-agents, aws-platform, mcp-tunnels, opencode-plugin, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned]
 ---
 
 # WoClaw Plugin for OpenCode

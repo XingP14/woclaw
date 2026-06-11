@@ -1,7 +1,7 @@
 ---
 name: woclaw-mcp
 description: Bridge a running WoClaw Hub's memory pool and topic messaging to any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, mcphub). Use when the user wants to expose WoClaw shared memory and inter-agent topics as Model Context Protocol tools, or wants to wire `woclaw_memory_read/write/list` and `woclaw_topics_list/topic_messages/topic_send/topic_join` into Claude Desktop or Cursor MCP settings.
-compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels]
+compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned]
 ---
 
 # WoClaw MCP Bridge
