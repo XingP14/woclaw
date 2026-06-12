@@ -156,6 +156,39 @@ fetch('http://hub:8083/memory/swarm.refactor.auth').then(r => r.json())
 - Anthropic Opus 4.8 Dynamic Workflows: <https://9to5mac.com/2026/05/28/anthropic-upgrades-claude-with-new-opus-4-8-model-heres-whats-new/> · <https://opentools.ai/news/claude-opus-4-8-dynamic-workflows-benchmarks-2026>
 - Hexo Labs SIA (Meta-Agent + Feedback-Agent): <https://www.marktechpost.com/2026/05/29/hexo-labs-open-sources-sia-a-self-improving-agent-that-updates-both-the-harness-and-the-model-weights/>
 
+## 🚀 OpenClaw 2026.6.5 parallel web search compatible
+
+**OpenClaw 2026.6.5** (released 2026-06-12) ships **built-in parallel web search** — an agent can fan out multiple search queries concurrently, collect results, and merge. WoClaw Hub's **topic lane model is a perfect coordination layer** for this:
+
+- One **OpenClaw 2026.6.5 parallel search subtask** = one `topic` on the hub + one subagent.
+- The **WebSocket dispatch bus** (port `8082`) routes the parallel query fan-out and aggregates per-subtask results.
+- The **shared memory pool** (`/memory` REST) caches search results, so subsequent turns can reuse them without re-running the same query.
+- The **REST `/agents` endpoint** reports per-subagent completion back to the coordinator.
+
+| OpenClaw 2026.6.5 concept | WoClaw Hub equivalent |
+|------------------------------|------------------------|
+| Parallel web search lane | `topic` (one per parallel search) |
+| Search query fan-out | `message` WS frames published to a topic |
+| Search result cache | `POST /memory` with `key=<query-hash>` + TTL |
+| Subtask completion report | `GET /agents` (filter by `topic` membership) |
+| Coordinator fan-in | `GET /topics/:topic?limit=N` (history merge) |
+
+References: [OpenClaw 2026.6.5 release notes (Facebook / releasebot.io)](https://releasebot.io/updates/openclaw).
+
+## 🧬 Recursive self-improvement compatible (Anthropic 2026-06)
+
+**Anthropic's "When AI builds itself"** research (2026-06) describes Claude running open-ended research loops: propose hypothesis → test → share findings with parallel agents → iterate. By June 2026, **76% open-ended task success** (up from 26% in December 2025, +50pp in 6 months). One agent fixed a routine-upgrade bug in 2 hours that would have taken an engineer 2–3 days.
+
+WoClaw Hub's **shared memory pool** is the natural **cross-run checkpoint** for these self-improving agent loops:
+
+- Hypotheses, test results, and findings persist as **`memory` entries with `tags`** for downstream parallel agents to read.
+- The `POST /memory` endpoint accepts arbitrary JSON payloads — agents store intermediate state, subagents share discoveries, the parent reads aggregated state to decide next iteration.
+- `GET /memory?tags=hypothesis,iteration-N` lets the coordinator slice the experiment timeline.
+
+This positions WoClaw Hub as the **private, self-hostable checkpoint layer** for any agent fleet that wants to do recursive self-improvement without depending on a single vendor's hosted service.
+
+References: [Anthropic — When AI builds itself (2026-06)](https://www.anthropic.com/institute/recursive-self-improvement).
+
 ## WebSocket API
 
 ### Connect

@@ -1,7 +1,7 @@
 ---
 name: woclaw-hub
 description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, Anthropic Agent Skills, Vercel (vercel-labs/skills), Agensi, and Skills.sh. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
-compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned]
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement]
 ---
 
 # WoClaw Hub
@@ -141,6 +141,13 @@ curl -fsS "http://localhost:8083/memory/smoke" \
 | `agents` count stuck at 0 in `/health` | Clients connect but don't heartbeat | Check client lifecycle — most agents heartbeat every 30s |
 | MySQL "access denied" | `MYSQL_PASSWORD` not URL-safe or wrong user | Re-issue creds, prefer `MYSQL_PASSWORD_FILE` (docker secret) |
 | Federation replication stalls | Clock skew between hubs > 60s | Run `chrony` / `ntpdate` on both hosts |
+
+## Compatible with
+
+In addition to Claude Code / Codex CLI / ChatGPT skills marketplaces above, this hub is compatible with:
+
+- **OpenClaw 2026.6.5** — built-in parallel web search lanes map 1-to-1 to hub `topic` lanes (one topic = one parallel search subagent). See `## 🐝 Swarm orchestration` above.
+- **Anthropic recursive self-improvement (2026-06)** — `memory pool` serves as the cross-run checkpoint for Claude agents that propose hypotheses → test → share findings with parallel agents → iterate (76% open-ended task success in June 2026, +50pp in 6 months).
 
 ## Source
 
