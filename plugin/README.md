@@ -7,6 +7,7 @@
 > - **Microsoft MXC (Execution Containers) + Nvidia OpenShell Runtime** (Build 2026 OS-level agent sandbox; OpenClaw natively supported)
 > - **Native OpenClaw app for Windows** (pre-installed on Windows)
 > - **Anthropic Agent Skills** (Claude Code / Cursor / OpenCode / Codex CLI via `npx skills add XingP14/woclaw --skill woclaw`)
+> - **Anthropic Agent SDK credit split (2026-06-15)** — billing-aware compatible skill; subscription users can set `ANTHROPIC_AGENT_SDK_CREDIT_MONITOR=1` to track credit burn
 >
 > See [SKILL.md → Ecosystem](./SKILL.md#ecosystem-compatible-platforms) for details.
 
