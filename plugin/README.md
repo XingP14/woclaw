@@ -14,6 +14,8 @@
 >
 > See [SKILL.md → Ecosystem](./SKILL.md#ecosystem-compatible-platforms) for details.
 
+> **📂 Skill folder structure (Anthropic 2026-06-03 paradigm)** — `xingp14-woclaw` ships as a folder, not a flat Markdown. The npm tarball carries `bin/woclaw` (CLI), `bin/woclaw-cli` (migrate), `lib/install.js` (channel installer), `openclaw/channel.json` (registration), `templates/` (config), and `SKILL.md` itself. Per the [Anthropic 2026-06-03 internal-engineering post](https://www.cnblogs.com/itech/p/20341682), a Skill is a folder with `scripts/` + `resources/` + `data/` + `templates/` + `hooks/` — and woclaw follows that shape. The 7-subpackage woclaw monorepo classifies each SKILL.md with `skill_type` (one of 9 categories) and `folder_structure: true` so LobeHub / ClawHub / Anthropic / Vercel / Agensi / Skills.sh marketplaces can route the skills into the right catalog page and resolve the actual subpaths.
+
 > **🔍 Discover on (skills marketplaces)** — `xingp14-woclaw` ships an open-format `SKILL.md` so it is indexable from every major agent-skills aggregator:
 > - **[LobeHub Skills Marketplace](https://lobehub.com/skills)** — open-format skills catalog for Claude Code / Codex CLI / ChatGPT
 > - **[ClawHub](https://clawhub.ai)** — agent skills registry (security-purged to 3,286 skills, May 2026)
