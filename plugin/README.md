@@ -11,6 +11,7 @@
 > - **Anthropic 2026-06 third-party agent uses reinstated** — OpenClaw-channel traffic once again counts against the subscription quota (dual-track alongside Agent SDK credit pool); set `ANTHROPIC_AGENT_SDK_CREDIT_MONITOR=0` to route woclaw traffic back to subscription pool
 > - **Complements 2026 top-10 Agent Skills** (per CSDN 2026-05-08 roundup) — companion for Superpowers (dev workflow), planning-with-files (durable checkpoint), claude-scientific-skills (research fan-out), ui-ux-pro-max-skill (UI design), obsidian-skills (knowledge base)
 > - **Claude Agent SDK** (2026-04 开源 + 2026-05 改名, 6.6k★, anthropics/claude-agent-sdk-python) — works as a first-class SDK tool via `query()` / `tool()` decorators across Python / TypeScript / Rust / Go / C# SDKs + Apple Xcode 26.3 native integration
+> - **Claude Code v2.1.157 auto-load (2026-05-29)** — drop `plugin/*` into `<project>/.claude/skills/woclaw/` and Claude Code v2.1.157+ auto-loads woclaw as a local plugin on startup with no `/plugin marketplace add` step; `claude plugin init <name>` scaffold matches woclaw's folder shape so woclaw is a reference deployable for the new plugin-de-marketplace paradigm
 >
 > See [SKILL.md → Ecosystem](./SKILL.md#ecosystem-compatible-platforms) for details.
 

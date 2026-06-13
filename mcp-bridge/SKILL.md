@@ -1,7 +1,7 @@
 ---
 name: woclaw-mcp
 description: Bridge a running WoClaw Hub's memory pool and topic messaging to any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, mcphub). Use when the user wants to expose WoClaw shared memory and inter-agent topics as Model Context Protocol tools, or wants to wire `woclaw_memory_read/write/list` and `woclaw_topics_list/topic_messages/topic_send/topic_join` into Claude Desktop or Cursor MCP settings.
-compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk]
+compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable]
 skill_type: library-api-reference
 folder_structure: true
 ---
@@ -115,6 +115,8 @@ If step1 returns non-200, the Hub is down — start it before retrying.
 - **Token mismatch**: Hub returns `401` on memory ops or rejects WS handshake. Fix: align `--token` with the Hub's `WOCLAW_TOKEN` env.
 - **Stale dist/**: edits to `src/index.js` not picked up because `build` is `cp -f src/index.js dist/`. Fix: `cd mcp-bridge && npm run build` after every source change.
 - **Claude Desktop does not see tools**: confirm `claude_desktop_config.json` path is correct and that the JSON is valid (no trailing commas). Restart Claude Desktop after edits.
+
+- **Claude Code v2.1.157 auto-load compatible (2026-05-29)** — drop `mcp-bridge/*` into `<project>/.claude/skills/woclaw-mcp/` and Claude Code v2.1.157+ auto-loads this MCP-bridge skill on startup with no `/plugin marketplace add` step.
 
 ## Source
 
