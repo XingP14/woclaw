@@ -12,6 +12,7 @@
 > - **Complements 2026 top-10 Agent Skills** (per CSDN 2026-05-08 roundup) — companion for Superpowers (dev workflow), planning-with-files (durable checkpoint), claude-scientific-skills (research fan-out), ui-ux-pro-max-skill (UI design), obsidian-skills (knowledge base)
 > - **Claude Agent SDK** (2026-04 开源 + 2026-05 改名, 6.6k★, anthropics/claude-agent-sdk-python) — works as a first-class SDK tool via `query()` / `tool()` decorators across Python / TypeScript / Rust / Go / C# SDKs + Apple Xcode 26.3 native integration
 > - **Claude Code v2.1.157 auto-load (2026-05-29)** — drop `plugin/*` into `<project>/.claude/skills/woclaw/` and Claude Code v2.1.157+ auto-loads woclaw as a local plugin on startup with no `/plugin marketplace add` step; `claude plugin init <name>` scaffold matches woclaw's folder shape so woclaw is a reference deployable for the new plugin-de-marketplace paradigm
+> - **Claude Skill Creator 2.0 verifiable (2026-05-17)** — ships a test fixture at `plugin/tests/test_plugin_skill.json` (3 test cases: channel registration / topic send roundtrip / memory read roundtrip) + A/B decision rule + auto-optimize trigger, so `claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json --ab [--auto-optimize]` runs in CI on every plugin version bump and computes baseline vs. skill-on deltas
 >
 > See [SKILL.md → Ecosystem](./SKILL.md#ecosystem-compatible-platforms) for details.
 

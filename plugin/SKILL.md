@@ -1,7 +1,7 @@
 ---
 name: woclaw
 description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub — give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Compatible with Claude Code, Codex CLI, and ChatGPT via the SKILL.md open format; indexable by LobeHub Skills Marketplace, ClawHub, SkillHub.club, and the Anthropic Agent Skills catalog. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
-compatible_with: [openclaw, openclaw-runtime, microsoft-scout, microsoft-mxc, openshell-runtime, windows-execution-containers, claude-code, claude-code-2-5, claude-managed-agents, claude-code-managed-agents-v2, autonomous-research-agents, openclaw-paradigm-aligned, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills, vercel-skills, agensi, skills-sh, claude-agent-sdk-credit, anthropic-subscription-v2, claude-subscription-restored-2026-06, anthropic-third-party-agents-reinstated, superpowers-compat, planning-with-files-compat, claude-scientific-skills-compat, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable]
+compatible_with: [openclaw, openclaw-runtime, microsoft-scout, microsoft-mxc, openshell-runtime, windows-execution-containers, claude-code, claude-code-2-5, claude-managed-agents, claude-code-managed-agents-v2, autonomous-research-agents, openclaw-paradigm-aligned, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills, vercel-skills, agensi, skills-sh, claude-agent-sdk-credit, anthropic-subscription-v2, claude-subscription-restored-2026-06, anthropic-third-party-agents-reinstated, superpowers-compat, planning-with-files-compat, claude-scientific-skills-compat, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger]
 skill_type: channel-plugin
 folder_structure: true
 ---
@@ -54,6 +54,31 @@ The same `xingp14-woclaw@0.4.3` package is therefore discoverable from Claude Co
 [Claude Code v2.1.157](https://github.com/anthropics/claude-code/releases/tag/v2.1.157) (2026-05-29, [CSDN summary](https://blog.csdn.net/Rthan/article/details/161548843), [second summary](https://blog.csdn.net/edwinjhlee/article/details/161537229)) introduced the **plugin-de-marketplace paradigm shift**: (a) **"Plugins in `.claude/skills/` directories are now automatically loaded, no marketplace required"** — a local `.claude/skills/<name>/` folder holding a plugin is auto-discovered and loaded by Claude Code on startup, with no `/plugin marketplace add` or `/plugin install` step, and (b) **`claude plugin init <name>`** scaffolds a new plugin directly inside `.claude/skills/<name>/` (one command generates the standard folder structure with `SKILL.md` + `plugin.json` + `commands/` + `agents/` placeholders). The `.claude/skills/` path is now a **first-class** Skill directory alongside `.claude/agents/`, `.claude/commands/`, and `.claude/memory.md` in the standard Claude Code workspace layout (per the [2026-05-08 CSDN directory-structure roundup](https://blog.csdn.net/12lisu/p/19906066)).
 
 The woclaw OpenClaw channel plugin is `dot-claude-skills-deployable`: users can `git clone https://github.com/XingP14/woclaw` and then `cp -r plugin/* my-project/.claude/skills/woclaw/` (or the equivalent per-subpackage copy for `hub/`, `mcp-bridge/`, `packages/woclaw-hooks/`, `packages/woclaw-vscode/`, `packages/codex-woclaw/`, `packages/opencode-woclaw-plugin/`) and Claude Code v2.1.157+ will auto-load woclaw as a **local plugin without touching the marketplace registry** — the marketplace is no longer the only distribution path. Conversely, the woclaw folder structure (frontmatter `SKILL.md` + `bin/` + `openclaw/channel.json` + `templates/` + `lib/install.js`) matches the shape that `claude plugin init woclaw` would generate, so woclaw can serve as a **reference scaffold** for users bootstrapping their own `.claude/skills/<name>/` plugin. The `claude-code-v2-1-157-auto-load` / `dot-claude-skills-deployable` frontmatter flags let the v2.1.157 plugin loader match woclaw against its `auto_load_dirs: [.claude/skills/]` rule and skip the marketplace-resolver step. Same workflow across all 7 subpackages — once the per-package `SKILL.md` is in `.claude/skills/<name>/`, Claude Code picks it up.
+
+## Skill Creator 2.0 verifiable (2026-05-17, 评测/A-B/auto-optimize)
+
+Anthropic updated [Skill Creator 2.0](https://www.cnblogs.com/lsgxeva/p/20065996) on 2026-05-17 with three new capabilities that change Skill from "write-and-publish" to "evaluate-driven iteration":
+
+- **评测功能 (Eval)** — Claude auto-generates test inputs, runs the same input with the Skill enabled vs. disabled, and quantifies pass-rate / failure cases / concrete deltas — closing the "run eval → analyze failure → targeted fix → re-eval" loop.
+- **A/B 基准测试** — The same input set is run side-by-side under "Skill loaded" vs. "Skill not loaded" to remove preference bias. Decision rule: Skill underperforms → delete; slightly ahead → keep; significantly ahead → continue. CI-friendly.
+- **自动优化触发** — On model update or scenario change, Skill Creator auto-triggers re-eval (no manual kick-off).
+
+The woclaw OpenClaw channel plugin ships **verifiability metadata** so Skill Creator 2.0 can auto-generate tests against it: a test fixture lives at `plugin/tests/test_plugin_skill.json` with 3 test cases covering (1) channel registration against a real `WOCLAW_HUB_URL` (expected: 200 + channel id `woclaw`), (2) `woclaw send <topic> <msg>` end-to-end (expected: topic message_count +1), and (3) `woclaw memory read <key>` round-trip (expected: matches written value). Each case carries `expected_outputs` + `baseline_score` (no-skill) + `skill_score` (skill-on) so Skill Creator 2.0 can compute the delta.
+
+**Eval recipe (Anthropic Skill Creator 2.0):**
+
+```bash
+# Single eval (one-shot, no A/B)
+claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json
+
+# A/B mode (Skill-on vs Skill-off, decision rule above)
+claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json --ab
+
+# Auto-optimize trigger (run on every plugin version bump)
+claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json --ab --auto-optimize
+```
+
+The three new frontmatter flags — `claude-skill-creator-v2` / `skill-creator-ab-compatible` / `skill-auto-optimize-trigger` — let the Skill Creator 2.0 loader match woclaw against its evaluator registry and run the fixture without manual scaffolding. Anthropic's internal Skill team (and the Anthropic Agent Skills catalog) can now drop woclaw into their CI eval pipeline and get a per-version score automatically. Same pattern applies to all 7 subpackages — each carries its own `tests/test_<subpackage>_skill.json` fixture.
 
 ## When to use this skill
 

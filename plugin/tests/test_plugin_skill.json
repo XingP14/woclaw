@@ -1,0 +1,86 @@
+{
+  "skill": "woclaw",
+  "skill_version": "0.4.3",
+  "evaluator": "claude-skill-creator-v2",
+  "evaluator_version": "2026-05-17",
+  "ab_compatible": true,
+  "auto_optimize_trigger": true,
+  "description": "Verifiability fixture for the woclaw OpenClaw channel plugin. Consumed by Claude Skill Creator 2.0 (claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json [--ab] [--auto-optimize]) to compute baseline_score (Skill-off) vs. skill_score (Skill-on) deltas on every plugin version bump.",
+  "test_cases": [
+    {
+      "id": "tc-01-channel-registration",
+      "name": "Channel registration against a real WoClaw Hub",
+      "input": {
+        "env": {
+          "WOCLAW_HUB_URL": "ws://hub.example.local:8082",
+          "WOCLAW_REST_URL": "http://hub.example.local:8083",
+          "WOCLAW_TOKEN": "${WOCLAW_TOKEN}",
+          "WOCLAW_AGENT_ID": "test-agent-01"
+        },
+        "command": "openclaw plugins install woclaw && openclaw channels list"
+      },
+      "expected_outputs": {
+        "channel_id": "woclaw",
+        "channel_label": "WoClaw",
+        "hub_http_status": 200,
+        "channel_status": "registered"
+      },
+      "baseline_score": 0.0,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.5,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-02-topic-send-roundtrip",
+      "name": "woclaw send <topic> <msg> end-to-end (WS publish + REST history)",
+      "input": {
+        "command": "woclaw send eval-room 'hello from skill-creator-2.0'"
+      },
+      "expected_outputs": {
+        "ws_publish_ack": true,
+        "topic_message_count_delta": 1,
+        "rest_history_last_message": "hello from skill-creator-2.0"
+      },
+      "baseline_score": 0.2,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.4,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-03-memory-read-roundtrip",
+      "name": "woclaw memory read <key> after woclaw memory write",
+      "input": {
+        "commands": [
+          "woclaw memory write eval-key '{\"verifier\":\"skill-creator-v2\",\"run\":\"ci-2026-06-14\"}'",
+          "woclaw memory read eval-key",
+          "woclaw peek eval-key"
+        ]
+      },
+      "expected_outputs": {
+        "write_ack": true,
+        "read_payload_matches_written": true,
+        "peek_value_matches_written": true,
+        "rest_memory_endpoint_status": 200
+      },
+      "baseline_score": 0.3,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.3,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    }
+  ],
+  "eval_metadata": {
+    "compatible_with": [
+      "claude-skill-creator-v2",
+      "skill-creator-ab-compatible",
+      "skill-auto-optimize-trigger"
+    ],
+    "ab_mode_command": "claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json --ab",
+    "auto_optimize_command": "claude skill eval woclaw --tests plugin/tests/test_plugin_skill.json --ab --auto-optimize",
+    "ci_recommended": true,
+    "run_on": [
+      "plugin version bump (package.json version change)",
+      "model update (Claude 4.x → 4.y)",
+      "OpenClaw runtime version bump (>=2026.1.0)"
+    ]
+  }
+}
