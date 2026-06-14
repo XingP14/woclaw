@@ -118,6 +118,16 @@ The OpenClaw scanner skips dependency/cache trees such as `node_modules/`, `.git
 
 Requires a running WoClaw Hub. See [WoClaw](https://github.com/XingP14/woclaw) for setup.
 
+## Skill Creator 2.0 verifiable (2026-05-17)
+
+The skill ships with a `tests/test_woclaw_hooks_skill.json` fixture that Anthropic Skill Creator 2.0 can consume for eval / A-B / auto-optimize runs:
+
+```bash
+claude skill eval woclaw-hooks --tests packages/woclaw-hooks/tests/test_woclaw_hooks_skill.json --ab --auto-optimize
+```
+
+3 test cases cover PreCompact smoke, SessionStop status, and credential-payload refusal (Varonis Pinchy phishing-resistant guarantee).
+
 ## License
 
 MIT

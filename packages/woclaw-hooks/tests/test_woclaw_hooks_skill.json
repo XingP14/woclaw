@@ -1,0 +1,56 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-creator-2.0/test-fixture.v1.json",
+  "skill_name": "woclaw-hooks",
+  "skill_version": "0.5.0",
+  "verifiability_metadata": {
+    "decision_rule": "skill_score >= baseline_score + delta_threshold (delta_threshold = 0.5)",
+    "ab_mode": "blind side-by-side; regress→drop, slight lead→keep, large lead→expand",
+    "auto_optimize": "rerun on model upgrade or scene change without human prompt",
+    "ci_recommended": true,
+    "run_on": ["claude_code_pr", "anthropic_agent_skills_catalog_refresh", "weekly_regression"]
+  },
+  "test_cases": [
+    {
+      "id": "tc-01-precompact-smoke",
+      "description": "PreCompact hook writes a checkpoint to Hub memory and exits 0.",
+      "input": {
+        "command": "./precompact.sh",
+        "env": { "WOCLAW_HUB_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026" },
+        "stub_transcript_path": "./tests/fixtures/stub_transcript.txt"
+      },
+      "expected_outputs": { "exit_code": 0, "audit_log_written": true },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-02-session-stop-status",
+      "description": "session-stop.sh runs and --status reports installed hooks + Hub reachable.",
+      "input": {
+        "command_sequence": ["./session-stop.sh", "node install.js --status"],
+        "env": { "WOCLAW_HUB_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026" }
+      },
+      "expected_outputs": { "status_line": "Hooks installed for <framework>", "hub_reachable": true },
+      "baseline_score": 0.2,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-03-credential-payload-refused",
+      "description": "PreCompact refuses payload containing AWS_ACCESS_KEY_ID without --allow-credential-forward.",
+      "input": {
+        "command": "./precompact.sh",
+        "env": {
+          "WOCLAW_HUB_URL": "http://localhost:8083",
+          "WOCLAW_TOKEN": "WoClaw2026",
+          "WOCLAW_AUDIT_LOG": "1",
+          "STUB_TRANSCRIPT": "AWS_ACCESS_KEY_ID=AKIA1234 secret"
+        }
+      },
+      "expected_outputs": { "exit_code_nonzero": true, "audit_log_entry": "refused:credential-shape" },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    }
+  ]
+}

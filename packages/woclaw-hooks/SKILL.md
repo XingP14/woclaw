@@ -1,7 +1,7 @@
 ---
 name: woclaw-hooks
 description: Install and manage WoClaw shared-memory hooks for Claude Code, Gemini CLI, OpenCode, and OpenAI Codex CLI. Use when the user wants to share memory/context between coding agents and an OpenClaw WoClaw Hub, or wants to wire PreCompact/SessionStart/SessionStop events to a Hub REST API.
-compatible_with: [claude-code, gemini-cli, opencode, openai-codex-cli, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
+compatible_with: [claude-code, gemini-cli, opencode, openai-codex-cli, claude-managed-agents, aws-platform, mcp-tunnels, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
 skill_type: workflow-orchestration
 folder_structure: true
 ---
@@ -107,3 +107,25 @@ If `--status` reports `Hub reachable: false`, double-check `WOCLAW_HUB_URL` and 
 - Discover on: [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) — 8-marketplace coverage (publish on 2: one free-browsing + one vetted-paid).
 - **Claude Code v2.1.157 auto-load (2026-05-29)** — drop `packages/woclaw-hooks/*` into `<project>/.claude/skills/woclaw-hooks/` and Claude Code v2.1.157+ auto-loads the lifecycle-hooks skill on startup with no marketplace step; `claude plugin init woclaw-hooks` matches this folder shape.
 - **Varonis Pinchy phishing-resistant compatible (2026-06-10)** — Varonis Threat Labs proved OpenClaw agents can be socially engineered into forwarding credentials; the lifecycle hooks refuse to checkpoint payloads matching AWS_/SECRET/SSH-KEY/DB-PASS without `--allow-credential-forward`, audit every PreCompact/SessionStart/Stop event to `~/.woclaw/audit.log` by default (`WOCLAW_AUDIT_LOG=1`), and when woclaw-hooks runs inside Microsoft MXC the OS-level sandbox plus the credential-shape filter plus the audit log form a three-layer trust stack — `phishing-resistant-2026-06` / `varonis-openclaw-pinchy` / `openclaw-os-level-sandbox-mxc-pin`.
+
+## Skill Creator 2.0 verifiable (2026-05-17, 评测 / A-B / auto-optimize)
+
+This SKILL.md ships with a verifiability fixture at `tests/test_woclaw_hooks_skill.json` consumable by Anthropic **Skill Creator 2.0** (released 2026-05-17), which added three capabilities: (a) **eval** — Claude auto-generates test inputs, runs the Skill-on vs Skill-off pair, and quantifies pass-rate / failure / delta; (b) **A/B benchmarks** — same input set under loaded-vs-unloaded Skill, blind side-by-side, decision rule (regress → drop / slight lead → keep / large lead → expand); (c) **auto-optimize trigger** — Skill Creator 2.0 re-runs the suite on model upgrade or scene change without human prompting.
+
+Run against this skill from CI:
+
+```bash
+# baseline vs skill-on delta
+claude skill eval woclaw-hooks --tests packages/woclaw-hooks/tests/test_woclaw_hooks_skill.json
+# A/B mode
+claude skill eval woclaw-hooks --tests packages/woclaw-hooks/tests/test_woclaw_hooks_skill.json --ab
+# auto-optimize on regression
+claude skill eval woclaw-hooks --tests packages/woclaw-hooks/tests/test_woclaw_hooks_skill.json --ab --auto-optimize
+```
+
+Three woclaw-hooks verifiability cases ship in the fixture:
+- **tc-01-precompact-smoke** — invoke `precompact.sh` with a stub Claude Code `transcript_path` and confirm it exits 0 and writes a checkpoint payload to `WOCLAW_HUB_URL/memory/project:context` via curl (PreCompact lifecycle correctness).
+- **tc-02-session-stop-status** — invoke `session-stop.sh` then run `woclaw-hooks --status` and assert the status line reports `Hooks installed for <framework>` with `Hub reachable: true` (session-end lifecycle + status introspection).
+- **tc-03-credential-payload-refused** — invoke `precompact.sh` with a payload containing `AWS_ACCESS_KEY_ID=` and confirm the script exits non-zero (or logs a refused-message to `~/.woclaw/audit.log`) under the default `WOCLAW_AUDIT_LOG=1` (Varonis Pinchy phishing-resistant guarantee).
+
+Decision rule per case: `skill_score >= baseline_score + delta_threshold` (delta_threshold = 0.5). The fixture is part of the npm tarball (`files: ["tests/**/*"]` in `packages/woclaw-hooks/package.json`) so a `npm install woclaw-hooks` user gets the fixture immediately.
