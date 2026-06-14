@@ -1,7 +1,7 @@
 ---
 name: woclaw-mcp
 description: Bridge a running WoClaw Hub's memory pool and topic messaging to any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, mcphub). Use when the user wants to expose WoClaw shared memory and inter-agent topics as Model Context Protocol tools, or wants to wire `woclaw_memory_read/write/list` and `woclaw_topics_list/topic_messages/topic_send/topic_join` into Claude Desktop or Cursor MCP settings.
-compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable]
+compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger]
 skill_type: library-api-reference
 folder_structure: true
 ---
@@ -117,6 +117,28 @@ If step1 returns non-200, the Hub is down — start it before retrying.
 - **Claude Desktop does not see tools**: confirm `claude_desktop_config.json` path is correct and that the JSON is valid (no trailing commas). Restart Claude Desktop after edits.
 
 - **Claude Code v2.1.157 auto-load compatible (2026-05-29)** — drop `mcp-bridge/*` into `<project>/.claude/skills/woclaw-mcp/` and Claude Code v2.1.157+ auto-loads this MCP-bridge skill on startup with no `/plugin marketplace add` step.
+
+## Skill Creator 2.0 verifiable (2026-05-17, 评测 / A-B / auto-optimize)
+
+This SKILL.md ships with a verifiability fixture at `tests/test_mcp_bridge_skill.json` consumable by Anthropic **Skill Creator 2.0** (released 2026-05-17), which added three capabilities: (a) **eval** — Claude auto-generates test inputs, runs the Skill-on vs Skill-off pair, and quantifies pass-rate / failure / delta; (b) **A/B benchmarks** — same input set under loaded-vs-unloaded Skill, blind side-by-side, decision rule (regress → drop / slight lead → keep / large lead → expand); (c) **auto-optimize trigger** — Skill Creator 2.0 re-runs the suite on model upgrade or scene change without human prompting.
+
+Run against this skill from CI:
+
+```bash
+# baseline vs skill-on delta
+claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json
+# A/B mode
+claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json --ab
+# auto-optimize on regression
+claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json --ab --auto-optimize
+```
+
+Three MCP-bridge verifiability cases ship in the fixture:
+- **tc-01-mcp-handshake** — spawn `node dist/index.js --hub ws://localhost:8082` and confirm the MCP server prints its `Server started` line on stdout within 2s (startup smoke).
+- **tc-02-memory-write-read-roundtrip** — call `woclaw_memory_write` then `woclaw_memory_read` over the MCP transport and assert the read echoes the write payload byte-for-byte (memory tool correctness).
+- **tc-03-topic-send-list-roundtrip** — call `woclaw_topic_send` with a fresh `topic=<uuid>`, then `woclaw_topics_list` and assert the topic appears with the message count ≥ 1 (topic tool correctness).
+
+Decision rule per case: `skill_score >= baseline_score + delta_threshold` (delta_threshold = 0.5). The fixture is part of the npm tarball (`files: ["tests/**/*"]` in `mcp-bridge/package.json`) so a `npm install woclaw-mcp` user gets the fixture immediately.
 
 ## Source
 

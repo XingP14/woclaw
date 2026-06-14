@@ -1,7 +1,7 @@
 {
   "name": "woclaw-mcp",
   "version": "0.1.2",
-  "description": "WoClaw MCP Bridge - exposes WoClaw Hub memory and topics as MCP tools",
+  "description": "WoClaw MCP Bridge - exposes WoClaw Hub memory and topics as MCP tools. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_mcp_bridge_skill.json.",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -32,6 +32,7 @@
     "dist/**/*",
     "README.md",
     "SKILL.md",
+    "tests/**/*",
     "LICENSE"
   ]
 }

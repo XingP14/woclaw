@@ -1,0 +1,91 @@
+{
+  "skill": "woclaw-mcp",
+  "skill_version": "0.1.2",
+  "evaluator": "claude-skill-creator-v2",
+  "evaluator_version": "2026-05-17",
+  "ab_compatible": true,
+  "auto_optimize_trigger": true,
+  "description": "Verifiability fixture for the woclaw-mcp Model Context Protocol bridge. Consumed by Claude Skill Creator 2.0 (claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json [--ab] [--auto-optimize]) to compute baseline_score (Skill-off) vs. skill_score (Skill-on) deltas on every MCP-bridge version bump, smoke-testing the MCP server handshake, memory write/read round-trip, and topic send/list round-trip against a local WoClaw Hub.",
+  "test_cases": [
+    {
+      "id": "tc-01-mcp-handshake",
+      "name": "MCP server startup handshake (Server started on stdout within 2s)",
+      "input": {
+        "env": {
+          "WOCLAW_REST_URL": "http://localhost:8083",
+          "WOCLAW_TOKEN": "${WOCLAW_TOKEN}"
+        },
+        "command": "cd mcp-bridge && timeout 5 node dist/index.js --hub ws://localhost:8082 --token ${WOCLAW_TOKEN} --rest-url http://localhost:8083 2>&1 | head -20",
+        "timeout_seconds": 5
+      },
+      "expected_outputs": {
+        "stdout_contains": [
+          "Server started",
+          "woclaw-mcp"
+        ],
+        "exit_code_within_2s": 0,
+        "process_alive_after_startup": true
+      },
+      "baseline_score": 0.0,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.5,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-02-memory-write-read-roundtrip",
+      "name": "MCP memory write → read round-trip (echo payload byte-for-byte)",
+      "input": {
+        "env": {
+          "WOCLAW_REST_URL": "http://localhost:8083",
+          "WOCLAW_TOKEN": "${WOCLAW_TOKEN}"
+        },
+        "command": "node ./test/run-mcp-tools.mjs --tool woclaw_memory_write --args '{\"key\":\"test:mcp-roundtrip\",\"value\":\"hello-from-skill-creator\"}' && node ./test/run-mcp-tools.mjs --tool woclaw_memory_read --args '{\"key\":\"test:mcp-roundtrip\"}'",
+        "timeout_seconds": 10
+      },
+      "expected_outputs": {
+        "read_echoes_write": true,
+        "read_value_equals": "hello-from-skill-creator",
+        "http_status_intermediate": [200, 200],
+        "memory_entry_persisted": true
+      },
+      "baseline_score": 0.0,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.5,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-03-topic-send-list-roundtrip",
+      "name": "MCP topic send → topics_list round-trip (topic appears with message_count >= 1)",
+      "input": {
+        "env": {
+          "WOCLAW_REST_URL": "http://localhost:8083",
+          "WOCLAW_TOKEN": "${WOCLAW_TOKEN}"
+        },
+        "command": "TOPIC=$(uuidgen) && node ./test/run-mcp-tools.mjs --tool woclaw_topic_send --args \"{\\\"topic\\\":\\\"$TOPIC\\\",\\\"message\\\":\\\"hello-topic\\\"}\" && node ./test/run-mcp-tools.mjs --tool woclaw_topics_list --args '{}' | grep \"$TOPIC\"",
+        "timeout_seconds": 10
+      },
+      "expected_outputs": {
+        "topic_appears_in_list": true,
+        "message_count_minimum": 1,
+        "http_status_intermediate": [200, 200],
+        "topic_payload_echoed": true
+      },
+      "baseline_score": 0.0,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.5,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    }
+  ],
+  "eval_metadata": {
+    "ab_mode_command": "claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json --ab",
+    "auto_optimize_command": "claude skill eval woclaw-mcp --tests mcp-bridge/tests/test_mcp_bridge_skill.json --ab --auto-optimize",
+    "ci_recommended": true,
+    "run_on": [
+      "every mcp-bridge version bump",
+      "every WoClaw Hub protocol change",
+      "every MCP SDK upgrade"
+    ],
+    "minimum_score_to_keep_skill": 0.5,
+    "regression_action": "drop-or-fix before publish"
+  }
+}
