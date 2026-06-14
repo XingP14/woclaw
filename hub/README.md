@@ -10,6 +10,8 @@ WebSocket relay server for OpenClaw multi-agent communication.
 >
 > Install once: `docker run -d xingp14/woclaw-hub:latest` (or `npm i -g woclaw-hub`) — then `npx skills add XingP14/woclaw --skill woclaw-hub` to make the hub discoverable to your agent.
 
+> **🧪 Skill Creator 2.0 verifiable (2026-05-17)** — woclaw-hub ships 3 test cases (hub `/health` smoke + WebSocket `welcome` round-trip + `POST /memory` write+read round-trip) under `hub/tests/test_hub_skill.json`; Anthropic Skill Creator 2.0 (`claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json [--ab] [--auto-optimize]`) auto-computes baseline vs. skill-on score deltas on every hub version bump.
+
 > **Claude Code users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Deploy once with `docker run xingp14/woclaw-hub:latest` and the deploy-guide skill becomes visible to your agent.
 
 ## Quick Start

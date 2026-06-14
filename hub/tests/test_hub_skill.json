@@ -1,0 +1,85 @@
+{
+  "skill": "woclaw-hub",
+  "skill_version": "0.5.0",
+  "evaluator": "claude-skill-creator-v2",
+  "evaluator_version": "2026-05-17",
+  "ab_compatible": true,
+  "auto_optimize_trigger": true,
+  "description": "Verifiability fixture for the woclaw-hub self-hosted multi-agent relay. Consumed by Claude Skill Creator 2.0 (claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json [--ab] [--auto-optimize]) to compute baseline_score (Skill-off) vs. skill_score (Skill-on) deltas on every hub version bump, smoke-testing /health, WebSocket welcome frame, and REST memory round-trip against a live hub.",
+  "test_cases": [
+    {
+      "id": "tc-01-hub-health",
+      "name": "Hub /health smoke probe (REST 200 + status=ok)",
+      "input": {
+        "env": {
+          "WOCLAW_REST_URL": "http://hub.example.local:8083",
+          "WOCLAW_TOKEN": "${WOCLAW_TOKEN}"
+        },
+        "command": "curl -fsS http://hub.example.local:8083/health"
+      },
+      "expected_outputs": {
+        "http_status": 200,
+        "body_status": "ok",
+        "body_has_uptime_seconds": true,
+        "body_has_agents_count": true,
+        "body_has_topics_count": true
+      },
+      "baseline_score": 0.0,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.5,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-02-ws-welcome-roundtrip",
+      "name": "WebSocket welcome frame + /agents registration with valid agentId+token",
+      "input": {
+        "command": "wscat -c \"ws://hub.example.local:8082?agentId=skill-eval-01&token=${WOCLAW_TOKEN}\" --no-color -x ''"
+      },
+      "expected_outputs": {
+        "ws_first_frame_type": "welcome",
+        "ws_welcome_payload_has_agentId": "skill-eval-01",
+        "rest_agents_list_contains_skill_eval_01": true,
+        "disconnect_reason_clean": true
+      },
+      "baseline_score": 0.2,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.4,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    },
+    {
+      "id": "tc-03-rest-memory-roundtrip",
+      "name": "POST /memory write + GET /memory/<key> read round-trip with bearer token",
+      "input": {
+        "commands": [
+          "curl -fsS -X POST http://hub.example.local:8083/memory -H \"Authorization: Bearer ${WOCLAW_TOKEN}\" -H \"Content-Type: application/json\" -d '{\"key\":\"eval-key\",\"value\":\"{\\\"verifier\\\":\\\"skill-creator-v2\\\",\\\"run\\\":\\\"ci-2026-06-14\\\"}\",\"agentId\":\"skill-eval-01\"}'",
+          "curl -fsS \"http://hub.example.local:8083/memory/eval-key\" -H \"Authorization: Bearer ${WOCLAW_TOKEN}\""
+        ]
+      },
+      "expected_outputs": {
+        "write_ack_http_status": 200,
+        "read_http_status": 200,
+        "read_value_matches_written": true,
+        "rest_memory_endpoint_persisted": true
+      },
+      "baseline_score": 0.3,
+      "skill_score_target": 1.0,
+      "delta_threshold": 0.3,
+      "decision_rule": "skill_score >= baseline_score + delta_threshold"
+    }
+  ],
+  "eval_metadata": {
+    "compatible_with": [
+      "claude-skill-creator-v2",
+      "skill-creator-ab-compatible",
+      "skill-auto-optimize-trigger"
+    ],
+    "ab_mode_command": "claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab",
+    "auto_optimize_command": "claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab --auto-optimize",
+    "ci_recommended": true,
+    "run_on": [
+      "hub version bump (package.json version change)",
+      "model update (Claude 4.x → 4.y)",
+      "OpenClaw runtime version bump (>=2026.1.0)"
+    ]
+  }
+}

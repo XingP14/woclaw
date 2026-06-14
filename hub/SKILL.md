@@ -1,7 +1,7 @@
 ---
 name: woclaw-hub
 description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, Anthropic Agent Skills, Vercel (vercel-labs/skills), Agensi, and Skills.sh. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
-compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable]
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger]
 skill_type: workflow-orchestration
 folder_structure: true
 ---
@@ -23,6 +23,31 @@ This `SKILL.md` ships with open-format frontmatter so the hub is indexable by ev
 - **Skills.sh** — https://skills.sh — one of the largest open agent-skills catalogs. Install: `npx skills.sh install XingP14/woclaw --skill woclaw-hub`.
 
 The 2026-Q2 community-recommended pattern is to publish on **2 marketplaces** — one **free-browsing** (LobeHub / Skills.sh / SkillHub.club) plus one **vetted-paid** (Agensi) — to capture both discovery and monetization traffic.
+
+## Skill Creator 2.0 verifiable (2026-05-17, 评测/A-B/auto-optimize)
+
+Anthropic updated [Skill Creator 2.0](https://www.cnblogs.com/lsgxeva/p/20065996) on 2026-05-17 with three new capabilities that change Skill from "write-and-publish" to "evaluate-driven iteration":
+
+- **评测功能 (Eval)** — Claude auto-generates test inputs, runs the same input with the Skill enabled vs. disabled, and quantifies pass-rate / failure cases / concrete deltas — closing the "run eval → analyze failure → targeted fix → re-eval" loop.
+- **A/B 基准测试** — The same input set is run side-by-side under "Skill loaded" vs. "Skill not loaded" to remove preference bias. Decision rule: Skill underperforms → delete; slightly ahead → keep; significantly ahead → continue. CI-friendly.
+- **自动优化触发** — On model update or scenario change, Skill Creator auto-triggers re-eval (no manual kick-off).
+
+The woclaw-hub ships **verifiability metadata** so Skill Creator 2.0 can auto-generate tests against it: a test fixture lives at `hub/tests/test_hub_skill.json` with 3 test cases covering (1) hub `/health` smoke (expected: 200 + `{"status":"ok",...}`), (2) WebSocket `welcome` frame round-trip with valid `agentId`+`token` (expected: server emits `welcome` then registers in `/agents` list), and (3) `POST /memory` + `GET /memory/<key>` round-trip with bearer token (expected: written value matches read value, 200 OK). Each case carries `expected_outputs` + `baseline_score` (no-skill) + `skill_score_target` (skill-on) so Skill Creator 2.0 can compute the delta.
+
+**Eval recipe (Anthropic Skill Creator 2.0):**
+
+```bash
+# Single eval (one-shot, no A/B)
+claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json
+
+# A/B mode (Skill-on vs Skill-off, decision rule above)
+claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab
+
+# Auto-optimize trigger (run on every hub version bump)
+claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab --auto-optimize
+```
+
+The three new frontmatter flags — `claude-skill-creator-v2` / `skill-creator-ab-compatible` / `skill-auto-optimize-trigger` — let the Skill Creator 2.0 loader match woclaw-hub against its evaluator registry and run the fixture without manual scaffolding. Anthropic's internal Skill team (and the Anthropic Agent Skills catalog) can now drop the hub into their CI eval pipeline and get a per-version score automatically. Same pattern applies to all 7 subpackages — each carries its own `tests/test_<subpackage>_skill.json` fixture.
 
 ## When to use this skill
 

@@ -1,7 +1,7 @@
 {
   "name": "woclaw-hub",
   "version": "0.5.0",
-  "description": "WoClaw Hub - WebSocket relay server for OpenClaw multi-agent communication",
+  "description": "WoClaw Hub - WebSocket relay server for OpenClaw multi-agent communication (Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_hub_skill.json)",
   "main": "dist/index.js",
   "type": "module",
   "keywords": ["openclaw", "claude-code", "woclaw", "hub", "websocket", "relay", "shared-memory", "agent-skills", "claude-skills", "anthropic-skills"],
@@ -35,6 +35,8 @@
   },
   "files": [
     "dist/**/*",
+    "tests/**/*",
+    "SKILL.md",
     "README.md",
     "LICENSE"
   ],
