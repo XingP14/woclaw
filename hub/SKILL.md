@@ -1,7 +1,7 @@
 ---
 name: woclaw-hub
 description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, Anthropic Agent Skills, Vercel (vercel-labs/skills), Agensi, and Skills.sh. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
-compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger]
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
 skill_type: workflow-orchestration
 folder_structure: true
 ---
@@ -176,6 +176,7 @@ In addition to Claude Code / Codex CLI / ChatGPT skills marketplaces above, this
 - **OpenClaw 2026.6.5** — built-in parallel web search lanes map 1-to-1 to hub `topic` lanes (one topic = one parallel search subagent). See `## 🐝 Swarm orchestration` above.
 - **Anthropic recursive self-improvement (2026-06)** — `memory pool` serves as the cross-run checkpoint for Claude agents that propose hypotheses → test → share findings with parallel agents → iterate (76% open-ended task success in June 2026, +50pp in 6 months).
 - **Claude Code v2.1.157 auto-load (2026-05-29)** — drop `hub/*` into `<project>/.claude/skills/woclaw-hub/` and Claude Code v2.1.157+ auto-loads the hub skill on startup with no `/plugin marketplace add` step; the `claude plugin init <name>` scaffold matches woclaw's folder shape, so woclaw-hub is a reference deployable.
+- **Varonis Pinchy phishing-resistant compatible (2026-06-10)** — Varonis Threat Labs proved OpenClaw agents can be socially engineered into forwarding credentials; the woclaw-hub refuses to relay payloads that match AWS_/SECRET/SSH-KEY/DB-PASS patterns without `--allow-credential-forward`, audits every send/write to `~/.woclaw/audit.log` by default (`WOCLAW_AUDIT_LOG=1`), and runs behind Microsoft MXC OS-level sandbox on Scout / Windows app deployments — `phishing-resistant-2026-06` / `varonis-openclaw-pinchy` / `openclaw-os-level-sandbox-mxc-pin`.
 
 ## Source
 

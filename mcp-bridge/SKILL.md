@@ -1,7 +1,7 @@
 ---
 name: woclaw-mcp
 description: Bridge a running WoClaw Hub's memory pool and topic messaging to any MCP-capable AI agent (Claude Desktop, Cursor, Windsurf, mcphub). Use when the user wants to expose WoClaw shared memory and inter-agent topics as Model Context Protocol tools, or wants to wire `woclaw_memory_read/write/list` and `woclaw_topics_list/topic_messages/topic_send/topic_join` into Claude Desktop or Cursor MCP settings.
-compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger]
+compatible_with: [mcp, model-context-protocol, claude-desktop, cursor, windsurf, mcphub, claude-code, claude-managed-agents, mcp-tunnels, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
 skill_type: library-api-reference
 folder_structure: true
 ---
@@ -117,6 +117,7 @@ If step1 returns non-200, the Hub is down — start it before retrying.
 - **Claude Desktop does not see tools**: confirm `claude_desktop_config.json` path is correct and that the JSON is valid (no trailing commas). Restart Claude Desktop after edits.
 
 - **Claude Code v2.1.157 auto-load compatible (2026-05-29)** — drop `mcp-bridge/*` into `<project>/.claude/skills/woclaw-mcp/` and Claude Code v2.1.157+ auto-loads this MCP-bridge skill on startup with no `/plugin marketplace add` step.
+- **Varonis Pinchy phishing-resistant compatible (2026-06-10)** — Varonis Threat Labs proved OpenClaw agents can be socially engineered into forwarding credentials; the woclaw-mcp bridge enforces payload-shape filtering (refuses AWS_/SECRET/SSH-KEY/DB-PASS payloads without explicit `--allow-credential-forward`), `WOCLAW_AUDIT_LOG=1` is on by default, and combined with Microsoft MXC + OpenShell Runtime OS-level sandbox forms a three-layer trust stack for enterprise MCP deployments — `phishing-resistant-2026-06` / `varonis-openclaw-pinchy` / `openclaw-os-level-sandbox-mxc-pin`.
 
 ## Skill Creator 2.0 verifiable (2026-05-17, 评测 / A-B / auto-optimize)
 
