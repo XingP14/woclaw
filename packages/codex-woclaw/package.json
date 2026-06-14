@@ -1,7 +1,7 @@
 {
   "name": "woclaw-codex",
   "version": "0.1.2",
-  "description": "WoClaw integration for OpenAI Codex CLI — shared context across sessions",
+  "description": "WoClaw integration for OpenAI Codex CLI — shared context across sessions. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_codex_woclaw_skill.json.",
   "keywords": [
     "woclaw",
     "codex",
@@ -16,7 +16,10 @@
   ],
   "files": [
     "*.py",
-    "install.py"
+    "install.py",
+    "tests/**/*",
+    "SKILL.md",
+    "README.md"
   ],
   "bin": {
     "woclaw-codex": "./bin/cli.js"

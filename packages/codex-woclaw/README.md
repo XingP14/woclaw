@@ -76,3 +76,11 @@ After npm install, users get:
 ```
 npx woclaw-codex install   # installs hooks
 ```
+
+## 🧪 Skill Creator 2.0 verifiable (2026-05-17)
+
+This package ships with `tests/test_codex_woclaw_skill.json` (3 test cases covering `install.py` end-to-end / `session_start.py` POST `/memory` round-trip / `precompact.py` checkpoint write) so Anthropic Skill Creator 2.0 can run A/B benchmarking and auto-optimize triggers on upgrade:
+
+```bash
+claude skill eval woclaw-codex --tests tests/test_codex_woclaw_skill.json --ab [--auto-optimize]
+```

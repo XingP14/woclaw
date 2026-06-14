@@ -1,0 +1,98 @@
+{
+  "skill": "woclaw-codex",
+  "skill_version": "0.1.2",
+  "schema_version": "claude-skill-creator-v2",
+  "description": "Verifiable test fixture for woclaw-codex (Codex-CLI bridge). Consumed by Claude Skill Creator 2.0 (2026-05-17) for A/B benchmarking and auto-optimize triggers.",
+  "test_cases": [
+    {
+      "id": "tc-01",
+      "name": "Python install.py end-to-end smoke",
+      "input": {
+        "command": "python3 install.py --dry-run",
+        "env": {
+          "WOCLAW_HUB_URL": "http://127.0.0.1:8083",
+          "WOCLAW_TOKEN": "fixture-token",
+          "WOCLAW_DRY_RUN": "1"
+        },
+        "expect": [
+          "WOCLAW_HUB_URL detected",
+          "session_start.py registered",
+          "stop.py registered",
+          "precompact.py registered"
+        ]
+      },
+      "expected_outputs": {
+        "exit_code": 0,
+        "stdout_contains": ["session_start.py", "stop.py", "precompact.py", "DRY-RUN"],
+        "stderr_contains": []
+      },
+      "baseline_score": 0.85,
+      "skill_score_target": 0.95,
+      "delta_threshold": 0.08,
+      "decision_rule": "skill_score >= baseline + delta_threshold → retain; else fall back to baseline"
+    },
+    {
+      "id": "tc-02",
+      "name": "session_start.py POST /memory write round-trip",
+      "input": {
+        "command": "python3 session_start.py",
+        "env": {
+          "WOCLAW_HUB_URL": "http://127.0.0.1:8083",
+          "WOCLAW_TOKEN": "fixture-token",
+          "WOCLAW_AGENT_ID": "codex-eval-fixture",
+          "WOCLAW_CONTEXT_KEY": "codex:context"
+        },
+        "expect": [
+          "POST /memory/codex:context → 200",
+          "GET /memory/codex:context → echo"
+        ]
+      },
+      "expected_outputs": {
+        "exit_code": 0,
+        "stdout_contains": ["POST /memory", "200", "session context loaded"],
+        "stderr_contains": []
+      },
+      "baseline_score": 0.78,
+      "skill_score_target": 0.92,
+      "delta_threshold": 0.10,
+      "decision_rule": "skill_score >= baseline + delta_threshold → retain; else fall back to baseline"
+    },
+    {
+      "id": "tc-03",
+      "name": "precompact.py checkpoint write before Hub compress",
+      "input": {
+        "command": "python3 precompact.py --context-window-tokens 180000",
+        "env": {
+          "WOCLAW_HUB_URL": "http://127.0.0.1:8083",
+          "WOCLAW_TOKEN": "fixture-token",
+          "WOCLAW_AGENT_ID": "codex-eval-fixture",
+          "WOCLAW_CONTEXT_KEY": "codex:context"
+        },
+        "expect": [
+          "PreCompact checkpoint flushed to Hub BEFORE compression",
+          "POST /memory/codex:context → 200",
+          "checkpoint_size_bytes recorded"
+        ]
+      },
+      "expected_outputs": {
+        "exit_code": 0,
+        "stdout_contains": ["PreCompact checkpoint", "checkpoint_size_bytes"],
+        "stderr_contains": []
+      },
+      "baseline_score": 0.70,
+      "skill_score_target": 0.90,
+      "delta_threshold": 0.15,
+      "decision_rule": "skill_score >= baseline + delta_threshold → retain; else fall back to baseline"
+    }
+  ],
+  "eval_metadata": {
+    "ab_mode_command": "claude skill eval woclaw-codex --tests tests/test_codex_woclaw_skill.json --ab",
+    "auto_optimize_command": "claude skill eval woclaw-codex --tests tests/test_codex_woclaw_skill.json --ab --auto-optimize",
+    "ci_recommended": true,
+    "run_on": [
+      "model_update",
+      "skill_version_bump",
+      "hub_protocol_change"
+    ]
+  }
+}
