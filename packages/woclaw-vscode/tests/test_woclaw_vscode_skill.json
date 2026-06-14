@@ -1,0 +1,56 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-creator-2.0/test-fixture.v1.json",
+  "skill_name": "woclaw-vscode",
+  "skill_version": "0.1.0",
+  "verifiability_metadata": {
+    "decision_rule": "skill_score >= baseline_score + delta_threshold (delta_threshold = 0.5)",
+    "ab_mode": "blind side-by-side; regress→drop, slight lead→keep, large lead→expand",
+    "auto_optimize": "rerun on model upgrade or scene change without human prompt",
+    "ci_recommended": true,
+    "run_on": ["vsce_pr", "anthropic_agent_skills_catalog_refresh", "weekly_regression"]
+  },
+  "test_cases": [
+    {
+      "id": "tc-01-status-bar-health-up",
+      "description": "Status bar item resolves to green 🟢 WoClaw: up after one poll cycle when Hub /health returns ok.",
+      "input": {
+        "command_sequence": ["node out/extension.js --simulate-poll"],
+        "env": { "WOCLAW_HUB_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026" },
+        "stub_health_response": { "status": "ok", "uptime": 12345, "agents": 2, "topics": 3 }
+      },
+      "expected_outputs": { "status_bar_text": "WoClaw: up (2 agents, 3 topics)", "status_bar_color": "green" },
+      "baseline_score": 0.1,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-02-sidebar-tree-topics",
+      "description": "WoClaw sidebar tree renders 2 topics with name + message_count + agent_count from /topics payload.",
+      "input": {
+        "command_sequence": ["node out/extension.js --simulate-tree-refresh"],
+        "env": { "WOCLAW_HUB_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026" },
+        "stub_topics_response": [
+          { "name": "general", "message_count": 12, "agent_count": 2 },
+          { "name": "ops",     "message_count": 5,  "agent_count": 1 }
+        ]
+      },
+      "expected_outputs": { "tree_node_count": 2, "tree_field_complete": true },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-03-peek-memory-key-readonly",
+      "description": "WoClaw: Peek Memory Key opens project:context in read-only editor (Varonis Pinchy phishing-resistant).",
+      "input": {
+        "command_sequence": ["node out/extension.js --simulate-peek project:context"],
+        "env": { "WOCLAW_HUB_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026" },
+        "stub_memory_response": { "key": "project:context", "value": "shared agent context body", "tags": ["project"] }
+      },
+      "expected_outputs": { "editor_opened": true, "editor_readonly": true, "editable": false },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    }
+  ]
+}

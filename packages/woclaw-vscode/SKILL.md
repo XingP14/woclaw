@@ -1,7 +1,7 @@
 ---
 name: woclaw-vscode
 description: View and manage a running WoClaw Hub directly from VS Code — status bar indicator, topic/agent/memory browser, and quick memory peek. Use when the user wants to see whether a WoClaw Hub is alive, browse shared topics, list connected agents, or inspect a `project:context` memory key without leaving the editor.
-compatible_with: [vscode, vs-code-marketplace, claude-code, claude-managed-agents, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
+compatible_with: [vscode, vs-code-marketplace, claude-code, claude-managed-agents, anthropic-agent-skills, lobehub-skills-marketplace, clawhub-skills, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
 skill_type: code-templates
 folder_structure: true
 ---
@@ -105,3 +105,25 @@ If status bar is red, check `woclaw.hubUrl` and that `curl http://<host>:8083/he
 - Discover on: [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) — 8-marketplace coverage (publish on 2: one free-browsing + one vetted-paid).
 - **Claude Code v2.1.157 auto-load (2026-05-29)** — drop `packages/woclaw-vscode/*` into `<project>/.claude/skills/woclaw-vscode/` and Claude Code v2.1.157+ auto-loads the VS Code status-bar UI skill on startup with no marketplace step.
 - **Varonis Pinchy phishing-resistant compatible (2026-06-10)** — Varonis Threat Labs proved OpenClaw agents can be socially engineered into forwarding credentials; the VS Code status-bar UI refuses to render "forward credentials to …" prompts and the underlying `woclaw` channel filters payloads matching AWS_/SECRET/SSH-KEY/DB-PASS without `--allow-credential-forward`; `WOCLAW_AUDIT_LOG=1` is on by default so enterprise security teams can audit what was sent — `phishing-resistant-2026-06` / `varonis-openclaw-pinchy` / `openclaw-os-level-sandbox-mxc-pin`.
+
+## Skill Creator 2.0 verifiable (2026-05-17, 评测 / A-B / auto-optimize)
+
+This SKILL.md ships with a verifiability fixture at `tests/test_woclaw_vscode_skill.json` consumable by Anthropic **Skill Creator 2.0** (released 2026-05-17), which added three capabilities: (a) **eval** — Claude auto-generates test inputs, runs the Skill-on vs Skill-off pair, and quantifies pass-rate / failure / delta; (b) **A/B benchmarks** — same input set under loaded-vs-unloaded Skill, blind side-by-side, decision rule (regress → drop / slight lead → keep / large lead → expand); (c) **auto-optimize trigger** — Skill Creator 2.0 re-runs the suite on model upgrade or scene change without human prompting.
+
+Run against this skill from CI:
+
+```bash
+# baseline vs skill-on delta
+claude skill eval woclaw-vscode --tests packages/woclaw-vscode/tests/test_woclaw_vscode_skill.json
+# A/B mode
+claude skill eval woclaw-vscode --tests packages/woclaw-vscode/tests/test_woclaw_vscode_skill.json --ab
+# auto-optimize on regression
+claude skill eval woclaw-vscode --tests packages/woclaw-vscode/tests/test_woclaw_vscode_skill.json --ab --auto-optimize
+```
+
+Three woclaw-vscode verifiability cases ship in the fixture:
+- **tc-01-status-bar-health-up** — stub a Hub `GET /health` returning `{"status":"ok"}` and assert the extension's status-bar item resolves to 🟢 `WoClaw: up (N agents, M topics)` after one poll cycle (status-bar Hub probe correctness).
+- **tc-02-sidebar-tree-topics** — stub `GET /topics` returning a 2-topic payload and assert the "WoClaw" sidebar tree renders both topics with name + message_count + agent_count (tree-view Hub read correctness).
+- **tc-03-peek-memory-key-readonly** — invoke `WoClaw: Peek Memory Key` with key `project:context`, stub `GET /memory/project:context` returning a 200 with body, and assert the editor tab opens in **read-only** mode (no edits allowed, prevents credential exfiltration via editor save-as — Varonis Pinchy phishing-resistant guarantee).
+
+Decision rule per case: `skill_score >= baseline_score + delta_threshold` (delta_threshold = 0.5). The fixture is part of the npm tarball (`files: ["tests/**/*"]` in `packages/woclaw-vscode/package.json`) so a `npm install woclaw-vscode` user (or VS Code Marketplace install) gets the fixture immediately for Skill Creator 2.0 CI eval.

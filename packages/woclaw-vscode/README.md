@@ -4,6 +4,8 @@
 
 > **Claude Code / Cursor / Copilot users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Install once from the VS Code Marketplace and the skill becomes visible to your agent.
 
+> **🌐 Ecosystem**: discoverable on [LobeHub](https://lobehub.com/skills) · [ClawHub](https://clawhub.ai) · [SkillHub.club](https://skillhub.club) · [Vercel (vercel-labs/skills)](https://github.com/vercel-labs/skills) · [Agensi](https://www.agensi.io) · [Skills.sh](https://skills.sh) (8-marketplace coverage); compatible with Claude Code v2.1.157 `.claude/skills/` auto-load; **Skill Creator 2.0 verifiable (2026-05-17)** — ships `tests/test_woclaw_vscode_skill.json` with 3 cases (status-bar health / sidebar tree / read-only peek), runnable in CI via `claude skill eval woclaw-vscode --tests packages/woclaw-vscode/tests/test_woclaw_vscode_skill.json --ab [--auto-optimize]`.
+
 ## 功能
 
 - **状态栏**：显示 Hub 连接状态、在线 agent 数量、topic 数量

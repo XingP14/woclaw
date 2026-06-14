@@ -1,13 +1,15 @@
 {
   "name": "woclaw-vscode",
   "displayName": "WoClaw",
-  "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory",
+  "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_woclaw_vscode_skill.json.",
   "version": "0.1.0",
   "license": "MIT",
   "keywords": ["woclaw", "vscode", "openclaw", "agent-skills", "claude-skills", "anthropic-skills", "claude-code", "hub", "shared-memory"],
   "files": [
     "out/**/*",
     "media/**/*",
+    "SKILL.md",
+    "tests/**/*",
     "README.md",
     "LICENSE"
   ],
