@@ -1,0 +1,60 @@
+{
+  "skill": "opencode-woclaw",
+  "version": "0.1.0",
+  "test_suite_version": "1.0.0",
+  "created_at": "2026-06-15T06:23+08:00",
+  "framework": "Anthropic Skill Creator 2.0 (2026-05-17) — 评测 / A-B / auto-optimize",
+  "description": "Verifiable test fixture for opencode-woclaw (OpenCode CLI plugin, skill_type=workflow-orchestration). Three test cases cover: (1) plugin load + 6-tool registration smoke, (2) session.created → woclaw_memory_read project:context round-trip, (3) session.compacted → woclaw_memory_write checkpoint before Hub compress. Pair with `claude skill eval opencode-woclaw --tests tests/test_opencode_woclaw_plugin_skill.json --ab [--auto-optimize]` for A/B benchmarking and auto-regression on model upgrade.",
+  "eval_metadata": {
+    "ab_mode": "blind side-by-side; regress→drop, slight lead→keep, large lead→expand",
+    "auto_optimize": "rerun on model upgrade or scene change without human prompt",
+    "ci_recommended": true,
+    "run_on": ["npm_publish", "anthropic_agent_skills_catalog_refresh", "weekly_regression"]
+  },
+  "test_cases": [
+    {
+      "id": "tc-01-plugin-load-6-tool-registration",
+      "description": "Plugin module loads under OpenCode runtime and registers exactly 6 woclaw_* tools (memory_read / memory_write / memory_list / memory_delete / topics_list / hub_status) plus 3 lifecycle hooks (session.created / session.compacted / shell.env).",
+      "input": {
+        "command_sequence": ["node -e \"import('./index.js').then(m => console.log(JSON.stringify({tools: Object.keys(m.tools||{}), hooks: Object.keys(m.hooks||{})})))\""],
+        "env": { "WOCLAW_HUB_URL": "ws://localhost:8082", "WOCLAW_REST_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026", "WOCLAW_AGENT_ID": "opencode-test", "WOCLAW_PROJECT_KEY": "project:context" },
+        "stub_opencode_runtime": { "plugin_id": "opencode-woclaw", "version": "0.1.0" }
+      },
+      "expected_outputs": {
+        "tools_count": 6,
+        "tools_list": ["woclaw_memory_read", "woclaw_memory_write", "woclaw_memory_list", "woclaw_memory_delete", "woclaw_topics_list", "woclaw_hub_status"],
+        "hooks_count": 3,
+        "hooks_list": ["session.created", "session.compacted", "shell.env"]
+      },
+      "baseline_score": 0.2,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-02-session-created-load-context",
+      "description": "session.created hook calls woclaw_memory_read project:context on Hub start, returns the value string body for OpenCode to inject as initial context (round-trip).",
+      "input": {
+        "command_sequence": ["node -e \"import('./index.js').then(m => m.hooks['session.created']({session_id:'sess-test-001', env:{WOCLAW_PROJECT_KEY:'project:context', WOCLAW_TOKEN:'WoClaw2026', WOCLAW_REST_URL:'http://localhost:8083'}}))\""],
+        "env": { "WOCLAW_HUB_URL": "ws://localhost:8082", "WOCLAW_REST_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026", "WOCLAW_AGENT_ID": "opencode-test", "WOCLAW_PROJECT_KEY": "project:context" },
+        "stub_memory_response": { "key": "project:context", "value": "shared agent context body", "tags": ["project"] }
+      },
+      "expected_outputs": { "context_loaded": true, "context_body_nonempty": true, "http_status": 200, "round_trip_ok": true },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    },
+    {
+      "id": "tc-03-session-compacted-checkpoint-write",
+      "description": "session.compacted hook writes session snapshot back to Hub via woclaw_memory_write before compaction completes, with checkpoint_size_bytes recorded (Varonis Pinchy phishing-resistant: snapshot body filtered for AWS_/SECRET/SSH-KEY/DB-PASS before write).",
+      "input": {
+        "command_sequence": ["node -e \"import('./index.js').then(m => m.hooks['session.compacted']({session_id:'sess-test-001', snapshot:'full session body that may include AWS_ACCESS_KEY=AKIA...', env:{WOCLAW_TOKEN:'WoClaw2026', WOCLAW_REST_URL:'http://localhost:8083', WOCLAW_AUDIT_LOG:'1'}}))\""],
+        "env": { "WOCLAW_HUB_URL": "ws://localhost:8082", "WOCLAW_REST_URL": "http://localhost:8083", "WOCLAW_TOKEN": "WoClaw2026", "WOCLAW_AGENT_ID": "opencode-test", "WOCLAW_AUDIT_LOG": "1" },
+        "stub_write_response": { "ok": true, "checkpoint_size_bytes": 1024, "credential_filtered": true }
+      },
+      "expected_outputs": { "checkpoint_written": true, "checkpoint_size_recorded": true, "credential_filtered": true, "audit_logged": true, "http_status": 200 },
+      "baseline_score": 0.0,
+      "skill_score": 1.0,
+      "delta_threshold": 0.5
+    }
+  ]
+}

@@ -4,6 +4,15 @@
 
 Connect [OpenCode](https://opencode.ai) to a WoClaw Hub for shared memory and multi-agent coordination.
 
+## 🧪 Skill Creator 2.0 verifiable (2026-05-17)
+
+This package ships a verifiable test fixture under [`tests/test_opencode_woclaw_plugin_skill.json`](./tests/test_opencode_woclaw_plugin_skill.json) with **3 test cases** (plugin load + 6-tool registration smoke / `session.created` → `woclaw_memory_read project:context` round-trip / `session.compacted` → `woclaw_memory_write` checkpoint with Varonis Pinchy credential filtering). Run A/B benchmarking and auto-regress on model upgrade with:
+
+```bash
+claude skill eval opencode-woclaw --tests tests/test_opencode_woclaw_plugin_skill.json --ab [--auto-optimize]
+```
+
+
 ## Features
 
 - **Shared Memory**: Read/write/delete shared memory across OpenCode, OpenClaw, Claude Code, and Gemini CLI

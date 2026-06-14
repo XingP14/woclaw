@@ -1,12 +1,18 @@
 {
   "name": "opencode-woclaw",
   "version": "0.1.0",
-  "description": "WoClaw Hub plugin for OpenCode — shared memory, topic messaging, and multi-agent context sharing",
+  "description": "WoClaw Hub plugin for OpenCode — shared memory, topic messaging, and multi-agent context sharing. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_opencode_woclaw_plugin_skill.json.",
   "main": "index.js",
   "type": "module",
   "keywords": ["opencode", "opencode-plugin", "woclaw", "openclaw", "multi-agent", "shared-memory", "agent-skills", "claude-skills", "anthropic-skills"],
   "author": "XingP14",
   "license": "MIT",
+  "files": [
+    "index.js",
+    "SKILL.md",
+    "README.md",
+    "tests/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/XingP14/woclaw",
