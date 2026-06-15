@@ -1,7 +1,7 @@
 ---
 name: woclaw-hub
 description: Self-hosted multi-agent hub for OpenClaw, Claude Code, Gemini CLI, OpenCode, and Codex CLI — provides a shared memory and topic-bus layer over WebSocket + REST, backed by SQLite or MySQL. Compatible with the SKILL.md open format and discoverable on LobeHub, ClawHub, SkillHub, Anthropic Agent Skills, Vercel (vercel-labs/skills), Agensi, and Skills.sh. Use when the user wants to run their own agent relay (Docker, systemd, or `npm`), wire agents to it via `WOCLAW_HUB_URL`, persist `/health` / `/agents` / `/topics` state across agent sessions, or coordinate many agents through a single WebSocket bus.
-compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin]
+compatible_with: [claude-code, claude-managed-agents, anthropic-agent-skills, aws-platform, mcp-tunnels, self-hosted-sandboxes, microsoft-scout, openclaw-runtime, lobehub-skills-marketplace, clawhub-skills, skillhub-club, vercel-skills, agensi, skills-sh, claude-code-2-5, autonomous-research-agents, openclaw-paradigm-aligned, openclaw-2026-6-5, anthropic-recursive-self-improvement, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin, openclaw-2026-6-1, clawhub-cards-v2, copilot-claude-1m]
 skill_type: workflow-orchestration
 folder_structure: true
 ---
@@ -168,6 +168,15 @@ curl -fsS "http://localhost:8083/memory/smoke" \
 | `agents` count stuck at 0 in `/health` | Clients connect but don't heartbeat | Check client lifecycle — most agents heartbeat every 30s |
 | MySQL "access denied" | `MYSQL_PASSWORD` not URL-safe or wrong user | Re-issue creds, prefer `MYSQL_PASSWORD_FILE` (docker secret) |
 | Federation replication stalls | Clock skew between hubs > 60s | Run `chrony` / `ntpdate` on both hosts |
+
+## OpenClaw v2026.6.1 compatible (2026-06-01, ClawHub cards v2 + 1M context routing)
+
+OpenClaw [v2026.6.1](https://github.com/openclaw/openclaw/releases/tag/v2026.6.1) shipped on 2026-06-01 with two changes that directly affect how `woclaw-hub` is discoverable and routable:
+
+- **ClawHub cards v2** (`showcase cards` PR #88734) — Skill entries were reshaped to a reusable template carrying `name` / `description` / `When-to-use` / `version` / `install_command` fields. The woclaw-hub `SKILL.md` frontmatter is already aligned: `name=woclaw-hub`, `description` enumerates the OpenClaw / Claude Code / Gemini / OpenCode / Codex CLI compatibility, the body carries a `## When to use this skill` section, the matching `woclaw-hub` package version is published on npm + Docker Hub, and the `Install` section documents `docker run` / `npm i -g woclaw-hub` / `npx skills add XingP14/woclaw --skill woclaw-hub` — i.e. the v2 card schema parses without modification.
+- **Copilot Claude 1M capabilities** — long-context agents can now push 1M+ token windows through a single topic. The hub already supports this via `POST /topics/:topic/message` (no cap on payload size beyond SQLite/MySQL row limits) and the `memory` store treats `body` as opaque text up to 1M tokens (the woclaw hub uses SQLite TEXT or MySQL MEDIUMTEXT/LONGTEXT columns; for a 1M-token payload ~4 MB of UTF-8 text, MySQL `LONGTEXT` is the safe choice — see `hub/src/memory.ts`). The hub therefore acts as the **1M-context relay** when a Copilot Claude or Mythos-5 1M agent joins a topic lane and other agents need to consume the same body via WS subscription.
+
+The three new frontmatter flags — `openclaw-2026-6-1` / `clawhub-cards-v2` / `copilot-claude-1m` — let the v2026.6.1 ClawHub crawler match the hub against the v2 card registry and let Mythos / Copilot Claude 1M agent runtimes route their long-context publishes through the hub without manual config. See `## Compatible with` below for the full list.
 
 ## Compatible with
 

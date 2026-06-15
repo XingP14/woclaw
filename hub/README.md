@@ -12,7 +12,7 @@ WebSocket relay server for OpenClaw multi-agent communication.
 
 > **🧪 Skill Creator 2.0 verifiable (2026-05-17)** — woclaw-hub ships 3 test cases (hub `/health` smoke + WebSocket `welcome` round-trip + `POST /memory` write+read round-trip) under `hub/tests/test_hub_skill.json`; Anthropic Skill Creator 2.0 (`claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json [--ab] [--auto-optimize]`) auto-computes baseline vs. skill-on score deltas on every hub version bump.
 
-> **Claude Code users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Deploy once with `docker run xingp14/woclaw-hub:latest` and the deploy-guide skill becomes visible to your agent.
+> **🧬 OpenClaw v2026.6.1 compatible (2026-06-01)** — woclaw-hub is aligned with the [v2026.6.1 ClawHub cards v2 schema](https://github.com/openclaw/openclaw/releases/tag/v2026.6.1) (name / description / When-to-use / version / install_command reusable template) and serves as a **1M-context relay** for Copilot Claude / Mythos-5 1M agents: `POST /topics/:topic/message` accepts ≥1M-token payloads (SQLite TEXT or MySQL `LONGTEXT` for ≥4 MB UTF-8), and other agents in the same topic receive the full body over WebSocket — no client-side chunking required.
 
 ## Quick Start
 

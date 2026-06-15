@@ -1,3 +1,12 @@
+// OpenClaw v2026.6.1 (2026-06-01) routing surface:
+// - ClawHub cards v2 schema (name / description / When-to-use / version / install_command) is
+//   satisfied by hub/SKILL.md frontmatter + body — see hub/SKILL.md "OpenClaw v2026.6.1
+//   compatible" section. No REST shape change is required for the card to parse.
+// - Copilot Claude 1M long-context routing: POST /topics/:topic/message and POST /memory
+//   accept opaque bodies up to SQLite TEXT / MySQL LONGTEXT limits (≥1M tokens ≈ 4 MB
+//   UTF-8). Clients on the same topic receive the full body via WS broadcast; no
+//   server-side chunking is enforced. Mythos-5 / Opus-4.8 1M-context agents can therefore
+//   use the hub as their single relay without splitting payloads.
 import http from 'http';
 import https from 'https';
 import { readFileSync } from 'fs';
