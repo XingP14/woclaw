@@ -2,7 +2,7 @@
 
 > **Claude Code / OpenClaw users**: this package also ships an [Anthropic Agent Skills](./SKILL.md) `SKILL.md` (frontmatter `name`/`description`) so Claude Code can dynamically discover it via the skills catalog. Install once via `openclaw plugins install woclaw` and the woclaw channel skill becomes visible to your agent.
 
-> **🌐 Ecosystem (2026-06-10)** — `xingp14-woclaw` works out-of-the-box on every OpenClaw-compatible runtime, including:
+> **🌐 Ecosystem (2026-06-16)** — `xingp14-woclaw` works out-of-the-box on every OpenClaw-compatible runtime, including Anthropic Project Glasswing + Mythos 5 / Fable 5 (2026-06-09, cybersecurity capability tier), TCS-Anthropic Global Premier Partnership (2026-06-11, enterprise AI scaling), LVP-style on-prem with OpenClaw enterprise adoption (2026-06-14, regulated financial services), and the x402 agent commerce ecosystem (2026-06-11, MCP-based autonomous transactions):
 > - **Microsoft Scout** (Build 2026 keynote, 1000+ Microsoft employees using it)
 > - **Microsoft MXC (Execution Containers) + Nvidia OpenShell Runtime** (Build 2026 OS-level agent sandbox; OpenClaw natively supported)
 > - **Native OpenClaw app for Windows** (pre-installed on Windows)
