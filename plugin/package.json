@@ -1,7 +1,7 @@
 {
   "name": "xingp14-woclaw",
   "version": "0.4.3",
-  "description": "WoClaw skill/plugin for OpenClaw (Microsoft Scout + native OpenClaw Windows app + Microsoft MXC Execution Containers + Nvidia OpenShell Runtime + Claude Code v2.1.157 .claude/skills/ auto-load + Claude Skill Creator 2.0 verifiable/A-B/auto-optimize + Varonis Pinchy phishing-resistant compatible) - Connect to WoClaw Hub for multi-agent communication",
+  "description": "WoClaw skill/plugin for OpenClaw (Microsoft Scout + native OpenClaw Windows app + Microsoft MXC Execution Containers + Nvidia OpenShell Runtime + Claude Code v2.1.157 .claude/skills/ auto-load + Claude Skill Creator 2.0 verifiable/A-B/auto-optimize + Varonis Pinchy phishing-resistant + Google Android CLI 1.0 + Android Skills (SKILL.md) cross-platform compatible) - Connect to WoClaw Hub for multi-agent communication",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
