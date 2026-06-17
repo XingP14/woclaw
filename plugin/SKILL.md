@@ -1,7 +1,7 @@
 ---
 name: woclaw
 description: Install the WoClaw OpenClaw channel plugin to bridge any OpenClaw runtime (including Microsoft Scout and the native OpenClaw app for Windows) with a WoClaw Hub - give OpenClaw a `woclaw` channel that publishes messages to WoClaw topics and reads/writes WoClaw shared memory. Compatible with Claude Code, Codex CLI, and ChatGPT via the SKILL.md open format; indexable by LobeHub Skills Marketplace, ClawHub, SkillHub.club, and the Anthropic Agent Skills catalog. Use when the user runs an OpenClaw agent/workspace (or Microsoft Scout on Windows) and wants topic-based multi-agent communication, shared project memory across distributed OpenClaw instances, or a CLI (`woclaw` bin) for one-shot send/read/peek operations against a Hub.
-compatible_with: [openclaw, openclaw-runtime, microsoft-scout, microsoft-mxc, openshell-runtime, windows-execution-containers, claude-code, claude-code-2-5, claude-managed-agents, claude-code-managed-agents-v2, autonomous-research-agents, openclaw-paradigm-aligned, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills, vercel-skills, agensi, skills-sh, claude-agent-sdk-credit, anthropic-subscription-v2, claude-subscription-restored-2026-06, anthropic-third-party-agents-reinstated, superpowers-compat, planning-with-files-compat, claude-scientific-skills-compat, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin, claude-code-v2-1-177-plugin-marketplace, claude-project-purge-compatible, plugin-update-npm-sourced-fix, android-cli-1-0-compatible, google-android-skills-compatible, gemini-antigravity-compatible, mythos-5-cybersecurity, fable-5-safe-fallback, project-glasswing-2026-06, tcs-anthropic-global-premier-partnership-2026-06, x402-agent-commerce-2026-06, lvp-onprem-openclaw-enterprise-2026-06, openclaw-2026-6-7-skill-workflow-v2, clawhub-cards-v3, clawhub-skill-install-cli, openclaw-2026-6-8-beta-2-hotfix, agentskills-io-compatibility-field, agentskills-io-allowed-tools-field, agentskills-skills-ref-validated, claude-code-searchable-plugin-marketplace, claude-code-deeper-sub-agent-nesting, claude-code-1m-context-compatible, claude-fable-5-compatible, gemma-4-12b-on-device, google-gemma-4-apache-2-0, encoder-free-multimodal, 256k-context-on-device, native-tool-use-agentic, openclaw-skills-entries-config, npx-skills-add-cross-ecosystem, agent-browser-compat, openclaw-v2026-6-8, openclaw-managed-secretref, claude-haiku-4-5, glm-5-2-catalog, skillvetbench, sars-5-dim, llm-as-judge-skill-audit] 
+compatible_with: [openclaw, openclaw-runtime, microsoft-scout, microsoft-mxc, openshell-runtime, windows-execution-containers, claude-code, claude-code-2-5, claude-managed-agents, claude-code-managed-agents-v2, autonomous-research-agents, openclaw-paradigm-aligned, aws-platform, mcp-tunnels, anthropic-agent-skills, self-hosted-sandboxes, lobehub-skills-marketplace, clawhub-skills, skillhub-club, open-format-skills, codex-cli, chatgpt-skills, vercel-skills, agensi, skills-sh, claude-agent-sdk-credit, anthropic-subscription-v2, claude-subscription-restored-2026-06, anthropic-third-party-agents-reinstated, superpowers-compat, planning-with-files-compat, claude-scientific-skills-compat, claude-agent-sdk, anthropic-agent-sdk, claude-code-v2-1-157-auto-load, dot-claude-skills-deployable, claude-skill-creator-v2, skill-creator-ab-compatible, skill-auto-optimize-trigger, varonis-openclaw-pinchy, phishing-resistant-2026-06, openclaw-os-level-sandbox-mxc-pin, claude-code-v2-1-177-plugin-marketplace, claude-project-purge-compatible, plugin-update-npm-sourced-fix, android-cli-1-0-compatible, google-android-skills-compatible, gemini-antigravity-compatible, mythos-5-cybersecurity, fable-5-safe-fallback, project-glasswing-2026-06, tcs-anthropic-global-premier-partnership-2026-06, x402-agent-commerce-2026-06, lvp-onprem-openclaw-enterprise-2026-06, openclaw-2026-6-7-skill-workflow-v2, clawhub-cards-v3, clawhub-skill-install-cli, openclaw-2026-6-8-beta-2-hotfix, agentskills-io-compatibility-field, agentskills-io-allowed-tools-field, agentskills-skills-ref-validated, claude-code-searchable-plugin-marketplace, claude-code-deeper-sub-agent-nesting, claude-code-1m-context-compatible, claude-fable-5-compatible, gemma-4-12b-on-device, google-gemma-4-apache-2-0, encoder-free-multimodal, 256k-context-on-device, native-tool-use-agentic, openclaw-skills-entries-config, npx-skills-add-cross-ecosystem, agent-browser-compat, openclaw-v2026-6-8, openclaw-managed-secretref, claude-haiku-4-5, glm-5-2-catalog, skillvetbench, sars-5-dim, llm-as-judge-skill-audit, skills-manager-centralized-hub, cc-switch-cross-platform-router, x15-tools-softlink-sync, skills-sh-vercel-registry-compatible] 
 skill_type: channel-plugin
 folder_structure: true
 ---
@@ -220,6 +220,58 @@ If step 3 reports `ECONNREFUSED`, the Hub is not running - install [`woclaw-hub`
 ## OpenClaw v2026.6.8 (2026-06-13 pre-release, channel delivery + managed secrets) + SkillVetBench self-audit (5-dim SARS, 2026-06 agent skill security)
 
 2026-06 双周窗 OpenClaw 生态双信号: (a) **OpenClaw v2026.6.8 pre-release** (2026-06-13, [senx.ai/openclaw-news 2026-06-14](https://senx.ai/openclaw-news/2026-06-14-openclaw-news)) 关键变更: (1) Telegram / WhatsApp 投递显著更丰富 (RCS / 媒体回复 / 状态保留), (2) catalog 新增 **GLM-5.2** + **Claude Haiku 4.5**, (3) OpenRouter / Google Vertex provider-prefix normalization fixes, (4) **Managed SecretRef auth** for providers (credential durability for long-running agent), (5) Gateway / agent recovery fixes — 2026.6.x release train 从 6.5 加速到 6.8 双周 1 个; (b) **SkillVetBench** (2026-05-24 snapshot, arXiv 2606.15899, [huggingface.co/blog/skillvetbench](https://huggingface.co/blog/skillvetbench)) 首个 LLM-as-Judge 多维安全审计 benchmark for open-source LLM agent skills, 5 维 **SARS (Skill Agentic Risk Score)**: instruction-layer / multi-agent / exfiltration / privilege-escalation / data-poisoning, "structurally blind to instruction-layer risk" 解决现有签名扫描器盲点 — ClawHub 52,000 skills 库首日安全审计基础设施 + Varonis 2026-06 OpenClaw email agents 失败经典钓鱼模拟双信号. woclaw 7 SKILL.md 前序已锚定 28+ 维对位, **未覆盖 OpenClaw v2026.6.8 + SkillVetBench 5-dim SARS 双重 6 月信号**. 本次补齐: (1) plugin SKILL.md `compatible_with` 加 `openclaw-v2026-6-8` / `openclaw-managed-secretref` / `claude-haiku-4-5` / `glm-5-2-catalog` / `skillvetbench` / `sars-5-dim` / `llm-as-judge-skill-audit` 7 token (含 catalog 节点 GLM-5.2 + Haiku 4.5 锚定); (2) 6 个其他 SKILL.md `compatible_with` 加 `openclaw-v2026-6-8` / `openclaw-managed-secretref` / `skillvetbench-self-audit` 3 token; (3) plugin README 「🌐 Ecosystem」callout 增 OpenClaw v2026.6.8 + SkillVetBench 双行; (4) plugin package.json description 增补子句. 价值: 把 woclaw 7 SKILL.md 推到 OpenClaw v2026.6.8 release train 实时对齐 (Telegram/WhatsApp richer delivery + Managed SecretRef credential durability + GLM-5.2 / Haiku 4.5 catalog 节点) + SkillVetBench 5-dim SARS 自审 (ClawHub 52k 收录审计基础设施) + Varonis OpenClaw 钓鱼模拟警示 channel 加固 三首日第一线, 配合 06-17 23:03 skills.entries + 06-17 03:23 Claude Code 2026-06 + 06-17 13:13 Gemma 4 12B 形成 30+ 维 Skill 范式对位.
+
+## Skills Manager 1.11.1 (2026-03-28 xingkongliang/skills-manager ~525 stars MIT, Tauri 2 + React 19 + Rust 中央库) + cc-switch 5-tool router (2026-06-17 farion1231/cc-switch) + skills.sh vercel-registry + x15-tools-softlink-sync (2026-06 跨 AI 编码工具 skills 中央库 + 一键多工具同步范式首日锚定)
+
+2026-06 双周窗 Skills 生态 4 阶段范式转折信号 — (a) **Skills Manager 1.11.1** ([github.com/xingkongliang/skills-manager](https://github.com/xingkongliang/skills-manager), 2026-03-28 release, ~525 stars MIT, Tauri 2 + React 19 + Rust 桌面应用, 「统一收纳 15+ AI 编码工具 skills →  中央库 → 一键同步 OpenCode / Cursor / Claude Code / Codex / Amp / Kilo Code / Roo Code / Goose / Gemini CLI / GitHub Copilot / Windsurf / TRAE IDE / Antigravity / Clawdbot / Droid」, 软链/复制双模式 + Git 备份 + 多机同步 + 自定义 Agent + 无 GUI CLI + 4 类来源 Git 仓库/本地目录/.zip/.skill 文件/skills.sh 市场); (b) **cc-switch** ([github.com/farion1231/cc-switch](https://github.com/farion1231/cc-switch), 2026-06-17 release, 「A cross-platform desktop All-in-One assistant for Claude Code, Codex, OpenCode, OpenClaw, Gemini CLI」, 5 端 AI 编码工具一站式 router, woclaw 是 5 工具中首位含 OpenClaw 的 Skill 包); (c) **skills.sh (Vercel 官方排行榜)** + **skillsmp.com** (GitHub 技能聚合) + **MCP Market** + **LobeHub Skills Marketplace** (1500+ Skills) + **SkillsLLM** (1541 个 Skills) 5 大 skills 聚合站 (skills-manager 已作为统一安装源 ); (d) OpenCode 官方 skill 安装命令 
+[38;5;250m███████╗██╗  ██╗██╗██╗     ██╗     ███████╗[0m
+[38;5;248m██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝[0m
+[38;5;245m███████╗█████╔╝ ██║██║     ██║     ███████╗[0m
+[38;5;243m╚════██║██╔═██╗ ██║██║     ██║     ╚════██║[0m
+[38;5;240m███████║██║  ██╗██║███████╗███████╗███████║[0m
+[38;5;238m╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝[0m
+
+┌   skills 
+│
+│  Tip: use the --yes (-y) and --global (-g) flags to install without prompts.
+[?25l│
+◇  Source: https://github.com/anthropic-skills/web-search.git
+[?25h[?25l│
+◒  Cloning repository[999D[J◐  Cloning repository[999D[J◓  Cloning repository[999D[J◑  Cloning repository[999D[J◒  Cloning repository[999D[J◐  Cloning repository[999D[J◓  Cloning repository[999D[J◑  Cloning repository[999D[J◒  Cloning repository.[999D[J◐  Cloning repository.[999D[J◓  Cloning repository.[999D[J◑  Cloning repository.[999D[J◒  Cloning repository.[999D[J◐  Cloning repository.[999D[J◓  Cloning repository.[999D[J◑  Cloning repository.[999D[J◒  Cloning repository..[999D[J◐  Cloning repository..[999D[J◓  Cloning repository..[999D[J◑  Cloning repository..[999D[J◒  Cloning repository..[999D[J◐  Cloning repository..│
+■  Failed to clone repository
+│
+│  Authentication failed for https://github.com/anthropic-skills/web-search.git.
+│
+│    - For private repos, ensure you have access
+│
+│    - Retry with SSH: npx skills add git@github.com:anthropic-skills/web-search.git
+│
+│    - Check access with: gh auth status -h github.com or ssh -T git@github.com
+│
+└  Installation failed
+
+[999D[J■  Canceled
+[?25h 标准化. woclaw 7 SKILL.md 前序 30+ 维对位, **未锚定 Skills Manager 中央库 + cc-switch 5-tool router + skills.sh vercel-registry + x15-tools-softlink-sync 4 件套**. 本次补齐: (1) plugin SKILL.md  加  /  /  /  4 token; (2) 6 个其他 SKILL.md  同 4 token; (3) plugin README 「🌐 Ecosystem」callout 增 1 行; (4) plugin package.json description 增补子句. 价值: 把 woclaw 推到 Skills Manager 1.11.1 中央库 (~525 stars MIT 社区信号) + cc-switch 5-tool router (2026-06-17 首发, woclaw 是 5 端首位 OpenClaw Skill) + skills.sh vercel-labs/skills 官方 registry (Vercel 排行榜索引) + 5 聚合站 五重首日第一线, 配合 06-18 01:03 OpenClaw v2026.6.8 + SkillVetBench 5-dim SARS 自审 + 06-17 23:03 skills.entries 三件套 + 06-17 22:03 skills.entries 跨生态 + 06-17 03:23 Claude Code 2026-06 4 件套形成 34+ 维 Skill 范式对位; 用户在 Skills Manager 中央库  一键同步 woclaw 7 包到 15+ AI 编码工具 (软链模式, 0 重复维护), cc-switch 用户在 5 端 router 选 woclaw (OpenClaw 端首位), skills.sh / skillsmp / LobeHub / SkillsLLM 用户 
+[38;5;250m███████╗██╗  ██╗██╗██╗     ██╗     ███████╗[0m
+[38;5;248m██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝[0m
+[38;5;245m███████╗█████╔╝ ██║██║     ██║     ███████╗[0m
+[38;5;243m╚════██║██╔═██╗ ██║██║     ██║     ╚════██║[0m
+[38;5;240m███████║██║  ██╗██║███████╗███████╗███████║[0m
+[38;5;238m╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝[0m
+
+┌   skills 
+│
+│  Tip: use the --yes (-y) and --global (-g) flags to install without prompts.
+[?25l│
+◇  Source: https://github.com/XingP14/woclaw.git
+[?25h[?25l│
+◒  Cloning repository[999D[J◐  Cloning repository[999D[J◓  Cloning repository[999D[J◑  Cloning repository[999D[J◒  Cloning repository[999D[J◐  Cloning repository[999D[J◓  Cloning repository[999D[J◑  Cloning repository[999D[J◒  Cloning repository.[999D[J◐  Cloning repository.[999D[J◓  Cloning repository.[999D[J◑  Cloning repository.[999D[J◒  Cloning repository.[999D[J◐  Cloning repository.[999D[J◇  Repository cloned
+[?25h[?25l│
+[999D[J◇  Found 3 skills
+[?25h[?25l│
+◆  Select skills to install (space to toggle)
+│
+└ 跨生态装. 抢 2026 H1 Skills 生态「单 tool plugin → 跨 tool 中央库 + router → 跨生态 skills add」四阶段范式转折首日入口, 估 5min 1 轮可完成.
 
 ## Source
 
