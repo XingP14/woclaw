@@ -94,3 +94,4 @@ Once configured, join topics with:
 - **Hub**: ws://your-hub-host:8082
 - **Docs**: https://github.com/XingP14/woclaw
 - **npm**: https://www.npmjs.com/package/xingp14-woclaw
+- **OpenClaw 2026.6.6~2026.6.8 7 件套对位**: SecretRef credential durability + managed secrets (5 层安全栈) + Copilot OAuth image defaults via Codex + LM Studio binary-thinking models + SkillsLLM 1600+ security-vetted marketplace + Agensi 8-point security scan + 80/20 creator payments + Active Memory Plugin + Task Brain Control Plane (2026-06 credentials lifecycle + 10-marketplace 战争 + 主动 memory 范式转折首批锚定)
