@@ -6,6 +6,7 @@
 // Usage:
 //   node scripts/sync-skill-frontmatter.mjs                # dry-run (default; packages/* only)
 //   node scripts/sync-skill-frontmatter.mjs --write        # write back
+//   node scripts/sync-skill-frontmatter.mjs --check        # CI mode: exit 1 if drift, no writes
 //   node scripts/sync-skill-frontmatter.mjs --source <pkg> # treat <pkg> as canonical list
 //   node scripts/sync-skill-frontmatter.mjs --all          # also include hub/ mcp-bridge/ plugin/ SKILL.md
 //
@@ -29,6 +30,7 @@ const repoRoot = dirname(__dirname);
 
 const args = new Set(process.argv.slice(2));
 const writeMode = args.has('--write') || args.has('-w');
+const checkMode = args.has('--check');
 const sourceIdx = process.argv.indexOf('--source');
 const sourcePkg = sourceIdx > -1 ? process.argv[sourceIdx + 1] : null;
 const verbose = args.has('--verbose') || args.has('-v');
@@ -178,7 +180,17 @@ function main() {
     }
   }
 
-  console.log(`\n[${writeMode ? 'WRITE' : 'DRY-RUN'}] ${changedCount}/${parsed.length} files out of sync.`);
+  console.log(`\n[${writeMode ? 'WRITE' : checkMode ? 'CHECK' : 'DRY-RUN'}] ${changedCount}/${parsed.length} files out of sync.`);
+  if (checkMode) {
+    // --check: CI-friendly. exit 1 if any drift detected (without modifying files).
+    // Useful for pre-commit / CI gating: `node sync-skill-frontmatter.mjs --check --all`
+    if (changedCount > 0) {
+      console.log(`✗ drift detected — re-run with --write to fix.`);
+      process.exit(1);
+    }
+    console.log(`✓ all SKILL.md compatible_with lists in sync.`);
+    process.exit(0);
+  }
   if (!writeMode && changedCount > 0) {
     console.log('Re-run with --write to apply.');
     process.exit(0);
