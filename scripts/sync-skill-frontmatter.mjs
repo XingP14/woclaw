@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 // scripts/sync-skill-frontmatter.mjs
-// Sync the `compatible_with:` array across all packages/*/SKILL.md files
-// to eliminate drift between subpackages.
+// Sync the `compatible_with:` array across SKILL.md files in the woclaw
+// monorepo to eliminate drift between subpackages.
 //
 // Usage:
-//   node scripts/sync-skill-frontmatter.mjs                # dry-run (default)
+//   node scripts/sync-skill-frontmatter.mjs                # dry-run (default; packages/* only)
 //   node scripts/sync-skill-frontmatter.mjs --write        # write back
 //   node scripts/sync-skill-frontmatter.mjs --source <pkg> # treat <pkg> as canonical list
+//   node scripts/sync-skill-frontmatter.mjs --all          # also include hub/ mcp-bridge/ plugin/ SKILL.md
 //
 // Strategy:
 //   1. Read every packages/*/SKILL.md frontmatter block (YAML-like, parsed with a
 //      minimal scanner that respects the inline `[a, b, c]` list form).
+//      With --all, also scan hub/SKILL.md, mcp-bridge/SKILL.md, plugin/SKILL.md
+//      (7 subpackages in total: codex-woclaw, opencode-woclaw-plugin, woclaw-hooks,
+//      woclaw-vscode + hub + mcp-bridge + plugin).
 //   2. Build the union of all `compatible_with` items. Optional `--source <pkg>`
 //      uses a single subpackage's list as the canonical list (faster, no growth).
 //   3. Sort the items (case-insensitive) and re-emit a stable, single-line list.
@@ -28,6 +32,7 @@ const writeMode = args.has('--write') || args.has('-w');
 const sourceIdx = process.argv.indexOf('--source');
 const sourcePkg = sourceIdx > -1 ? process.argv[sourceIdx + 1] : null;
 const verbose = args.has('--verbose') || args.has('-v');
+const allMode = args.has('--all') || args.has('-a');
 
 function log(...a) { if (verbose) console.error('[sync]', ...a); }
 
@@ -85,8 +90,8 @@ function rewriteCompatible(rawFrontmatter, newList) {
 }
 
 function findSkillFiles(root) {
-  const packagesDir = join(root, 'packages');
   const out = [];
+  const packagesDir = join(root, 'packages');
   for (const name of readdirSync(packagesDir)) {
     const dir = join(packagesDir, name);
     if (!statSync(dir).isDirectory()) continue;
@@ -96,18 +101,39 @@ function findSkillFiles(root) {
       out.push(skillPath);
     } catch { /* skip — no SKILL.md */ }
   }
+  if (allMode) {
+    // Extend coverage to the 3 top-level SKILL.md files (hub, mcp-bridge, plugin)
+    // so all 7 subpackages stay in sync. The "7 subpackages" are:
+    //   1. packages/codex-woclaw
+    //   2. packages/opencode-woclaw-plugin
+    //   3. packages/woclaw-hooks
+    //   4. packages/woclaw-vscode
+    //   5. hub
+    //   6. mcp-bridge
+    //   7. plugin
+    for (const top of ['hub', 'mcp-bridge', 'plugin']) {
+      const skillPath = join(root, top, 'SKILL.md');
+      try {
+        statSync(skillPath);
+        out.push(skillPath);
+      } catch { /* skip — no SKILL.md */ }
+    }
+  }
   return out;
 }
 
 function main() {
   const files = findSkillFiles(repoRoot);
-  log('found', files.length, 'SKILL.md files');
+  log('found', files.length, 'SKILL.md files', allMode ? '(all-mode: 7 subpackages)' : '(packages-only)');
   if (!files.length) {
     console.error('No SKILL.md files found under packages/.');
     process.exit(1);
   }
 
-  const parsed = files.map(p => ({ path: p, pkg: basename(dirname(p)), ...parseFrontmatter(readFileSync(p, 'utf8')) }));
+  const parsed = files.map(p => {
+    const pkg = basename(dirname(p));
+    return { path: p, pkg, ...parseFrontmatter(readFileSync(p, 'utf8')) };
+  });
 
   let canonical;
   if (sourcePkg) {
