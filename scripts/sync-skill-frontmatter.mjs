@@ -154,18 +154,23 @@ function main() {
     log('per-package compatible_with counts:', counts);
     const set = new Set();
     for (const p of parsed) for (const x of p.attrs.compatible_with) set.add(x);
-    canonical = [...set];
+    // Sort alphabetically so all 7 SKILL.md files converge to identical byte order;
+    // otherwise Set insertion order depends on file enumeration and the union drifts
+    // across runs (regression caught by integration-test/sync-skill-frontmatter).
+    canonical = [...set].sort();
     log('union size:', canonical.length);
   }
 
   let changedCount = 0;
   for (const p of parsed) {
     const before = p.attrs.compatible_with;
-    const beforeSet = new Set(before);
-    const afterSet = new Set(canonical);
+    // Same content AND same order → skip. Order matters: the integration test
+    // expects all 7 SKILL.md files to be byte-identical, and a Set-equality
+    // check would leave files written in their original list order even after
+    // the union is sorted (regression caught 06-20 by integration-test).
     const sameSize = before.length === canonical.length;
-    const sameSet = before.length === [...beforeSet].filter(x => afterSet.has(x)).length && sameSize;
-    if (sameSet) {
+    const sameOrder = sameSize && before.every((x, i) => x === canonical[i]);
+    if (sameOrder) {
       log(p.pkg, 'already in sync (' + before.length + ' items)');
       continue;
     }
