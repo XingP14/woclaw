@@ -19,11 +19,15 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: hub/package-lock.json
+          # woclaw is an npm workspace (root package.json); hub/package-lock.json
+          # is the legacy 4-06 lock (woclaw-hub@0.3.0) and cache hits on it cause
+          # `Cannot find module 'vitest/config'` failures in CI (see docs/ci-failures.md
+          # 06-11 09:03 entry). Point cache at the authoritative root lock so
+          # Setup-Node restores the correct dependency tree.
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: hub
-        run: npm install
+        run: npm ci --workspace=hub
 
       - name: TypeScript check
         working-directory: hub
