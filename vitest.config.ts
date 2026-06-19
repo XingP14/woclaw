@@ -12,6 +12,7 @@ export default defineConfig({
       path.resolve(__dirname, 'hub/test/**/*.test.ts'),
       path.resolve(__dirname, 'plugin/test/**/*.test.ts'),
       path.resolve(__dirname, 'integration-test/**/*.test.ts'),
+      path.resolve(__dirname, 'packages/woclaw-vscode/test/**/*.test.ts'),
     ],
     coverage: {
       provider: 'v8',
