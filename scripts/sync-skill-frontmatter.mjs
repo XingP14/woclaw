@@ -26,7 +26,10 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = dirname(__dirname);
+// 06-20 00:43 cron fix: respect WOCLAW_ROOT env or process.cwd() so the script
+// works from any directory (previously hardcoded to dirname(__dirname),
+// which made subprocess-based tests + CI monorepo workarounds impossible).
+const repoRoot = process.env.WOCLAW_ROOT || process.cwd();
 
 const args = new Set(process.argv.slice(2));
 const writeMode = args.has('--write') || args.has('-w');

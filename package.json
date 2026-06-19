@@ -9,7 +9,10 @@
     "test:integration": "vitest run --config vitest.config.ts integration-test/",
     "test:coverage": "npm run test:coverage --workspace=hub",
     "build": "npm run build --workspace=hub && npm run build --workspace=plugin",
-    "build:all": "npm run build && npm run build --workspace=packages/woclaw-hooks"
+    "build:all": "npm run build && npm run build --workspace=packages/woclaw-hooks",
+    "sync:skills": "node scripts/sync-skill-frontmatter.mjs --all",
+    "sync:skills:check": "node scripts/sync-skill-frontmatter.mjs --all --check",
+    "sync:skills:write": "node scripts/sync-skill-frontmatter.mjs --all --write"
   },
   "workspaces": [
     "hub",
