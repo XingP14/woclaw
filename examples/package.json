@@ -5,5 +5,12 @@
   "type": "module",
   "dependencies": {
     "ws": "^8.16.0"
-  }
+  },
+  "license": "MIT",
+  "files": [
+    "*.mjs",
+    "*.py",
+    "README.md",
+    "LICENSE"
+  ]
 }
