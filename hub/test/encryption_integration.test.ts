@@ -109,6 +109,40 @@ describe('ClawDB Encryption at Rest', () => {
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].value).toContain('WoClaw encryption test');
     });
+
+    // 48c3524 regression: tx() must persist storedValue (ciphertext), not plaintext
+    // 修前 bug: SqliteStorage.setMemory 用入参明文 value 而非 storedValue 写入 DB
+    it('persists ENC:v1: ciphertext via storedValue (48c3524 regression)', async () => {
+      await mp.write('regress-stored-value', 'plain-secret-48c3524', 'agent1');
+
+      const dbPath = join(testDir, 'woclaw.sqlite');
+      const Database = require('better-sqlite3');
+      const rawDb = new Database(dbPath);
+      const row = rawDb
+        .prepare('SELECT value FROM memory WHERE key = ?')
+        .get('regress-stored-value') as any;
+      rawDb.close();
+
+      // raw row must be the encrypted serialized form, not the plaintext
+      expect(row.value).not.toBe('plain-secret-48c3524');
+      expect(row.value).toMatch(/^ENC:v1:/);
+    });
+
+    // 48c3524 regression: recall must not silently swallow decrypt() errors
+    // 修前 bug: decryptValue 调 this.encryption.decrypt(value as any) 抛错被 catch 吞掉
+    it('recall substring search works on encrypted rows (48c3524 regression)', async () => {
+      await mp.write(
+        'regress-recall-enc',
+        'needle-distinctive-48c3524-token-xyz',
+        'agent1',
+        ['regress'],
+      );
+
+      // recall 必须能搜出明文 (decrypt 成功, 不被吞错)
+      const hits = await mp.recall('distinctive-48c3524-token');
+      expect(hits.length).toBeGreaterThanOrEqual(1);
+      expect(hits[0].value).toContain('distinctive-48c3524-token-xyz');
+    });
   });
 
   describe('without encryption (disabled)', () => {
