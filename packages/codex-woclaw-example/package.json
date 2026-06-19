@@ -1,0 +1,30 @@
+{
+  "name": "woclaw-codex-example",
+  "version": "0.1.2",
+  "description": "WoClaw Codex/OpenCode Python example — connect any Python-based coding agent (Codex, OpenCode Python agents, etc.) to a WoClaw Hub via WebSocket for shared memory and topic messaging.",
+  "keywords": [
+    "woclaw",
+    "codex",
+    "opencode",
+    "openai",
+    "ai-agent",
+    "shared-memory",
+    "context",
+    "agent-skills",
+    "example",
+    "python"
+  ],
+  "files": [
+    "*.py",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "python3 codex_example.py"
+  },
+  "engines": {
+    "node": ">=18",
+    "python": ">=3.8"
+  },
+  "license": "MIT"
+}
