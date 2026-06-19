@@ -36,3 +36,14 @@
 - 但 vitest 已在 lock；问题不是这个
 - 真实失败是测试断言（2 个 failed），由"setMemory 没用 storedValue" + "encryption 与 search 不可兼得"导致
 - 改进：6c 规则应只在**没有测试失败**时认为是 lock 漂移；测试失败时降级为 6d
+
+## CI Failure 2026-06-19 21:07 (UTC) / 06-20 05:07 (Asia/Shanghai) — woclaw @ 30875fa
+- status: ✅ **FIXED** by 06-20 05:03 cron
+- run: 06-19 22:03 cron 起持续 RED (~7h), workspace vitest run 时 2 失败
+- failed file: `hub/test/openclaw_migrate.test.ts`
+- failed tests: 2/2 (`discovers workspace roots` + `summarizes transcript metadata`)
+- 错误: `Cannot find module '/root/.../woclaw/packages/packages/woclaw-hooks/openclaw-migrate.js'`
+- 根因: `MIGRATOR_PATH = path.resolve(process.cwd(), '..', 'packages/woclaw-hooks/openclaw-migrate.js')` 用 `process.cwd()` 计算路径, 当 vitest 在 `packages/woclaw-vscode/` 触发 workspace-wide test run 时 cwd 嵌套 `packages/packages/...` 重复段
+- 修复: 改用 `path.resolve(__dirname, '..', '..', 'packages', 'woclaw-hooks', 'openclaw-migrate.js')` 基于 `__dirname` (test 文件位于 `hub/test/`, 固定锚定) 替代 `process.cwd()`, 加详细注释说明 regression 上下文
+- 验证: workspace vitest 20/20 suites 219/219 tests ✅
+- 06-11 09:11 entry (encryption-at-rest 架构问题) **仍未解**, 等父亲拍板 (a) 拆索引/值列 / (b) 文档化 recall 不可用

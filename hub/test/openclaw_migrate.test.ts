@@ -5,7 +5,18 @@ import os from 'os';
 import path from 'path';
 
 const require = createRequire(import.meta.url);
-const MIGRATOR_PATH = path.resolve(process.cwd(), '..', 'packages/woclaw-hooks/openclaw-migrate.js');
+// Use __dirname (not process.cwd()) so the path resolves correctly regardless of
+// the current working directory when vitest is invoked (e.g. from
+// packages/woclaw-vscode/ as part of the workspace test run). The test file
+// lives at hub/test/, so ../../packages/woclaw-hooks/openclaw-migrate.js
+// points to the real migrator module.
+// Regression: vitest run from packages/woclaw-vscode/ produced
+// /root/.../woclaw/packages/packages/woclaw-hooks/openclaw-migrate.js
+// (double 'packages') because path.resolve(process.cwd(), '..', 'packages', ...)
+// joined 'packages/' to the workspace's existing 'packages/' directory.
+// Fix this so 'npm test' (which runs from hub/) and the workspace-level
+// vitest pass both resolve to the same file.
+const MIGRATOR_PATH = path.resolve(__dirname, '..', '..', 'packages', 'woclaw-hooks', 'openclaw-migrate.js');
 const ORIGINAL_ENV = {
   HOME: process.env.HOME,
   USERPROFILE: process.env.USERPROFILE,
