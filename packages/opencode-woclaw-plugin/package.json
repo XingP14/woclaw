@@ -11,7 +11,8 @@
     "index.js",
     "SKILL.md",
     "README.md",
-    "tests/**/*"
+    "tests/**/*",
+    "LICENSE"
   ],
   "repository": {
     "type": "git",

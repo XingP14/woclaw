@@ -19,7 +19,8 @@
     "install.py",
     "tests/**/*",
     "SKILL.md",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "woclaw-codex": "./bin/cli.js"
