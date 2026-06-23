@@ -17,6 +17,7 @@
   "files": [
     "*.py",
     "install.py",
+    "bin/**/*",
     "tests/**/*",
     "SKILL.md",
     "README.md",
