@@ -1,12 +1,21 @@
 {
   "name": "woclaw-hooks",
   "version": "0.5.0",
-  "description": "WoClaw Hook Scripts — shared memory hooks for Claude Code, Gemini CLI, OpenCode, OpenAI Codex CLI, and OpenClaw agents. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_woclaw_hooks_skill.json.",
+  "description": "WoClaw Hook Scripts \u2014 shared memory hooks for Claude Code, Gemini CLI, OpenCode, OpenAI Codex CLI, and OpenClaw agents. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_woclaw_hooks_skill.json.",
   "main": "install.js",
   "bin": {
     "woclaw-hooks": "./install.js"
   },
-  "keywords": ["openclaw", "claude-code", "woclaw", "hooks", "shared-memory", "agent-skills", "claude-skills", "anthropic-skills"],
+  "keywords": [
+    "openclaw",
+    "claude-code",
+    "woclaw",
+    "hooks",
+    "shared-memory",
+    "agent-skills",
+    "claude-skills",
+    "anthropic-skills"
+  ],
   "author": "XingP14",
   "license": "MIT",
   "repository": {
@@ -19,6 +28,7 @@
   },
   "files": [
     "install.js",
+    "lib/**/*",
     "*.sh",
     "claude-migrate.js",
     "codex-migrate.js",

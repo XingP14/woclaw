@@ -120,10 +120,16 @@ codex_hooks = true
   },
 };
 
+// Delegate robust .env parsing + serialisation to lib/env-config.js.
+// We still keep an env-override-aware DEFAULT_CONFIG here so that
+// process.env.WOCLAW_HUB_URL/TOKEN/PROJECT_KEY continue to win over
+// the baked-in fallback (matches pre-extraction behaviour).
+const envConfig = require('./lib/env-config');
+
 const DEFAULT_CONFIG = {
-  WOCLAW_HUB_URL: process.env.WOCLAW_HUB_URL || 'http://vm153:8083',
-  WOCLAW_TOKEN: process.env.WOCLAW_TOKEN || 'WoClaw2026', // Note: REST API still uses WoClaw2026 until Hub restart
-  WOCLAW_PROJECT_KEY: process.env.WOCLAW_PROJECT_KEY || 'project:context',
+  WOCLAW_HUB_URL: process.env.WOCLAW_HUB_URL || envConfig.DEFAULT_CONFIG.WOCLAW_HUB_URL,
+  WOCLAW_TOKEN: process.env.WOCLAW_TOKEN || envConfig.DEFAULT_CONFIG.WOCLAW_TOKEN,
+  WOCLAW_PROJECT_KEY: process.env.WOCLAW_PROJECT_KEY || envConfig.DEFAULT_CONFIG.WOCLAW_PROJECT_KEY,
 };
 
 function ensureDir(dir) {
@@ -150,24 +156,11 @@ async function interactiveConfig(existing) {
 }
 
 function loadExistingConfig() {
-  if (fs.existsSync(ENV_FILE)) {
-    const content = fs.readFileSync(ENV_FILE, 'utf8');
-    const config = {};
-    for (const line of content.split('\n')) {
-      const m = line.match(/^([^="#]+)="?([^"]*)"?/);
-      if (m) config[m[1].trim()] = m[2].trim();
-    }
-    return { ...DEFAULT_CONFIG, ...config };
-  }
-  return DEFAULT_CONFIG;
+  return envConfig.loadExistingConfig(ENV_FILE, DEFAULT_CONFIG);
 }
 
 function saveConfig(config) {
-  ensureDir(path.dirname(ENV_FILE));
-  const envContent = Object.entries(config)
-    .map(([k, v]) => `${k}="${v}"`)
-    .join('\n') + '\n';
-  fs.writeFileSync(ENV_FILE, envContent);
+  envConfig.saveConfig(ENV_FILE, config);
 }
 
 function installHooks(framework, config) {
