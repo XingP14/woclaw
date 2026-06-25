@@ -1,10 +1,20 @@
 {
   "name": "woclaw-vscode",
   "displayName": "WoClaw",
-  "description": "WoClaw Hub integration for VS Code — view agents, topics, and memory. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_woclaw_vscode_skill.json.",
+  "description": "WoClaw Hub integration for VS Code \u2014 view agents, topics, and memory. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_woclaw_vscode_skill.json.",
   "version": "0.1.0",
   "license": "MIT",
-  "keywords": ["woclaw", "vscode", "openclaw", "agent-skills", "claude-skills", "anthropic-skills", "claude-code", "hub", "shared-memory"],
+  "keywords": [
+    "woclaw",
+    "vscode",
+    "openclaw",
+    "agent-skills",
+    "claude-skills",
+    "anthropic-skills",
+    "claude-code",
+    "hub",
+    "shared-memory"
+  ],
   "files": [
     "out/**/*",
     "media/**/*",
@@ -17,9 +27,13 @@
   "engines": {
     "vscode": "^1.75.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
-  "activationEvents": ["workspaceContains"],
+  "activationEvents": [
+    "workspaceContains"
+  ],
   "contributes": {
     "configuration": {
       "title": "WoClaw",
@@ -106,13 +120,17 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "node --test test/eventemitter.test.js"
   },
   "vsce": {
     "publisher": "XingP14",
     "packagePath": ".",
     "targets": [
-      { "name": "stable", "packagePath": "." }
+      {
+        "name": "stable",
+        "packagePath": "."
+      }
     ]
   },
   "devDependencies": {
