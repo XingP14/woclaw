@@ -185,3 +185,33 @@ export function deserializeAndDecrypt(value: string, provider: EncryptionProvide
   }
   return provider.decrypt(payload);
 }
+
+/**
+ * Safe decrypt for stored values.
+ *
+ * - Returns the value unchanged when encryption is disabled.
+ * - Returns the value unchanged when it is not in the encrypted-payload
+ *   format (e.g. legacy plaintext rows written before encryption was
+ *   turned on).
+ * - Returns the value unchanged (instead of throwing) if decryption
+ *   fails — e.g. wrong passphrase, corrupted ciphertext, or a
+ *   mid-flight format mismatch. The underlying `deserializeAndDecrypt`
+ *   throws on bad input; storage callers used to swallow the error
+ *   and fall through to the raw value, so we keep that contract here.
+ *
+ * This helper was extracted from the two byte-identical `private
+ * decryptValue` methods in `SqliteStorage` and `MySqlStorage` so the
+ * behavior is defined exactly once. The contract is preserved bit-for-bit
+ * (same short-circuit order, same swallow-on-throw) — see
+ * `hub/test/encryption_integration.test.ts` for the regression coverage.
+ */
+export function safeDecryptValue(value: string, provider: EncryptionProvider): string {
+  if (!provider.enabled) return value;
+  if (!provider.isEncrypted(value)) return value;
+  try {
+    return deserializeAndDecrypt(value, provider);
+  } catch {
+    // If decryption fails (e.g. wrong passphrase, corrupted data), return as-is
+    return value;
+  }
+}

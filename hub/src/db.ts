@@ -3,7 +3,7 @@ import { dirname, join } from 'path';
 import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, StorageConfig, DBSession, DBSessionFeedback, ExtractionQueueEntry, MemoryFeedback } from './types.js';
-import { createEncryption, encryptAndSerialize, deserializeAndDecrypt, type EncryptionProvider } from './crypto.js';
+import { createEncryption, encryptAndSerialize, safeDecryptValue, type EncryptionProvider } from './crypto.js';
 
 type LegacyDbShape = {
   messages?: DBMessage[];
@@ -591,16 +591,12 @@ class SqliteStorage implements DbStorage {
     tx({ key, value: storedValue, updatedBy, tags, ttl, now, expireAt });
   }
 
-  /** Decrypt value if encryption is enabled */
+  // Decrypt value if encryption is enabled.
+  // Behavior lives in crypto.safeDecryptValue (extracted from this
+  // byte-identical private method that previously existed in both
+  // SqliteStorage and MySqlStorage).
   private decryptValue(value: string): string {
-    if (!this.encryption.enabled) return value;
-    if (!this.encryption.isEncrypted(value)) return value;
-    try {
-      return deserializeAndDecrypt(value, this.encryption);
-    } catch {
-      // If decryption fails (e.g. wrong passphrase, corrupted data), return as-is
-      return value;
-    }
+    return safeDecryptValue(value, this.encryption);
   }
 
   async getMemory(key: string): Promise<DBMemory | undefined> {
@@ -1096,15 +1092,12 @@ class MySqlStorage implements DbStorage {
     return rows.map(mapMessageRow);
   }
 
-  /** Decrypt value if encryption is enabled */
+  // Decrypt value if encryption is enabled.
+  // Behavior lives in crypto.safeDecryptValue (extracted from this
+  // byte-identical private method that previously existed in both
+  // SqliteStorage and MySqlStorage).
   private decryptValue(value: string): string {
-    if (!this.encryption.enabled) return value;
-    if (!this.encryption.isEncrypted(value)) return value;
-    try {
-      return deserializeAndDecrypt(value, this.encryption);
-    } catch {
-      return value;
-    }
+    return safeDecryptValue(value, this.encryption);
   }
 
   async setMemory(key: string, value: string, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<void> {
