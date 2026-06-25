@@ -125,10 +125,10 @@ class WoClawChannelInstance {
       };
 
       // Handle WebSocket ping frames from Hub - must respond at protocol level
-      (this.ws as any).on('ping', () => {
+      this.ws.on('ping', () => {
         this.logger?.debug('[WoClaw] WebSocket ping received, sending pong');
         if (this.ws?.readyState === 1) {
-          (this.ws as any).pong();
+          this.ws.pong();
         }
       });
 
