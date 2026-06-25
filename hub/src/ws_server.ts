@@ -460,7 +460,7 @@ export class WSServer {
 
   private sendError(ws: WS, code: string, message: string, retryAfter?: number): void {
     const msg: OutboundMessage = { type: 'error', code, message, timestamp: Date.now() };
-    if (retryAfter !== undefined) (msg as any).retryAfter = retryAfter;
+    if (retryAfter !== undefined) msg.retryAfter = retryAfter;
     this.send(ws, msg);
   }
 
@@ -532,7 +532,7 @@ export class WSServer {
     for (const [agentId, agent] of this.agents) {
       if (agent.ws.readyState === 1) {
         try {
-          (agent.ws as any).ping();
+          agent.ws.ping();
         } catch (e) {
           console.error(`[WoClaw] Ping failed for ${agentId}`);
           this.handleDisconnect(agentId);

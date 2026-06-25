@@ -26,6 +26,31 @@ interface DbStorage {
   cleanupExpired(): Promise<number>;
   getTopicStats(): Promise<{ name: string; messageCount: number; createdAt: number }[]>;
   close(): Promise<void>;
+
+  // ─── Sessions (delegated to storage) ─────────────────────────────────────
+  setSession(session: DBSession): Promise<void>;
+  getSession(id: string): Promise<DBSession | undefined>;
+  getAllSessions(agentId?: string, framework?: string, limit?: number, offset?: number): Promise<DBSession[]>;
+  deleteSession(id: string): Promise<boolean>;
+  sessionSearch(query: string, limit?: number): Promise<DBSession[]>;
+
+  // ─── Extraction queue (delegated to storage) ─────────────────────────────
+  addToExtractionQueue(sessionId: string, priority?: number): Promise<void>;
+  getExtractionQueue(limit?: number): Promise<ExtractionQueueEntry[]>;
+  updateExtractionQueueStatus(sessionId: string, status: string): Promise<void>;
+  removeFromExtractionQueue(sessionId: string): Promise<void>;
+
+  // ─── Feedback (delegated to storage) ─────────────────────────────────────
+  addSessionFeedback(sessionId: string, agentId: string, adjustment: number, reason?: string): Promise<void>;
+  getSessionFeedbackHistory(sessionId: string): Promise<DBSessionFeedback[]>;
+  addMemoryFeedback(key: string, agentId: string, adjustment: number, reason?: string): Promise<void>;
+  getMemoryFeedbackHistory(key: string): Promise<MemoryFeedback[]>;
+
+  // ─── Eviction (delegated to storage) ──────────────────────────────────────
+  getEvictionCandidates(memoryThreshold: number, sessionThreshold: number, limit: number): Promise<{
+    memories: Array<{key: string; importance: number; lastAccessedAt: number; accessCount: number}>;
+    sessions: Array<{id: string; importance: number; lastAccessedAt: number; accessCount: number}>;
+  }>;
 }
 
 function normalizeTags(tags: unknown): string[] {
@@ -202,62 +227,62 @@ export class ClawDB {
 
   async setSession(session: DBSession): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).setSession(session);
+    return this.storage.setSession(session);
   }
   async getSession(id: string): Promise<DBSession | undefined> {
     await this.ensureReady();
-    return (this.storage as any).getSession(id);
+    return this.storage.getSession(id);
   }
   async getAllSessions(agentId?: string, framework?: string, limit = 50, offset = 0): Promise<DBSession[]> {
     await this.ensureReady();
-    return (this.storage as any).getAllSessions(agentId, framework, limit, offset);
+    return this.storage.getAllSessions(agentId, framework, limit, offset);
   }
   async deleteSession(id: string): Promise<boolean> {
     await this.ensureReady();
-    return (this.storage as any).deleteSession(id);
+    return this.storage.deleteSession(id);
   }
   async sessionSearch(query: string, limit = 20): Promise<DBSession[]> {
     await this.ensureReady();
-    return (this.storage as any).sessionSearch(query, limit);
+    return this.storage.sessionSearch(query, limit);
   }
   async addToExtractionQueue(sessionId: string, priority = 0): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).addToExtractionQueue(sessionId, priority);
+    return this.storage.addToExtractionQueue(sessionId, priority);
   }
   async getExtractionQueue(limit = 10): Promise<ExtractionQueueEntry[]> {
     await this.ensureReady();
-    return (this.storage as any).getExtractionQueue(limit);
+    return this.storage.getExtractionQueue(limit);
   }
   async updateExtractionQueueStatus(sessionId: string, status: string): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).updateExtractionQueueStatus(sessionId, status);
+    return this.storage.updateExtractionQueueStatus(sessionId, status);
   }
   async removeFromExtractionQueue(sessionId: string): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).removeFromExtractionQueue(sessionId);
+    return this.storage.removeFromExtractionQueue(sessionId);
   }
   async addSessionFeedback(sessionId: string, agentId: string, adjustment: number, reason?: string): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).addSessionFeedback(sessionId, agentId, adjustment, reason);
+    return this.storage.addSessionFeedback(sessionId, agentId, adjustment, reason);
   }
   async getSessionFeedbackHistory(sessionId: string): Promise<DBSessionFeedback[]> {
     await this.ensureReady();
-    return (this.storage as any).getSessionFeedbackHistory(sessionId);
+    return this.storage.getSessionFeedbackHistory(sessionId);
   }
   async addMemoryFeedback(key: string, agentId: string, adjustment: number, reason?: string): Promise<void> {
     await this.ensureReady();
-    return (this.storage as any).addMemoryFeedback(key, agentId, adjustment, reason);
+    return this.storage.addMemoryFeedback(key, agentId, adjustment, reason);
   }
   async getMemoryFeedbackHistory(key: string): Promise<MemoryFeedback[]> {
     await this.ensureReady();
-    return (this.storage as any).getMemoryFeedbackHistory(key);
+    return this.storage.getMemoryFeedbackHistory(key);
   }
   async getEvictionCandidates(memoryThreshold: number, sessionThreshold: number, limit: number): Promise<{
     memories: Array<{key: string; importance: number; lastAccessedAt: number; accessCount: number}>;
     sessions: Array<{id: string; importance: number; lastAccessedAt: number; accessCount: number}>;
   }> {
     await this.ensureReady();
-    return (this.storage as any).getEvictionCandidates(memoryThreshold, sessionThreshold, limit);
+    return this.storage.getEvictionCandidates(memoryThreshold, sessionThreshold, limit);
   }
 }
 
