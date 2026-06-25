@@ -17,10 +17,51 @@ import { MemoryPool } from './memory.js';
 import { Config } from './types.js';
 import { WSServer } from './ws_server.js';
 import { GraphStore } from './graph/store.js';
-import type { GraphNodeType } from './graph/types.js';
+import type { EdgeType, GraphNodeType } from './graph/types.js';
 import { SessionStore } from './session_store.js';
 import type { ForgettingScheduler } from './scheduler.js';
 import type { DBSession } from './types.js';
+
+// ─── URL parsing helpers (replaces `as any` casts with type narrowing) ────
+//
+// These helpers narrow URLSearchParams.get(string) (which is `string | null`)
+// to a typed literal-union value via a guard set, instead of bypassing the type
+// system with `as any`. Used by 7 sites that previously cast raw query strings.
+
+const EDGE_TYPES: readonly EdgeType[] = ['temporal', 'entity', 'causal', 'semantic'];
+const NODE_TYPES: readonly GraphNodeType[] = ['memory', 'agent', 'topic'];
+
+function parseEdgeType(raw: string | null): EdgeType | undefined {
+  if (!raw) return undefined;
+  return (EDGE_TYPES as readonly string[]).includes(raw) ? (raw as EdgeType) : undefined;
+}
+
+function parseNodeType(raw: string | null): GraphNodeType | undefined {
+  if (!raw) return undefined;
+  return (NODE_TYPES as readonly string[]).includes(raw) ? (raw as GraphNodeType) : undefined;
+}
+
+function parseEdgeTypes(raw: string | null): EdgeType[] | undefined {
+  if (!raw) return undefined;
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const out: EdgeType[] = [];
+  for (const p of parts) {
+    const v = parseEdgeType(p);
+    if (v) out.push(v);
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+function parseNodeTypes(raw: string | null): GraphNodeType[] | undefined {
+  if (!raw) return undefined;
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const out: GraphNodeType[] = [];
+  for (const p of parts) {
+    const v = parseNodeType(p);
+    if (v) out.push(v);
+  }
+  return out.length > 0 ? out : undefined;
+}
 
 export class RestServer {
   private server: http.Server | null = null;
@@ -257,7 +298,7 @@ export class RestServer {
         const edges = this.graph.getEdges({
           source: url.searchParams.get('source') || undefined,
           target: url.searchParams.get('target') || undefined,
-          type: (url.searchParams.get('type') as any) || undefined,
+          type: parseEdgeType(url.searchParams.get('type')),
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ edges, count: edges.length }));
@@ -297,8 +338,8 @@ export class RestServer {
         const nodeId = decodeURIComponent(path.slice(16));
         const depth = parseInt(url.searchParams.get('depth') || '1');
         const limit = parseInt(url.searchParams.get('limit') || '50');
-        const edgeTypes = url.searchParams.get('edgeTypes')?.split(',') as any || undefined;
-        const nodeTypes = url.searchParams.get('nodeTypes')?.split(',') as any || undefined;
+        const edgeTypes = parseEdgeTypes(url.searchParams.get('edgeTypes'));
+        const nodeTypes = parseNodeTypes(url.searchParams.get('nodeTypes'));
         const results = this.graph.traverse(nodeId, { depth, limit, edgeTypes, nodeTypes });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ results, count: results.length }));
@@ -321,8 +362,8 @@ const result = this.graph.findPath(from, to, maxDepth);
         }
       } else if (path.startsWith('/graph/related/') && method === 'GET') {
         const nodeId = decodeURIComponent(path.slice(15));
-        const edgeTypes = url.searchParams.get('edgeTypes')?.split(',') as any || undefined;
-        const nodeTypes = url.searchParams.get('nodeTypes')?.split(',') as any || undefined;
+        const edgeTypes = parseEdgeTypes(url.searchParams.get('edgeTypes'));
+        const nodeTypes = parseNodeTypes(url.searchParams.get('nodeTypes'));
         try {
           const related = this.graph.getRelated(nodeId, { edgeTypes, nodeTypes });
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -883,7 +924,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const edges = this.graph.getEdges({
         source: url2.searchParams.get('source') || undefined,
         target: url2.searchParams.get('target') || undefined,
-        type: (url2.searchParams.get('type') as any) || undefined,
+        type: parseEdgeType(url2.searchParams.get('type')),
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ edges, count: edges.length }));
@@ -1267,7 +1308,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     req.on('end', () => {
       try {
         const parsed = body ? JSON.parse(body) : {};
-        const isPrivate = Boolean((parsed as any).isPrivate);
+        const isPrivate = parsed && typeof parsed === 'object' && (parsed as { isPrivate?: unknown }).isPrivate === true;
         if (isPrivate) {
           this.topics.createPrivateTopic(topicName);
         } else {
