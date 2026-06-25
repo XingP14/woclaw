@@ -383,7 +383,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.end(JSON.stringify({ peers }));
       } else if (path === '/federation/peers' && method === 'POST') {
         let body = '';
-        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
         req.on('end', () => {
           try {
             const { hubId, wsUrl, federationToken } = JSON.parse(body);
@@ -402,7 +402,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         });
       } else if (path === '/federation/send' && method === 'POST') {
         let body = '';
-        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
         req.on('end', () => {
           try {
             const { targetHubId, agentId, payload } = JSON.parse(body);
@@ -1005,7 +1005,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleSessionCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body) as Partial<DBSession>;
@@ -1054,7 +1054,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleSessionUpdate(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', async () => {
       try {
         const updates = JSON.parse(body) as Partial<DBSession>;
@@ -1081,7 +1081,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleSessionFeedback(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', async () => {
       try {
         const { adjustment, reason, agentId } = JSON.parse(body);
@@ -1097,7 +1097,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleSessionFlag(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', async () => {
       try {
         const { flagged } = JSON.parse(body);
@@ -1152,7 +1152,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', async () => {
       try {
         const result = await this.forgettingScheduler!.triggerEviction();
@@ -1211,7 +1211,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', () => {
       this.forgettingScheduler!.triggerEviction().then(result => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1304,7 +1304,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v1.0: Create a topic (optionally private)
   private handleTopicCreate(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', () => {
       try {
         const parsed = body ? JSON.parse(body) : {};
@@ -1327,7 +1327,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v1.0: Invite an agent to a private topic
   private handleTopicInvite(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', () => {
       try {
         const { agentId, ttlMs } = JSON.parse(body);
@@ -1349,7 +1349,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v1.0: Join a private topic with invite token
   private handleTopicJoin(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
     let body = '';
-    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', () => {
       try {
         const { agentId, inviteToken } = JSON.parse(body);
