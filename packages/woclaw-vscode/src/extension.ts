@@ -70,10 +70,10 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     }
     return this.topics.map(t => {
       const item = new vscode.TreeItem(t.name) as vscode.TreeItem & Topic;
-      (item as any).name = t.name;
-      (item as any).agents = t.agents;
-      (item as any).messageCount = t.messageCount;
-      (item as any).type = t.type;
+      item.name = t.name;
+      item.agents = t.agents;
+      item.messageCount = t.messageCount;
+      item.type = t.type;
       item.contextValue = 'topic';
       item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
       item.iconPath = vscode.Uri.file(
