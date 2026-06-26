@@ -14,7 +14,7 @@ function getHubUrl(): string {
   return vscode.workspace.getConfiguration('woclaw').get<string>('hubUrl') || 'http://localhost:8083';
 }
 
-function httpGet(path: string): Promise<any> {
+function httpGet<T = unknown>(path: string): Promise<T | null> {
   return new Promise((resolve) => {
     const url = getHubUrl();
     const req = http.get(`${url}${path}`, (res) => {
@@ -31,7 +31,7 @@ function httpGet(path: string): Promise<any> {
 }
 
 async function fetchHubHealth(): Promise<HubHealth | null> {
-  return httpGet('/health');
+  return httpGet<HubHealth>('/health');
 }
 
 // ─── Status Bar ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     });
   }
   async refresh(): Promise<void> {
-    this.topics = await httpGet('/topics') || [];
+    this.topics = await httpGet<Topic[]>('/topics') || [];
     this._onDidChangeTreeData.fire(undefined);
   }
 }
@@ -103,7 +103,7 @@ class AgentsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     });
   }
   async refresh(): Promise<void> {
-    this.agents = await httpGet('/agents') || [];
+    this.agents = await httpGet<Agent[]>('/agents') || [];
     this._onDidChangeTreeData.fire(undefined);
   }
 }
@@ -115,10 +115,10 @@ class MemoryTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   async search(q: string) {
     this.query = q;
     this.entries = q
-      ? ((await httpGet(`/memory?limit=50`)) || []).filter((m: MemoryEntry) =>
+      ? ((await httpGet<MemoryEntry[]>('/memory?limit=50')) || []).filter((m) =>
           m.key.toLowerCase().includes(q.toLowerCase()) ||
           m.value.toLowerCase().includes(q.toLowerCase()))
-      : ((await httpGet(`/memory?limit=50`)) || []);
+      : ((await httpGet<MemoryEntry[]>('/memory?limit=50')) || []);
     this._onDidChangeTreeData.fire(undefined);
   }
 

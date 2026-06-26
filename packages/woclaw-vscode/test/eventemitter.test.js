@@ -88,3 +88,51 @@ test('woclaw-vscode: source compiles under tsc --noEmit (smoke check)', () => {
   const cfg = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'));
   assert.strictEqual(cfg.compilerOptions.strict, true, 'strict mode must be on');
 });
+
+test('woclaw-vscode: httpGet is generic + every call site passes an explicit type arg (regression: Promise<any> leak)', () => {
+  // The internal httpGet() helper was widened from Promise<any> to Promise<T | null>
+  // (generic) so each call site can declare the expected payload type and downstream
+  // assignment (this.topics / this.agents / this.entries) is statically safe under
+  // tsc --strict. A regression that strips the generic back to Promise<any> would
+  // also break the 5 typed call sites (httpGet<HubHealth|Topic[]|Agent[]|MemoryEntry[]> where MemoryEntry[] has 2 call sites)
+  // because the new return type Promise<T | null> differs from Promise<any>.
+  //
+  // Asserts:
+  //   1. The function signature is generic + nullable (not bare Promise<any>).
+  //   2. All 5 call sites pass an explicit type argument (HubHealth ×1, Topic[] ×1,
+  //      Agent[] ×1, MemoryEntry[] ×2 — fetchHubHealth wraps the HubHealth call,
+  //      so it counts as 1 of the 5 typed call sites, not a separate 6th).
+  const sigRe = /function\s+httpGet\s*<[^>]+>\s*\(\s*path\s*:\s*string\s*\)\s*:\s*Promise<[^>]+>/;
+  const sigLine = lines.find((ln) => /function\s+httpGet\s*[<(]/.test(ln));
+  assert.ok(sigLine, 'httpGet function declaration not found in src/extension.ts');
+  assert.ok(
+    sigRe.test(sigLine),
+    `httpGet must be generic + nullable (e.g. Promise<T | null>), got: "${sigLine.trim()}"`,
+  );
+  // No bare Promise<any> on the httpGet signature line.
+  assert.ok(
+    !/Promise<any>/.test(sigLine),
+    `regression: bare Promise<any> on httpGet signature line: "${sigLine.trim()}"`,
+  );
+
+  // Find every call site. Each must use the httpGet<T>(...) form.
+  // (regex bug fix: the previous version required the literal-string arg
+  // to be empty (`[`'"]+[`'"]` matched NO actual call site — the source
+  // has non-empty path strings like '/health' / '/topics' / '/agents' /
+  // '/memory?limit=50'). Drop the literal-string constraint; any line
+  // that mentions httpGet followed by `(` or `<` is a candidate.)
+  const callCandidateRe = /\bhttpGet\b\s*[(<]/;
+  const candidates = lines.filter((ln) => callCandidateRe.test(ln));
+  // Exclude the function-declaration line itself; keep only call sites.
+  const callLines = candidates.filter((ln) => !/^function\s+httpGet\b/.test(ln));
+  assert.ok(
+    callLines.length >= 5,
+    `expected >=5 typed httpGet<T>(...) call sites, found ${callLines.length}`,
+  );
+  for (const ln of callLines) {
+    assert.ok(
+      /\bhttpGet\s*<[A-Z][A-Za-z0-9_]+(\[\])?>\s*\(/.test(ln),
+      `regression: httpGet call site missing explicit type arg: "${ln.trim()}"`,
+    );
+  }
+});
