@@ -818,7 +818,7 @@ class SqliteStorage implements DbStorage {
     if (framework) { sql += (agentId ? ' AND' : ' WHERE') + ' framework = ?'; params.push(framework); }
     sql += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
-    return (this.db.prepare(sql).all(...params) as SessionRowSqlite[]).map(r => this.mapSessionRow(r as unknown as DBSession));
+    return (this.db.prepare(sql).all(...params) as SessionRowSqlite[]).map(r => this.mapSessionRow(r));
   }
 
   async deleteSession(id: string): Promise<boolean> {
@@ -831,10 +831,10 @@ class SqliteStorage implements DbStorage {
       SELECT * FROM sessions WHERE transcript LIKE ? OR summary LIKE ?
       ORDER BY started_at DESC LIMIT ?
     `).all(`%${query}%`, `%${query}%`, limit) as SessionRowSqlite[];
-    return rows.map(r => this.mapSessionRow(r as unknown as DBSession));
+    return rows.map(r => this.mapSessionRow(r));
   }
 
-  private mapSessionRow(row: any): DBSession {
+  private mapSessionRow(row: SessionRowSqlite): DBSession {
     return {
       id: row.id, agentId: row.agent_id, framework: row.framework,
       startedAt: row.started_at, endedAt: row.ended_at ?? undefined,
@@ -1424,7 +1424,7 @@ class MySqlStorage implements DbStorage {
     return (rows as SessionRowSqlite[]).map(r => this.mapSessionRow(r));
   }
 
-  private mapSessionRow(row: any): DBSession {
+  private mapSessionRow(row: SessionRowSqlite): DBSession {
     return {
       id: row.id, agentId: row.agent_id, framework: row.framework,
       startedAt: row.started_at, endedAt: row.ended_at ?? undefined,
