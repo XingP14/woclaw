@@ -58,9 +58,9 @@ export interface Message {
   from?: string;
   content?: string;
   key?: string;
-  value?: any;
+  value?: unknown;
   timestamp: number;
-  raw?: any;
+  raw?: unknown;
 }
 
 // Inbound messages from clients
@@ -70,7 +70,7 @@ export interface InboundMessage {
   topic?: string;
   content?: string;
   key?: string;
-  value?: any;
+  value?: unknown;
   tags?: string[];  // v0.4: optional tags for memory entries
   ttl?: number;    // v0.4: optional TTL in seconds (0 = no expiry)
   // delegation fields
@@ -81,7 +81,7 @@ export interface InboundMessage {
   note?: string;
   progress?: number;
   message?: string;
-  result?: any;
+  result?: unknown;
   error?: string;
   summary?: string;
   reason?: string;
@@ -90,7 +90,7 @@ export interface InboundMessage {
 // Outbound messages to clients
 export interface OutboundMessage {
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Topic {
@@ -152,7 +152,7 @@ export type DelegationStatus =
 
 export interface DelegationTask {
   description: string;
-  payload?: any;
+  payload?: unknown;
   priority?: 'low' | 'normal' | 'high';
 }
 
@@ -168,7 +168,7 @@ export interface Delegation {
   updatedAt: number;
   acceptedAt?: number;
   completedAt?: number;
-  result?: any;
+  result?: unknown;
   error?: string;
   summary?: string;
   note?: string;          // accept/reject/cancel reason
@@ -201,7 +201,7 @@ export interface InboundDelegateResult {
   type: 'delegate_result';
   id: string;
   status: 'done' | 'failed';
-  result?: any;
+  result?: unknown;
   error?: string;
   summary?: string;
 }
@@ -272,7 +272,7 @@ export interface FederationMessage {
   fromHubId: string;
   toHubId: string;
   agentId?: string;
-  payload?: any;
+  payload?: unknown;
 }
 
 // Config defaults (can be overridden via env)

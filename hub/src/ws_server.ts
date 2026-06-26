@@ -56,10 +56,11 @@ export class WSServer {
     });
     this.federationManager.setMemorySyncHandler(async (msg) => {
       // Handle federated memory sync from peer hubs
-      if (msg.type === 'memory_sync' && msg.payload) {
-        const { key, value, tags, sourceHub, updatedAt } = msg.payload;
-        if (key && value) {
-          await this.memory.write(key, value, `federation:${msg.fromHubId}`, tags || ['federated'], 0);
+      if (msg.type === 'memory_sync' && msg.payload && typeof msg.payload === 'object') {
+        const payload = msg.payload as Record<string, unknown>;
+        const { key, value, tags, sourceHub, updatedAt } = payload;
+        if (typeof key === 'string' && value !== undefined) {
+          await this.memory.write(key, value, `federation:${msg.fromHubId}`, Array.isArray(tags) ? (tags as string[]) : ['federated'], 0);
           console.log(`[WoClaw Federation] Received federated memory '${key}' from ${msg.fromHubId}`);
         }
       } else if (msg.type === 'memory_request' && msg.payload) {

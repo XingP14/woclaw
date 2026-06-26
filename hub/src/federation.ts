@@ -176,7 +176,10 @@ export class FederationManager {
   private handleMessage(msg: FederationMessage, fromHubId: string): void {
     switch (msg.type) {
       case 'hub_info':
-        console.log(`[WoClaw Federation] Hub info from ${msg.fromHubId}: ${msg.payload.connectedAgents} agents`);
+        if (msg.payload && typeof msg.payload === 'object') {
+          const p = msg.payload as { connectedAgents?: number };
+          console.log(`[WoClaw Federation] Hub info from ${msg.fromHubId}: ${p.connectedAgents ?? 0} agents`);
+        }
         break;
       case 'agent_message':
         // A message from an agent on another hub addressed to us or to relay
