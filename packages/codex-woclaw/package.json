@@ -1,7 +1,7 @@
 {
   "name": "woclaw-codex",
   "version": "0.1.2",
-  "description": "WoClaw integration for OpenAI Codex CLI — shared context across sessions. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_codex_woclaw_skill.json.",
+  "description": "WoClaw integration for OpenAI Codex CLI \u2014 shared context across sessions. Claude Skill Creator 2.0 verifiable / A-B / auto-optimize compatible; 3 test cases under tests/test_codex_woclaw_skill.json.",
   "keywords": [
     "woclaw",
     "codex",
@@ -33,5 +33,13 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XingP14/woclaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XingP14/woclaw/issues"
+  },
+  "homepage": "https://github.com/XingP14/woclaw#readme"
 }

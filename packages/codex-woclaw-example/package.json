@@ -1,7 +1,7 @@
 {
   "name": "woclaw-codex-example",
   "version": "0.1.2",
-  "description": "WoClaw Codex/OpenCode Python example — connect any Python-based coding agent (Codex, OpenCode Python agents, etc.) to a WoClaw Hub via WebSocket for shared memory and topic messaging.",
+  "description": "WoClaw Codex/OpenCode Python example \u2014 connect any Python-based coding agent (Codex, OpenCode Python agents, etc.) to a WoClaw Hub via WebSocket for shared memory and topic messaging.",
   "keywords": [
     "woclaw",
     "codex",
@@ -26,5 +26,13 @@
     "node": ">=18",
     "python": ">=3.8"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XingP14/woclaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XingP14/woclaw/issues"
+  },
+  "homepage": "https://github.com/XingP14/woclaw#readme"
 }
