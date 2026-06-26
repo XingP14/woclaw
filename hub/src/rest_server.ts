@@ -1195,7 +1195,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       this.db.getEvictionCandidates(3.0, 3.0, 20).then(candidates => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
-      }).catch((e: any) => {
+      }).catch((e: unknown) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: errorMessage(e) }));
       });
@@ -1217,7 +1217,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       this.forgettingScheduler!.triggerEviction().then(result => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, evicted: result }));
-      }).catch((e: any) => {
+      }).catch((e: unknown) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: errorMessage(e) }));
       });
