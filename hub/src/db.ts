@@ -150,7 +150,29 @@ function asNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function mapMemoryRow(row: any): DBMemory {
+// Typed row shapes consumed by the mapXxxRow helpers below. Each interface
+// lists every column the mapper reads (snake_case from SQLite/MySQL pools),
+// plus the optional camelCase fields the helper falls back to via `??`. This
+// lets the mappers drop `row: any` and the call sites pass typed arrays
+// (MemoryRowSqlite[] / MemoryVersionRowSqlite[] / MessageRowSqlite[] etc.)
+// without requiring an index signature that would widen all known keys.
+interface MemoryRow extends MemoryRowSqlite {
+  // camelCase fallbacks the mapper tolerates (defensive — current SELECT
+  // queries only produce snake_case columns)
+  expireAt?: number; updatedAt?: number; updatedBy?: string;
+  sourceHub?: string | null;
+}
+interface MemoryVersionRow extends MemoryVersionRowSqlite {
+  expireAt?: number; updatedAt?: number; updatedBy?: string;
+}
+interface MessageRow {
+  id: string; topic: string; content: string; timestamp: number;
+  from_agent?: string;
+  // camelCase fallback the mapper tolerates (defensive)
+  from?: string;
+}
+
+function mapMemoryRow(row: MemoryRow): DBMemory {
   return {
     key: row.key,
     value: row.value,
@@ -159,12 +181,12 @@ function mapMemoryRow(row: any): DBMemory {
     expireAt: asNumber(row.expire_at ?? row.expireAt, 0),
     updatedAt: asNumber(row.updated_at ?? row.updatedAt, 0),
     updatedBy: row.updated_by ?? row.updatedBy ?? '',
-    federated: row.federated === 1 || row.federated === true,
+    federated: row.federated === 1,
     sourceHub: row.source_hub ?? row.sourceHub ?? undefined,
   };
 }
 
-function mapMemoryVersionRow(row: any): DBMemoryVersion {
+function mapMemoryVersionRow(row: MemoryVersionRow): DBMemoryVersion {
   return {
     key: row.key,
     value: row.value,
@@ -177,7 +199,7 @@ function mapMemoryVersionRow(row: any): DBMemoryVersion {
   };
 }
 
-function mapMessageRow(row: any): DBMessage {
+function mapMessageRow(row: MessageRow): DBMessage {
   return {
     id: row.id,
     topic: row.topic,
