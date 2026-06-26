@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, StorageConfig, DBSession, DBSessionFeedback, ExtractionQueueEntry, MemoryFeedback } from './types.js';
 import { createEncryption, encryptAndSerialize, safeDecryptValue, type EncryptionProvider } from './crypto.js';
+import { errorMessage } from './errors.js';
 
 type LegacyDbShape = {
   messages?: DBMessage[];
@@ -402,8 +403,8 @@ class SqliteStorage implements DbStorage {
   private addColumnIfNotExists(table: string, column: string, definition: string): void {
     try {
       this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-    } catch (e: any) {
-      if (!e.message.includes('duplicate column name')) {
+    } catch (e: unknown) {
+      if (!errorMessage(e).includes('duplicate column name')) {
         throw e;
       }
     }
@@ -949,13 +950,13 @@ class MySqlStorage implements DbStorage {
     // v1.0 migration: add importance/access_count/last_accessed_at to memory table
     try {
       await this.pool.execute(`ALTER TABLE memory ADD COLUMN importance_score DOUBLE NOT NULL DEFAULT 5.0`);
-    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
     try {
       await this.pool.execute(`ALTER TABLE memory ADD COLUMN access_count INT NOT NULL DEFAULT 0`);
-    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
     try {
       await this.pool.execute(`ALTER TABLE memory ADD COLUMN last_accessed_at BIGINT`);
-    } catch (e: any) { if (!e.message.includes('Duplicate column')) throw e; }
+    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
 
     await this.maybeImportLegacyData();
   }

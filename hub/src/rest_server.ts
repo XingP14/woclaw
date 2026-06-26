@@ -15,6 +15,7 @@ import { ClawDB } from './db.js';
 import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { Config } from './types.js';
+import { errorMessage } from './errors.js';
 import { WSServer } from './ws_server.js';
 import { GraphStore } from './graph/store.js';
 import type { EdgeType, GraphNodeType } from './graph/types.js';
@@ -106,8 +107,8 @@ export class RestServer {
           });
         });
         console.log(`[WoClaw] REST API running on https://${this.config.host}:${this.config.restPort} (TLS)`);
-      } catch (e: any) {
-        console.error(`[WoClaw] Failed to load TLS certificate for REST: ${e.message}`);
+      } catch (e: unknown) {
+        console.error(`[WoClaw] Failed to load TLS certificate for REST: ${errorMessage(e)}`);
         throw e;
       }
     } else {
@@ -316,9 +317,9 @@ export class RestServer {
             const edge = this.graph.addEdge({ source, target, type, weight, metadata });
             res.writeHead(201, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ edge }));
-          } catch (e: any) {
+          } catch (e: unknown) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: e.message }));
+            res.end(JSON.stringify({ error: errorMessage(e) }));
           }
         });
       } else if (path.startsWith('/graph/edges/') && method === 'DELETE') {
@@ -368,9 +369,9 @@ const result = this.graph.findPath(from, to, maxDepth);
           const related = this.graph.getRelated(nodeId, { edgeTypes, nodeTypes });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(related));
-        } catch (e: any) {
+        } catch (e: unknown) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: e.message }));
+          res.end(JSON.stringify({ error: errorMessage(e) }));
         }
       } else if (path === '/admin/token/status' && method === 'GET') {
         this.handleTokenStatus(res);
@@ -395,9 +396,9 @@ const result = this.graph.findPath(from, to, maxDepth);
             this.wsServer?.addFederationPeer?.({ hubId, wsUrl, federationToken, status: 'disconnected', lastSeen: 0, connectedAgents: 0 });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, hubId }));
-          } catch (e: any) {
+          } catch (e: unknown) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: e.message }));
+            res.end(JSON.stringify({ error: errorMessage(e) }));
           }
         });
       } else if (path === '/federation/send' && method === 'POST') {
@@ -414,9 +415,9 @@ const result = this.graph.findPath(from, to, maxDepth);
             const sent = this.wsServer?.federationSendToAgent?.(targetHubId, agentId, payload) ?? false;
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: sent }));
-          } catch (e: any) {
+          } catch (e: unknown) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: e.message }));
+            res.end(JSON.stringify({ error: errorMessage(e) }));
           }
         });
       // v1.0: Session Memory routes
@@ -426,10 +427,10 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(405);
         res.end(JSON.stringify({ error: 'Method not allowed' }));
       }
-    } catch (e: any) {
-      console.error('[WoClaw] REST error:', e.message);
+    } catch (e: unknown) {
+      console.error('[WoClaw] REST error:', errorMessage(e));
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -583,9 +584,9 @@ const result = this.graph.findPath(from, to, maxDepth);
           approxBytes: totalTranscriptChars + totalSummaryChars,
         },
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -621,9 +622,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         conflict,
         previousValue,
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -796,9 +797,9 @@ const result = this.graph.findPath(from, to, maxDepth);
             status: delegation.status,
             note: delegation.note ?? null,
           }));
-        } catch (e: any) {
+        } catch (e: unknown) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: e.message }));
+          res.end(JSON.stringify({ error: errorMessage(e) }));
         }
       });
       return;
@@ -881,9 +882,9 @@ const result = this.graph.findPath(from, to, maxDepth);
           const node = this.graph.addNode({ type, label, metadata });
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ node }));
-        } catch (e: any) {
+        } catch (e: unknown) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: e.message }));
+          res.end(JSON.stringify({ error: errorMessage(e) }));
         }
       });
       return;
@@ -946,9 +947,9 @@ const result = this.graph.findPath(from, to, maxDepth);
           const edge = this.graph.addEdge({ source, target, type, weight, metadata });
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ edge }));
-        } catch (e: any) {
+        } catch (e: unknown) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: e.message }));
+          res.end(JSON.stringify({ error: errorMessage(e) }));
         }
       });
       return;
@@ -997,9 +998,9 @@ const result = this.graph.findPath(from, to, maxDepth);
       const sessions = await this.sessionStore.listSessions();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions, count: sessions.length }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1028,9 +1029,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         await this.sessionStore.registerSession(session);
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, session }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1046,9 +1047,9 @@ const result = this.graph.findPath(from, to, maxDepth);
       await this.sessionStore.incrementAccessCount(id);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ session }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1061,9 +1062,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         await this.sessionStore.updateSession(id, updates);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1073,9 +1074,9 @@ const result = this.graph.findPath(from, to, maxDepth);
       const deleted = await this.sessionStore.deleteSession(id);
       res.writeHead(deleted ? 200 : 404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: deleted, id }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1088,9 +1089,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         await this.sessionStore.addFeedback(id, agentId ?? 'unknown', adjustment ?? 0, reason);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1104,9 +1105,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         await this.sessionStore.flagSession(id, !!flagged);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1118,9 +1119,9 @@ const result = this.graph.findPath(from, to, maxDepth);
       const sessions = await this.sessionStore.searchSessions(q, limit);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions, count: sessions.length, query: q }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1133,9 +1134,9 @@ const result = this.graph.findPath(from, to, maxDepth);
       const candidates = await this.db.getEvictionCandidates(3.0, 3.0, 20);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1158,9 +1159,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         const result = await this.forgettingScheduler!.triggerEviction();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, evicted: result }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1196,11 +1197,11 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
       }).catch((e: any) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: errorMessage(e) }));
     }
   }
 
@@ -1218,7 +1219,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.end(JSON.stringify({ success: true, evicted: result }));
       }).catch((e: any) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       });
     });
   }
@@ -1317,9 +1318,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         const topic = this.topics.getTopic(topicName)!;
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ topic: { name: topic.name, isPrivate: topic.isPrivate, agents: [...topic.agents] } }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1339,9 +1340,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         const token = this.topics.inviteToTopic(topicName, agentId, ttlMs);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, inviteToken: token, topic: topicName, invitedAgent: agentId }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }
@@ -1361,9 +1362,9 @@ const result = this.graph.findPath(from, to, maxDepth);
         const topic = this.topics.joinPrivateTopic(agentId, topicName, inviteToken);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, topic: { name: topic.name, isPrivate: true, agents: [...topic.agents] } }));
-      } catch (e: any) {
+      } catch (e: unknown) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: errorMessage(e) }));
       }
     });
   }

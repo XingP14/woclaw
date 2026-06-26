@@ -7,6 +7,7 @@ import { Agent, InboundMessage, OutboundMessage, Config, RateLimitEntry, RateLim
 import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { ClawDB } from './db.js';
+import { errorMessage } from './errors.js';
 import { FederationManager } from './federation.js';
 
 // Use ws WebSocket type explicitly
@@ -84,8 +85,8 @@ export class WSServer {
         };
         server = https.createServer(tlsOptions);
         console.log(`[WoClaw] TLS enabled: wss://${config.host}:${config.port}`);
-      } catch (e: any) {
-        console.error(`[WoClaw] Failed to load TLS certificate: ${e.message}`);
+      } catch (e: unknown) {
+        console.error(`[WoClaw] Failed to load TLS certificate: ${errorMessage(e)}`);
         throw e;
       }
     } else {
