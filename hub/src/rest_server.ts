@@ -1237,25 +1237,33 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleGraphNodeCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     let body = '';
     for await (const chunk of req) { body += chunk; }
-    let parsed: any;
+    let parsed: unknown;
     try { parsed = JSON.parse(body); } catch {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Invalid JSON body' }));
       return;
     }
-    const { type, label, metadata } = parsed;
-    if (!type || !label) {
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'type and label are required' }));
+      res.end(JSON.stringify({ error: 'Body must be a JSON object' }));
       return;
     }
-    const validTypes = ['memory', 'agent', 'topic'];
-    if (!validTypes.includes(type)) {
+    const { type, label, metadata } = parsed as { type?: unknown; label?: unknown; metadata?: unknown };
+    if (typeof type !== 'string' || typeof label !== 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'type and label are required strings' }));
+      return;
+    }
+    const validTypes = ['memory', 'agent', 'topic'] as const;
+    if (!validTypes.includes(type as (typeof validTypes)[number])) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: `type must be one of: ${validTypes.join(', ')}` }));
       return;
     }
-    const node = this.graph.addNode({ type, label, metadata: metadata || {} });
+    const meta: Record<string, unknown> = (metadata && typeof metadata === 'object' && !Array.isArray(metadata))
+      ? metadata as Record<string, unknown>
+      : {};
+    const node = this.graph.addNode({ type: type as (typeof validTypes)[number], label, metadata: meta });
     res.writeHead(201, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ node }));
   }

@@ -124,7 +124,7 @@ export class WSServer {
     return this.gracePeriodEnd !== null && token === this.config.nextAuthToken;
   }
 
-  private handleConnection(ws: WS, req: any): void {
+  private handleConnection(ws: WS, req: http.IncomingMessage): void {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const agentId = url.searchParams.get('agentId');
     const token = url.searchParams.get('token');
