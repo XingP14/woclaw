@@ -6,6 +6,65 @@ import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, 
 import { createEncryption, encryptAndSerialize, safeDecryptValue, type EncryptionProvider } from './crypto.js';
 import { errorMessage } from './errors.js';
 
+// ─── SQLite row shapes for `as any` → typed-row migration ─────────────────────
+// Each interface mirrors the SELECT shape from the matching db.prepare(...).all/get
+// call site below. unknown for nullable columns keeps tsc honest without forcing
+// runtime guards at every read (callers already narrow via mapXxxRow helpers).
+interface CountRow { count: number }
+interface MaxVersionRow { maxVersion: number }
+interface MessageCountStatsRow {
+  messageCount: number;
+  memoryCount: number;
+  versionCount: number;
+}
+interface MemoryRowSqlite {
+  key: string; value: string; tags: string; ttl: number;
+  expire_at: number; updated_at: number; updated_by: string;
+  // optional v1.0 migration columns; default to undefined when missing
+  federated?: number | null; source_hub?: string | null;
+  importance_score?: number | null; access_count?: number | null;
+  last_accessed_at?: number | null;
+}
+interface MemoryVersionRowSqlite {
+  key: string; value: string; version: number; tags: string; ttl: number;
+  expire_at: number; updated_at: number; updated_by: string;
+}
+interface TopicStatsRow {
+  name: string;
+  messageCount: number;
+  createdAt: number;
+}
+interface SessionRowSqlite {
+  id: string; agent_id: string; framework: string;
+  started_at: number; ended_at: number | null;
+  transcript: string; summary: string | null;
+  importance: number; access_count: number;
+  last_accessed_at: number | null; tags: string;
+  extracted: number; flagged: number; created_at: number;
+}
+interface ExtractionQueueRowSqlite {
+  session_id: string; queued_at: number; priority: number;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  retry_count: number;
+}
+interface SessionFeedbackRowSqlite {
+  id: number; session_id: string; agent_id: string;
+  adjustment: number; reason: string | null; created_at: number;
+}
+interface MemoryFeedbackRowSqlite {
+  id: number; key: string; agent_id: string;
+  adjustment: number; reason: string | null; created_at: number;
+}
+interface EvictionMemoryRow {
+  key: string; importance: number;
+  last_accessed_at: number | null; access_count: number;
+}
+interface EvictionSessionRow {
+  id: string; importance: number;
+  last_accessed_at: number | null; access_count: number;
+}
+
+
 type LegacyDbShape = {
   messages?: DBMessage[];
   memory?: Array<Partial<DBMemory>>;
@@ -419,7 +478,7 @@ class SqliteStorage implements DbStorage {
         (SELECT COUNT(*) FROM messages) AS messageCount,
         (SELECT COUNT(*) FROM memory) AS memoryCount,
         (SELECT COUNT(*) FROM memory_versions) AS versionCount
-    `).get() as any;
+    `).get() as MessageCountStatsRow;
 
     if (asNumber(counts?.messageCount, 0) > 0 || asNumber(counts?.memoryCount, 0) > 0 || asNumber(counts?.versionCount, 0) > 0) {
       return;
@@ -499,7 +558,7 @@ class SqliteStorage implements DbStorage {
   }
 
   private async trimMessagesIfNeeded(): Promise<void> {
-    const row = this.db.prepare('SELECT COUNT(*) AS count FROM messages').get() as any;
+    const row = this.db.prepare('SELECT COUNT(*) AS count FROM messages').get() as CountRow;
     const count = asNumber(row?.count, 0);
     if (count <= 10000) return;
 
@@ -568,7 +627,7 @@ class SqliteStorage implements DbStorage {
           SELECT COALESCE(MAX(version), 0) AS maxVersion
           FROM memory_versions
           WHERE key = ?
-        `).get(payload.key) as any;
+        `).get(payload.key) as MaxVersionRow;
         const nextVersion = asNumber(versionRow?.maxVersion, 0) + 1;
 
         this.db.prepare(`
@@ -653,7 +712,7 @@ class SqliteStorage implements DbStorage {
       SELECT key, value, tags, ttl, expire_at, updated_at, updated_by
       FROM memory
       ORDER BY updated_at DESC, key ASC
-    `).all() as any[];
+    `).all() as MemoryRowSqlite[];
     return rows.map(r => {
       const mem = mapMemoryRow(r);
       mem.value = this.decryptValue(mem.value);
@@ -667,7 +726,7 @@ class SqliteStorage implements DbStorage {
       FROM memory_versions
       WHERE key = ?
       ORDER BY version DESC
-    `).all(key) as any[];
+    `).all(key) as MemoryVersionRowSqlite[];
     return rows.map(r => {
       const v = mapMemoryVersionRow(r);
       v.value = this.decryptValue(v.value);
@@ -690,7 +749,7 @@ class SqliteStorage implements DbStorage {
       FROM messages
       GROUP BY topic
       ORDER BY MIN(timestamp) ASC, topic ASC
-    `).all() as any[];
+    `).all() as TopicStatsRow[];
     return rows.map(row => ({
       name: row.name,
       messageCount: asNumber(row.messageCount, 0),
@@ -721,7 +780,7 @@ class SqliteStorage implements DbStorage {
   }
 
   async getSession(id: string): Promise<DBSession | undefined> {
-    const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as any;
+    const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as SessionRowSqlite;
     return row ? this.mapSessionRow(row) : undefined;
   }
 
@@ -732,7 +791,7 @@ class SqliteStorage implements DbStorage {
     if (framework) { sql += (agentId ? ' AND' : ' WHERE') + ' framework = ?'; params.push(framework); }
     sql += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
-    return (this.db.prepare(sql).all(...params) as any[]).map(r => this.mapSessionRow(r));
+    return (this.db.prepare(sql).all(...params) as SessionRowSqlite[]).map(r => this.mapSessionRow(r as unknown as DBSession));
   }
 
   async deleteSession(id: string): Promise<boolean> {
@@ -744,8 +803,8 @@ class SqliteStorage implements DbStorage {
     const rows = this.db.prepare(`
       SELECT * FROM sessions WHERE transcript LIKE ? OR summary LIKE ?
       ORDER BY started_at DESC LIMIT ?
-    `).all(`%${query}%`, `%${query}%`, limit) as any[];
-    return rows.map(r => this.mapSessionRow(r));
+    `).all(`%${query}%`, `%${query}%`, limit) as SessionRowSqlite[];
+    return rows.map(r => this.mapSessionRow(r as unknown as DBSession));
   }
 
   private mapSessionRow(row: any): DBSession {
@@ -766,7 +825,7 @@ class SqliteStorage implements DbStorage {
   }
 
   async getExtractionQueue(limit = 10): Promise<ExtractionQueueEntry[]> {
-    const rows = this.db.prepare(`SELECT * FROM extraction_queue ORDER BY priority DESC, queued_at ASC LIMIT ?`).all(limit) as any[];
+    const rows = this.db.prepare(`SELECT * FROM extraction_queue ORDER BY priority DESC, queued_at ASC LIMIT ?`).all(limit) as ExtractionQueueRowSqlite[];
     return rows.map(r => ({ sessionId: r.session_id, queuedAt: r.queued_at, priority: r.priority, status: r.status, retryCount: r.retry_count }));
   }
 
@@ -783,7 +842,7 @@ class SqliteStorage implements DbStorage {
   }
 
   async getSessionFeedbackHistory(sessionId: string): Promise<DBSessionFeedback[]> {
-    const rows = this.db.prepare(`SELECT * FROM session_feedback WHERE session_id = ? ORDER BY created_at DESC`).all(sessionId) as any[];
+    const rows = this.db.prepare(`SELECT * FROM session_feedback WHERE session_id = ? ORDER BY created_at DESC`).all(sessionId) as SessionFeedbackRowSqlite[];
     return rows.map(r => ({ sessionId: r.session_id, agentId: r.agent_id, adjustment: r.adjustment, reason: r.reason, createdAt: r.created_at }));
   }
 
@@ -792,7 +851,7 @@ class SqliteStorage implements DbStorage {
   }
 
   async getMemoryFeedbackHistory(key: string): Promise<MemoryFeedback[]> {
-    const rows = this.db.prepare(`SELECT * FROM memory_feedback WHERE key = ? ORDER BY created_at DESC`).all(key) as any[];
+    const rows = this.db.prepare(`SELECT * FROM memory_feedback WHERE key = ? ORDER BY created_at DESC`).all(key) as MemoryFeedbackRowSqlite[];
     return rows.map(r => ({ key: r.key, agentId: r.agent_id, adjustment: r.adjustment, reason: r.reason, createdAt: r.created_at }));
   }
 
@@ -812,13 +871,13 @@ class SqliteStorage implements DbStorage {
       HAVING importance < ?
       ORDER BY (importance * 0.5) + ((1.0 - MIN((COALESCE(m.last_accessed_at, m.updated_at) - ?), ?) / ?) * 0.3) + (LOG10(COALESCE(m.access_count, 0) + 1) / 2.0 * 0.2) ASC
       LIMIT ?
-    `).all(memoryThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit) as any[];
+    `).all(memoryThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit) as EvictionMemoryRow[];
     const sessRows = this.db.prepare(`
       SELECT id, importance, COALESCE(last_accessed_at, ended_at, created_at) as last_accessed_at, access_count
       FROM sessions WHERE importance < ?
       ORDER BY (importance * 0.5) + ((1.0 - MIN((COALESCE(last_accessed_at, ended_at, created_at) - ?), ?) / ?) * 0.3) + (LOG10(access_count + 1) / 2.0 * 0.2) ASC
       LIMIT ?
-    `).all(sessionThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit) as any[];
+    `).all(sessionThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit) as EvictionSessionRow[];
     return {
       memories: memories.map(r => ({ key: r.key, importance: r.importance, lastAccessedAt: r.last_accessed_at, accessCount: r.access_count })),
       sessions: sessRows.map(r => ({ id: r.id, importance: r.importance, lastAccessedAt: r.last_accessed_at, accessCount: r.access_count })),
