@@ -371,7 +371,7 @@ export class WSServer {
     console.log(`[WoClaw] ${agentId} left topic: ${topic}`);
   }
 
-  private async handleMemoryWrite(fromAgent: string, key: string, value: any, tags?: string[], ttl?: number): Promise<void> {
+  private async handleMemoryWrite(fromAgent: string, key: string, value: unknown, tags?: string[], ttl?: number): Promise<void> {
     const { mem, duplicate, conflict, previousValue } = await this.memory.write(key, value, fromAgent, tags ?? [], ttl ?? 0);
 
     const notification: OutboundMessage = {
@@ -842,7 +842,7 @@ export class WSServer {
     this.federationManager.addPeer(peer);
   }
 
-  federationSendToAgent(targetHubId: string, agentId: string, payload: any): boolean {
+  federationSendToAgent(targetHubId: string, agentId: string, payload: unknown): boolean {
     return this.federationManager.sendToAgent(targetHubId, agentId, payload);
   }
 }

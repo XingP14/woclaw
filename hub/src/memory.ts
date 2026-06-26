@@ -6,7 +6,7 @@ export interface WriteResult {
   mem: DBMemory;
   duplicate: boolean;   // true if key existed with identical value
   conflict: boolean;     // true if key existed with different value
-  previousValue?: any;   // previous value if duplicate or conflict
+  previousValue?: string | undefined;  // previous string value if duplicate or conflict
   previousUpdatedAt?: number;
   previousUpdatedBy?: string;
 }
@@ -125,7 +125,7 @@ export class MemoryPool {
   }
 
   // v1.0: Deduplication — check for existing value before writing
-  async write(key: string, value: any, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<WriteResult> {
+  async write(key: string, value: unknown, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<WriteResult> {
     const serialized = typeof value === 'string' ? value : JSON.stringify(value);
     const existing = await this.db.getMemory(key);
     const duplicate = !!existing && existing.value === serialized;
@@ -304,15 +304,15 @@ export class MemoryPool {
     const all = await this.getAll();
     if (all.length === 0) return [];
     const qTokens = new Set(query.toLowerCase().split(/[\s\W_]+/).filter((w: string) => w.length > 2));
-    const scored = all.map((mem: any) => {
+    const scored = all.map((mem: DBMemory) => {
       const mTokens = new Set((mem.key + ' ' + mem.value).toLowerCase().split(/[\s\W_]+/).filter((w: string) => w.length > 2));
       if (qTokens.size === 0 || mTokens.size === 0) return { mem, score: 0 };
       const inter = new Set([...qTokens].filter((w: string) => mTokens.has(w)));
       const union = new Set([...qTokens, ...mTokens]);
       return { mem, score: inter.size / union.size };
     });
-    scored.sort((a: any, b: any) => b.score - a.score);
-    return scored.slice(0, limit).map((s: any) => s.mem);
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map((s) => s.mem);
   }
 
   async cleanupExpired(): Promise<number> {
