@@ -76,6 +76,10 @@ interface MessageRowMysql {
   id: string; topic: string; from_agent: string;
   content: string; timestamp: number;
 }
+interface MessageRowSqlite {
+  id: string; topic: string; from_agent: string;
+  content: string; timestamp: number;
+}
 interface MemoryExistingRow {
   key: string; value: string; tags: string;
   ttl: number; expire_at: number; updated_at: number; updated_by: string;
@@ -370,7 +374,7 @@ export class ClawDB {
 }
 
 class SqliteStorage implements DbStorage {
-  private db!: any;
+  private db!: Database.Database;
   private dataDir: string;
   private sqlitePath: string;
   private encryption: EncryptionProvider;
@@ -602,7 +606,7 @@ class SqliteStorage implements DbStorage {
 
   async getMessages(topic: string, limit: number = 100, before?: number): Promise<DBMessage[]> {
     const safeLimit = Math.max(0, limit);
-    let rows: any[];
+    let rows: MessageRowSqlite[];
     if (before === undefined) {
       rows = this.db.prepare(`
         SELECT id, topic, from_agent, content, timestamp
@@ -610,7 +614,7 @@ class SqliteStorage implements DbStorage {
         WHERE topic = ?
         ORDER BY timestamp DESC, id DESC
         LIMIT ?
-      `).all(topic, safeLimit);
+      `).all(topic, safeLimit) as MessageRowSqlite[];
     } else {
       rows = this.db.prepare(`
         SELECT id, topic, from_agent, content, timestamp
@@ -618,7 +622,7 @@ class SqliteStorage implements DbStorage {
         WHERE topic = ? AND timestamp < ?
         ORDER BY timestamp DESC, id DESC
         LIMIT ?
-      `).all(topic, before, safeLimit);
+      `).all(topic, before, safeLimit) as MessageRowSqlite[];
     }
     return rows.map(mapMessageRow);
   }
@@ -809,7 +813,7 @@ class SqliteStorage implements DbStorage {
 
   async getAllSessions(agentId?: string, framework?: string, limit = 50, offset = 0): Promise<DBSession[]> {
     let sql = 'SELECT * FROM sessions';
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (agentId) { sql += ' WHERE agent_id = ?'; params.push(agentId); }
     if (framework) { sql += (agentId ? ' AND' : ' WHERE') + ' framework = ?'; params.push(framework); }
     sql += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
@@ -909,7 +913,7 @@ class SqliteStorage implements DbStorage {
 }
 
 class MySqlStorage implements DbStorage {
-  private pool: any;
+  private pool: mysql.Pool;
   private config: MySqlStorageConfig;
   private dataDir: string;
   private encryption: EncryptionProvider;
@@ -1177,7 +1181,7 @@ class MySqlStorage implements DbStorage {
 
   async getMessages(topic: string, limit: number = 100, before?: number): Promise<DBMessage[]> {
     const safeLimit = Math.max(0, limit);
-    let rows: any[];
+    let rows: MessageRowMysql[];
     if (before === undefined) {
       const [result] = await this.pool.execute(`
         SELECT id, topic, from_agent, content, timestamp
@@ -1307,7 +1311,7 @@ class MySqlStorage implements DbStorage {
   }
 
   async deleteMemory(key: string): Promise<boolean> {
-    const [result]: any = await this.pool.execute('DELETE FROM memory WHERE `key` = ?', [key]);
+    const [result] = await this.pool.execute<mysql.ResultSetHeader>('DELETE FROM memory WHERE `key` = ?', [key]);
     return asNumber(result?.affectedRows, 0) > 0;
   }
 
@@ -1341,7 +1345,7 @@ class MySqlStorage implements DbStorage {
 
   async cleanupExpired(): Promise<number> {
     const now = Date.now();
-    const [result]: any = await this.pool.execute(`
+    const [result] = await this.pool.execute<mysql.ResultSetHeader>(`
       DELETE FROM memory
       WHERE expire_at > 0 AND expire_at < ?
     `, [now]);
@@ -1398,7 +1402,7 @@ class MySqlStorage implements DbStorage {
 
   async getAllSessions(agentId?: string, framework?: string, limit = 50, offset = 0): Promise<DBSession[]> {
     let sql = 'SELECT * FROM sessions';
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (agentId) { sql += ' WHERE agent_id = ?'; params.push(agentId); }
     if (framework) { sql += (agentId ? ' AND' : ' WHERE') + ' framework = ?'; params.push(framework); }
     sql += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
@@ -1408,7 +1412,7 @@ class MySqlStorage implements DbStorage {
   }
 
   async deleteSession(id: string): Promise<boolean> {
-    const [result]: any = await this.pool.execute(`DELETE FROM sessions WHERE id = ?`, [id]);
+    const [result] = await this.pool.execute<mysql.ResultSetHeader>(`DELETE FROM sessions WHERE id = ?`, [id]);
     return (result?.affectedRows ?? 0) > 0;
   }
 
@@ -1474,7 +1478,7 @@ class MySqlStorage implements DbStorage {
   }> {
     const now = Date.now();
     const RECENCY_WINDOW = 90 * 24 * 60 * 60 * 1000;
-    const [memRows]: any = await this.pool.query(`
+    const [memRows] = await this.pool.query(`
       SELECT m.key, COALESCE(m.importance_score, 5.0) + COALESCE(SUM(f.adjustment), 0) AS importance,
              COALESCE(m.last_accessed_at, m.updated_at) AS last_accessed_at,
              COALESCE(m.access_count, 0) AS access_count
@@ -1485,7 +1489,7 @@ class MySqlStorage implements DbStorage {
       ORDER BY (importance * 0.5) + ((1.0 - LEAST((COALESCE(m.last_accessed_at, m.updated_at) - ?), ?)) / ? * 0.3) + (LOG10(COALESCE(m.access_count, 0) + 1) / 2.0 * 0.2) ASC
       LIMIT ?
     `, [memoryThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit]);
-    const [sessRows]: any = await this.pool.query(`
+    const [sessRows] = await this.pool.query(`
       SELECT id, importance, COALESCE(last_accessed_at, ended_at, created_at) as last_accessed_at, access_count
       FROM sessions WHERE importance < ?
       ORDER BY (importance * 0.5) + ((1.0 - LEAST((COALESCE(last_accessed_at, ended_at, created_at) - ?), ?)) / ? * 0.3) + (LOG10(access_count + 1) / 2.0 * 0.2) ASC

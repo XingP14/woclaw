@@ -225,7 +225,7 @@ export class FederationManager {
   }
 
   /** Send a message to a specific agent on a peer Hub */
-  sendToAgent(targetHubId: string, agentId: string, payload: any): boolean {
+  sendToAgent(targetHubId: string, agentId: string, payload: unknown): boolean {
     const ws = this.peers.get(targetHubId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.warn(`[WoClaw Federation] Not connected to ${targetHubId}`);
@@ -277,7 +277,7 @@ export class FederationManager {
   }
 
   /** Broadcast a message to all connected peer Hubs */
-  broadcast(payload: any): void {
+  broadcast(payload: unknown): void {
     for (const [hubId, ws] of this.peers) {
       if (ws.readyState === WebSocket.OPEN) {
         const msg: FederationMessage = {
