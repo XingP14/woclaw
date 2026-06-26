@@ -63,6 +63,29 @@ interface EvictionSessionRow {
   id: string; importance: number;
   last_accessed_at: number | null; access_count: number;
 }
+// MySQL-specific row shapes (mirror SQLite ones but column-set may differ).
+// Same rationale: cast `[rows]` of mysql2 `pool.query(...)` to a typed array
+// so downstream `.map(r => ...)` accesses are statically known.
+interface LegacyCountsRow {
+  messageCount: number;
+  memoryCount: number;
+  versionCount: number;
+}
+interface MessageIdRow { id: string }
+interface MessageRowMysql {
+  id: string; topic: string; from_agent: string;
+  content: string; timestamp: number;
+}
+interface MemoryExistingRow {
+  key: string; value: string; tags: string;
+  ttl: number; expire_at: number; updated_at: number; updated_by: string;
+}
+interface TopicStatsRowMysql {
+  name: string;
+  messageCount: number;
+  createdAt: number;
+}
+interface MessageCountRow { count: number }
 
 
 type LegacyDbShape = {
@@ -1030,7 +1053,7 @@ class MySqlStorage implements DbStorage {
         (SELECT COUNT(*) FROM memory) AS memoryCount,
         (SELECT COUNT(*) FROM memory_versions) AS versionCount
     `);
-    const counts = (countsRows as any[])[0];
+    const counts = (countsRows as LegacyCountsRow[])[0];
     if (
       asNumber(counts?.messageCount, 0) > 0 ||
       asNumber(counts?.memoryCount, 0) > 0 ||
@@ -1135,7 +1158,7 @@ class MySqlStorage implements DbStorage {
 
   private async trimMessagesIfNeeded(): Promise<void> {
     const [rows] = await this.pool.query('SELECT COUNT(*) AS count FROM messages');
-    const count = asNumber((rows as any[])[0]?.count, 0);
+    const count = asNumber((rows as MessageCountRow[])[0]?.count, 0);
     if (count <= 10000) return;
 
     const toRemove = count - 5000;
@@ -1145,7 +1168,7 @@ class MySqlStorage implements DbStorage {
       ORDER BY timestamp ASC, id ASC
       LIMIT ?
     `, [toRemove]);
-    const ids = (oldRows as any[]).map(row => row.id);
+    const ids = (oldRows as MessageIdRow[]).map(row => row.id);
     if (ids.length === 0) return;
 
     const placeholders = ids.map(() => '?').join(', ');
@@ -1163,7 +1186,7 @@ class MySqlStorage implements DbStorage {
         ORDER BY timestamp DESC, id DESC
         LIMIT ?
       `, [topic, safeLimit]);
-      rows = result as any[];
+      rows = result as MessageRowMysql[];
     } else {
       const [result] = await this.pool.execute(`
         SELECT id, topic, from_agent, content, timestamp
@@ -1172,7 +1195,7 @@ class MySqlStorage implements DbStorage {
         ORDER BY timestamp DESC, id DESC
         LIMIT ?
       `, [topic, before, safeLimit]);
-      rows = result as any[];
+      rows = result as MessageRowMysql[];
     }
     return rows.map(mapMessageRow);
   }
@@ -1203,7 +1226,7 @@ class MySqlStorage implements DbStorage {
         WHERE \`key\` = ?
         FOR UPDATE
       `, [key]);
-      const existing = (existingRows as any[])[0];
+      const existing = (existingRows as MemoryExistingRow[])[0];
 
       if (existing) {
         const [versionRows] = await conn.execute(`
@@ -1212,7 +1235,7 @@ class MySqlStorage implements DbStorage {
           WHERE \`key\` = ?
           FOR UPDATE
         `, [key]);
-        const nextVersion = asNumber((versionRows as any[])[0]?.maxVersion, 0) + 1;
+        const nextVersion = asNumber((versionRows as MaxVersionRow[])[0]?.maxVersion, 0) + 1;
 
         await conn.execute(`
           INSERT INTO memory_versions (\`key\`, value, version, tags, ttl, expire_at, updated_at, updated_by)
@@ -1271,7 +1294,7 @@ class MySqlStorage implements DbStorage {
       FROM memory
       WHERE \`key\` = ?
     `, [key]);
-    const row = (rows as any[])[0];
+    const row = (rows as MemoryRowSqlite[])[0];
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
@@ -1295,7 +1318,7 @@ class MySqlStorage implements DbStorage {
       FROM memory
       ORDER BY updated_at DESC, \`key\` ASC
     `);
-    return (rows as any[]).map(r => {
+    return (rows as MemoryRowSqlite[]).map(r => {
       const mem = mapMemoryRow(r);
       mem.value = this.decryptValue(mem.value);
       return mem;
@@ -1309,7 +1332,7 @@ class MySqlStorage implements DbStorage {
       WHERE \`key\` = ?
       ORDER BY version DESC
     `, [key]);
-    return (rows as any[]).map(r => {
+    return (rows as MemoryVersionRowSqlite[]).map(r => {
       const v = mapMemoryVersionRow(r);
       v.value = this.decryptValue(v.value);
       return v;
@@ -1332,7 +1355,7 @@ class MySqlStorage implements DbStorage {
       GROUP BY topic
       ORDER BY MIN(timestamp) ASC, topic ASC
     `);
-    return (rows as any[]).map(row => ({
+    return (rows as TopicStatsRowMysql[]).map(row => ({
       name: row.name,
       messageCount: asNumber(row.messageCount, 0),
       createdAt: asNumber(row.createdAt, 0),
@@ -1369,7 +1392,7 @@ class MySqlStorage implements DbStorage {
 
   async getSession(id: string): Promise<DBSession | undefined> {
     const [rows] = await this.pool.execute(`SELECT * FROM sessions WHERE id = ?`, [id]);
-    const row = (rows as any[])[0];
+    const row = (rows as SessionRowSqlite[])[0];
     return row ? this.mapSessionRow(row) : undefined;
   }
 
@@ -1381,7 +1404,7 @@ class MySqlStorage implements DbStorage {
     sql += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
     const [rows] = await this.pool.query(sql, params);
-    return (rows as any[]).map(r => this.mapSessionRow(r));
+    return (rows as SessionRowSqlite[]).map(r => this.mapSessionRow(r));
   }
 
   async deleteSession(id: string): Promise<boolean> {
@@ -1394,7 +1417,7 @@ class MySqlStorage implements DbStorage {
       SELECT * FROM sessions WHERE transcript LIKE ? OR summary LIKE ?
       ORDER BY started_at DESC LIMIT ?
     `, [`%${query}%`, `%${query}%`, limit]);
-    return (rows as any[]).map(r => this.mapSessionRow(r));
+    return (rows as SessionRowSqlite[]).map(r => this.mapSessionRow(r));
   }
 
   private mapSessionRow(row: any): DBSession {
@@ -1416,7 +1439,7 @@ class MySqlStorage implements DbStorage {
 
   async getExtractionQueue(limit = 10): Promise<ExtractionQueueEntry[]> {
     const [rows] = await this.pool.query(`SELECT * FROM extraction_queue ORDER BY priority DESC, queued_at ASC LIMIT ?`, [limit]);
-    return (rows as any[]).map(r => ({ sessionId: r.session_id, queuedAt: Number(r.queued_at), priority: Number(r.priority), status: r.status, retryCount: Number(r.retry_count) }));
+    return (rows as ExtractionQueueRowSqlite[]).map(r => ({ sessionId: r.session_id, queuedAt: Number(r.queued_at), priority: Number(r.priority), status: r.status, retryCount: Number(r.retry_count) }));
   }
 
   async updateExtractionQueueStatus(sessionId: string, status: string): Promise<void> {
@@ -1433,7 +1456,7 @@ class MySqlStorage implements DbStorage {
 
   async getSessionFeedbackHistory(sessionId: string): Promise<DBSessionFeedback[]> {
     const [rows] = await this.pool.query(`SELECT * FROM session_feedback WHERE session_id = ? ORDER BY created_at DESC`, [sessionId]);
-    return (rows as any[]).map(r => ({ sessionId: r.session_id, agentId: r.agent_id, adjustment: Number(r.adjustment), reason: r.reason, createdAt: Number(r.created_at) }));
+    return (rows as SessionFeedbackRowSqlite[]).map(r => ({ sessionId: r.session_id, agentId: r.agent_id, adjustment: Number(r.adjustment), reason: r.reason, createdAt: Number(r.created_at) }));
   }
 
   async addMemoryFeedback(key: string, agentId: string, adjustment: number, reason?: string): Promise<void> {
@@ -1442,7 +1465,7 @@ class MySqlStorage implements DbStorage {
 
   async getMemoryFeedbackHistory(key: string): Promise<MemoryFeedback[]> {
     const [rows] = await this.pool.query(`SELECT * FROM memory_feedback WHERE key = ? ORDER BY created_at DESC`, [key]);
-    return (rows as any[]).map(r => ({ key: r.key, agentId: r.agent_id, adjustment: Number(r.adjustment), reason: r.reason, createdAt: Number(r.created_at) }));
+    return (rows as MemoryFeedbackRowSqlite[]).map(r => ({ key: r.key, agentId: r.agent_id, adjustment: Number(r.adjustment), reason: r.reason, createdAt: Number(r.created_at) }));
   }
 
   async getEvictionCandidates(memoryThreshold: number, sessionThreshold: number, limit: number): Promise<{
@@ -1469,8 +1492,8 @@ class MySqlStorage implements DbStorage {
       LIMIT ?
     `, [sessionThreshold, now, RECENCY_WINDOW, RECENCY_WINDOW, limit]);
     return {
-      memories: (memRows as any[]).map(r => ({ key: r.key, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
-      sessions: (sessRows as any[]).map(r => ({ id: r.id, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
+      memories: (memRows as EvictionMemoryRow[]).map(r => ({ key: r.key, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
+      sessions: (sessRows as EvictionSessionRow[]).map(r => ({ id: r.id, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
     };
   }
 }
