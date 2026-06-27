@@ -15,7 +15,7 @@ const DATA_DIR = `/tmp/woclaw-integration-test-${Date.now()}`;
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(TEST_DIR, '..');
 const HUB_DIR = path.join(ROOT_DIR, 'hub');
-const TSC_BIN = path.join(ROOT_DIR, 'node_modules', 'typescript', 'bin', 'tsc');
+const TSC_BIN = path.join(HUB_DIR, 'node_modules', 'typescript', 'bin', 'tsc');
 
 let hubProcess: ChildProcess;
 
