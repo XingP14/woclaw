@@ -10,6 +10,7 @@ import type {
   ExtractionResult,
   UsageHistoryEntry,
 } from '../types.js';
+import { errorMessage } from '../../errors.js';
 
 const SCORE_MODEL = 'llama3.1';
 const EXTRACT_MODEL = 'llama3.1';
@@ -76,11 +77,11 @@ export class OllamaProvider implements AIProvider {
         reasoning: parsed.reasoning,
         suggestedTags: parsed.suggestedTags,
       };
-    } catch (err) {
+    } catch (err: unknown) {
       return {
         success: false,
         score: 5,
-        reasoning: `Ollama scoring failed: ${(err as Error).message}`,
+        reasoning: `Ollama scoring failed: ${errorMessage(err)}`,
       };
     }
   }
@@ -111,10 +112,10 @@ export class OllamaProvider implements AIProvider {
         keyEvents: parsed.keyEvents ?? [],
         entities: parsed.entities ?? [],
       };
-    } catch (err) {
+    } catch (err: unknown) {
       return {
         success: false,
-        summary: `Extraction failed: ${(err as Error).message}`,
+        summary: `Extraction failed: ${errorMessage(err)}`,
         tags: session.tags ?? [],
       };
     }

@@ -11,6 +11,7 @@ import cron from 'node-cron';
 import type { ClawDB } from './db.js';
 import type { SessionStore } from './session_store.js';
 import type { ExtractionEngine } from './extraction/engine.js';
+import { errorMessage } from './errors.js';
 
 export interface ForgettingConfig {
   /** Default importance floor — memories below this (before feedback) are eviction candidates */
@@ -120,8 +121,8 @@ export class ForgettingScheduler {
       }
 
       console.log(`[ForgettingScheduler] Daily scan complete — queued ${toExtract.length} sessions`);
-    } catch (err) {
-      console.error('[ForgettingScheduler] Daily scan error:', err);
+    } catch (err: unknown) {
+      console.error('[ForgettingScheduler] Daily scan error:', errorMessage(err));
     }
   }
 
@@ -157,8 +158,8 @@ export class ForgettingScheduler {
             sessionsDeleted++;
             console.log(`[ForgettingScheduler] Evicted session ${s.id} (importance=${s.importance.toFixed(2)})`);
           }
-        } catch (err) {
-          console.warn(`[ForgettingScheduler] Failed to evict session ${s.id}:`, err);
+        } catch (err: unknown) {
+          console.warn(`[ForgettingScheduler] Failed to evict session ${s.id}:`, errorMessage(err));
         }
       }
 
@@ -170,8 +171,8 @@ export class ForgettingScheduler {
             memoriesDeleted++;
             console.log(`[ForgettingScheduler] Evicted memory "${m.key}" (importance=${m.importance.toFixed(2)})`);
           }
-        } catch (err) {
-          console.warn(`[ForgettingScheduler] Failed to evict memory "${m.key}":`, err);
+        } catch (err: unknown) {
+          console.warn(`[ForgettingScheduler] Failed to evict memory "${m.key}":`, errorMessage(err));
         }
       }
 
@@ -180,8 +181,8 @@ export class ForgettingScheduler {
       );
 
       return { sessions: sessionsDeleted, memories: memoriesDeleted };
-    } catch (err) {
-      console.error('[ForgettingScheduler] Weekly eviction error:', err);
+    } catch (err: unknown) {
+      console.error('[ForgettingScheduler] Weekly eviction error:', errorMessage(err));
       return { sessions: 0, memories: 0 };
     }
   }

@@ -10,6 +10,7 @@ import type {
   ExtractionResult,
   UsageHistoryEntry,
 } from '../types.js';
+import { errorMessage } from '../../errors.js';
 
 const SCORE_MODEL = 'gpt-4o-mini';
 const EXTRACT_MODEL = 'gpt-4o';
@@ -111,11 +112,11 @@ ${recent || '(no usage recorded)'}`;
         reasoning: parsed.reasoning,
         suggestedTags: parsed.suggestedTags,
       };
-    } catch (err) {
+    } catch (err: unknown) {
       return {
         success: false,
         score: 5,
-        reasoning: `OpenAI scoring failed: ${(err as Error).message}`,
+        reasoning: `OpenAI scoring failed: ${errorMessage(err)}`,
       };
     }
   }
@@ -151,10 +152,10 @@ Transcript excerpt: """${session.transcript.slice(0, 4000)}"""`;
         keyEvents: parsed.keyEvents ?? [],
         entities: parsed.entities ?? [],
       };
-    } catch (err) {
+    } catch (err: unknown) {
       return {
         success: false,
-        summary: `Extraction failed: ${(err as Error).message}`,
+        summary: `Extraction failed: ${errorMessage(err)}`,
         tags: session.tags ?? [],
       };
     }
