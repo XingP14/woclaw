@@ -10,6 +10,13 @@
 import { WebSocket } from 'ws';
 import { hostname } from 'os';
 
+export interface WoClawLogger {
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+  error: (msg: string, ...args: unknown[]) => void;
+  debug: (msg: string) => void;
+}
+
 export interface WoClawConfig {
   hubUrl: string;
   agentId: string;
@@ -26,17 +33,40 @@ export interface WoClawResolvedAccount {
   autoJoin: string[];
 }
 
+
+// Inbound message discriminated union from WoClaw Hub WebSocket.
+// Covers all msg.type cases handled by handleMessage().
+export type WoClawServerMessage =
+  | { type: 'welcome'; agentId: string }
+  | { type: 'message'; id?: string; from: string; content: string; topic: string; timestamp: number }
+  | { type: 'memory_value'; key: string; exists: boolean; value?: unknown }
+  | { type: 'join' }
+  | { type: 'leave' }
+  | { type: 'pong' }
+  | { type: 'ping' }
+  | { type: 'error'; code: string; message: string };
+
+// Outbound dispatch payload sent to OpenClaw runtime.dispatch.
+export interface WoClawDispatchPayload {
+  channel: 'woclaw';
+  id?: string;
+  from?: string;
+  text?: string;
+  topic?: string;
+  timestamp?: number;
+}
+
 interface OutboundMessage {
   type: string;
   topic?: string;
   content?: string;
   key?: string;
-  value?: any;
+  value?: unknown;
   id?: string;
 }
 
 interface PendingMemoryRead {
-  resolve: (value: any) => void;
+  resolve: (value: unknown) => void;
   timer: NodeJS.Timeout;
   resolved: boolean;
 }
@@ -56,10 +86,10 @@ class WoClawChannelInstance {
   private pendingMemoryReads: Map<string, PendingMemoryRead[]> = new Map();
   private topics: Set<string> = new Set();
   private agentId: string = '';
-  private dispatchFn: ((msg: any) => void) | null = null;
-  private logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, ...args: any[]) => void; debug: (msg: string) => void } | null = null;
+  private dispatchFn: ((msg: WoClawDispatchPayload) => void) | null = null;
+  private logger: WoClawLogger | null = null;
 
-  initialize(config: Partial<WoClawConfig>, dispatchFn: (msg: any) => void, logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, ...args: any[]) => void; debug: (msg: string) => void }): void {
+  initialize(config: Partial<WoClawConfig>, dispatchFn: (msg: WoClawDispatchPayload) => void, logger: WoClawLogger): void {
     const resolvedConfig: WoClawConfig = {
       hubUrl: config.hubUrl || process.env.WOCLAW_HUB_URL || 'ws://vm153:8082',
       agentId: config.agentId || process.env.WOCLAW_AGENT_ID || `openclaw-${hostname().split('.')[0]}`,
@@ -170,7 +200,7 @@ class WoClawChannelInstance {
     }
   }
 
-  private resolveMemoryRead(key: string, pending: PendingMemoryRead, value: any): void {
+  private resolveMemoryRead(key: string, pending: PendingMemoryRead, value: unknown): void {
     if (pending.resolved) return;
 
     pending.resolved = true;
@@ -184,7 +214,7 @@ class WoClawChannelInstance {
     if (queue.length === 0) this.pendingMemoryReads.delete(key);
   }
 
-  private handleMessage(msg: any): void {
+  private handleMessage(msg: WoClawServerMessage): void {
     switch (msg.type) {
       case 'welcome':
         this.logger!.info(`[WoClaw] Authenticated as ${msg.agentId}`);
@@ -241,11 +271,11 @@ class WoClawChannelInstance {
     this.send({ type: 'leave', topic });
   }
 
-  async writeMemory(key: string, value: any): Promise<void> {
+  async writeMemory(key: string, value: unknown): Promise<void> {
     this.send({ type: 'memory_write', key, value });
   }
 
-  async readMemory(key: string): Promise<any> {
+  async readMemory(key: string): Promise<unknown> {
     return new Promise((resolve) => {
       const pending: PendingMemoryRead = {
         resolve,
@@ -352,9 +382,9 @@ function applyAccountConfig({ cfg, accountId, input }: { cfg: any; accountId: st
 function afterAccountConfigWritten(params: { cfg: any; accountId: string; runtime: any }): void {
   const account = resolveAccount(params.cfg, params.accountId);
   if (isConfigured(account)) {
-    const dispatchFn = (msg: any) => {
+    const dispatchFn = (msg: WoClawDispatchPayload) => {
       if (params.runtime?.dispatch) {
-        params.runtime.dispatch({ channel: 'woclaw', ...msg });
+        params.runtime.dispatch(msg);
       }
     };
     const logger = params.runtime?.logger ?? {
@@ -431,8 +461,8 @@ export const woclawChannelPlugin: ChannelPlugin = {
       debug: console.error.bind(null, '[WoClaw DEBUG:]'),
     };
     if (effectiveCfg.enabled !== false) {
-      const dispatchFn = (msg: any) => {
-        if (runtime?.dispatch) runtime.dispatch({ channel: 'woclaw', ...msg });
+      const dispatchFn = (msg: WoClawDispatchPayload) => {
+        if (runtime?.dispatch) runtime.dispatch(msg);
       };
       channelInstance.initialize(effectiveCfg, dispatchFn, logger);
     }
@@ -449,8 +479,8 @@ export const woclawChannelPlugin: ChannelPlugin = {
       debug: console.error.bind(null, '[WoClaw DEBUG:]'),
     };
     if (effectiveCfg.enabled !== false) {
-      const dispatchFn = (msg: any) => {
-        if (api?.runtime?.dispatch) api.runtime.dispatch({ channel: 'woclaw', ...msg });
+      const dispatchFn = (msg: WoClawDispatchPayload) => {
+        if (api?.runtime?.dispatch) api.runtime.dispatch(msg);
       };
       channelInstance.initialize(effectiveCfg, dispatchFn, logger);
     }

@@ -37,7 +37,7 @@ function initWoclaw(api: any) {
       return;
     }
     const logger = api.logger ?? { info: console.error.bind(null, '[WoClaw]'), warn: console.error.bind(null, '[WoClaw] WARN:'), error: console.error.bind(null, '[WoClaw] ERROR:'), debug: console.error.bind(null, '[WoClaw] DEBUG:') };
-    channelInstance.initialize(cfg, (msg) => { if (api.runtime?.dispatch) api.runtime.dispatch({ channel: 'woclaw', ...msg }); }, logger);
+    channelInstance.initialize(cfg, (msg) => { if (api.runtime?.dispatch) api.runtime.dispatch(msg); }, logger);
   }
 }
 
