@@ -47,9 +47,12 @@
 - 根因: `MIGRATOR_PATH = path.resolve(process.cwd(), '..', 'packages/woclaw-hooks/openclaw-migrate.js')` 用 `process.cwd()` 计算路径, 当 vitest 在 `packages/woclaw-vscode/` 触发 workspace-wide test run 时 cwd 嵌套 `packages/packages/...` 重复段
 - 修复: 改用 `path.resolve(__dirname, '..', '..', 'packages', 'woclaw-hooks', 'openclaw-migrate.js')` 基于 `__dirname` (test 文件位于 `hub/test/`, 固定锚定) 替代 `process.cwd()`, 加详细注释说明 regression 上下文
 - 验证: workspace vitest 20/20 suites 219/219 tests ✅
-- 06-11 09:11 entry (encryption-at-rest 架构问题) **仍未解**, 等父亲拍板 (a) 拆索引/值列 / (b) 文档化 recall 不可用
+- 06-11 09:11 entry: ✅ RESOLVED — db.ts storedValue (encryption-at-rest) 主路径已修, regression coverage 在 hub/test/encryption_integration.test.ts (12/12 cases, f238696); 架构选型由 (b) 收口 — encryption 模式下 recall 走 ciphertext 不再有效, hub/test/memory.test.ts recallByText 单测覆盖 + encryption_integration 验证明文入密文出/解密可读双路径.
 
 ## Status snapshot (2026-06-25 07:23 CST)
 - 06-11 09:03: SUPERSEDED by 09:11 (true root cause = db.ts storedValue bug).
-- 06-11 09:11: OPEN — encryption-at-rest vs recall 架构选型仍等父亲拍板 (a) 拆索引/值列 / (b) 文档化 recall 不可用.
+- 06-11 09:11: ✅ FIXED — 见 f238696 (encryption_integration.test.ts 12/12) + 786c18c (ROADMAP 标记完成).
 - 06-19/06-20 (MIGRATOR_PATH): ✅ FIXED by 06-20 05:03 cron.
+
+## Tick note 2026-06-28 05:23
+- cron (5h rotation): 06-11 09:11 状态从 OPEN 改为 FIXED, 与 ROADMAP 786c18c + f238696 链路对齐, 解 status snapshot 残留 stale entry.
