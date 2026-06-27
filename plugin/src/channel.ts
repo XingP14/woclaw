@@ -151,7 +151,7 @@ class WoClawChannelInstance {
 
     // Close existing connection before reconnecting
     if (this.ws) {
-      try { this.ws.close(1000, 'Reconnecting'); } catch(e) {}
+      try { this.ws.close(1000, 'Reconnecting'); } catch(_e: unknown) {}
       this.ws = null;
     }
     this.config = resolvedConfig;
@@ -211,8 +211,8 @@ class WoClawChannelInstance {
         try {
           const msg = JSON.parse(event.data.toString());
           this.handleMessage(msg);
-        } catch (e) {
-          this.logger!.error('[WoClaw] Failed to parse message:', e);
+        } catch (e: unknown) {
+          this.logger!.error('[WoClaw] Failed to parse message:', errorMessage(e));
         }
       };
 
@@ -224,8 +224,8 @@ class WoClawChannelInstance {
       this.ws.onerror = (error: WebSocket.ErrorEvent) => {
         this.logger!.error('[WoClaw] WebSocket error:', error);
       };
-    } catch (e) {
-      this.logger!.error('[WoClaw] Failed to connect:', e);
+    } catch (e: unknown) {
+      this.logger!.error('[WoClaw] Failed to connect:', errorMessage(e));
       this.scheduleReconnect();
     }
   }
@@ -456,6 +456,7 @@ function destroyAccount(): void {
 // ============================================================================
 
 import type { ChannelPlugin } from './plugin-types.js';
+import { errorMessage } from './errors.js';
 
 export const woclawChannelPlugin: ChannelPlugin = {
   id: 'woclaw',

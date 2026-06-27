@@ -536,8 +536,8 @@ class SqliteStorage implements DbStorage {
     try {
       const legacy = JSON.parse(readFileSync(legacyPath, 'utf-8')) as LegacyDbShape;
       await this.importLegacyData(legacy);
-    } catch (e) {
-      console.error('[ClawDB] Failed to import legacy JSON store:', e);
+    } catch (e: unknown) {
+      console.error('[ClawDB] Failed to import legacy JSON store:', errorMessage(e));
     }
   }
 
@@ -1091,8 +1091,8 @@ class MySqlStorage implements DbStorage {
     try {
       const legacy = JSON.parse(readFileSync(legacyPath, 'utf-8')) as LegacyDbShape;
       await this.importLegacyData(legacy);
-    } catch (e) {
-      console.error('[ClawDB] Failed to import legacy JSON store into MySQL:', e);
+    } catch (e: unknown) {
+      console.error('[ClawDB] Failed to import legacy JSON store into MySQL:', errorMessage(e));
     }
   }
 
@@ -1161,7 +1161,7 @@ class MySqlStorage implements DbStorage {
       }
 
       await conn.commit();
-    } catch (e) {
+    } catch (e: unknown) {
       await conn.rollback();
       throw e;
     } finally {
@@ -1306,7 +1306,7 @@ class MySqlStorage implements DbStorage {
       }
 
       await conn.commit();
-    } catch (e) {
+    } catch (e: unknown) {
       await conn.rollback();
       throw e;
     } finally {

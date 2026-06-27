@@ -3,6 +3,7 @@
 
 import { WebSocket } from 'ws';
 import type { FederationPeer, FederationMessage, Config } from './types.js';
+import { errorMessage } from './errors.js';
 
 export class FederationManager {
   private peers: Map<string, WebSocket> = new Map();  // hubId → WS connection
@@ -108,8 +109,8 @@ export class FederationManager {
       try {
         const msg: FederationMessage = JSON.parse(data.toString());
         this.handleMessage(msg, peer.hubId);
-      } catch (e) {
-        console.error(`[WoClaw Federation] Invalid message from ${peer.hubId}:`, e);
+      } catch (e: unknown) {
+        console.error(`[WoClaw Federation] Invalid message from ${peer.hubId}:`, errorMessage(e));
       }
     });
 
@@ -121,8 +122,8 @@ export class FederationManager {
       this.scheduleReconnect(peer);
     });
 
-    ws.on('error', (err) => {
-      console.error(`[WoClaw Federation] Error with ${peer.hubId}:`, err.message);
+    ws.on('error', (err: unknown) => {
+      console.error(`[WoClaw Federation] Error with ${peer.hubId}:`, errorMessage(err));
     });
   }
 

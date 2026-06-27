@@ -1,5 +1,6 @@
 import { ClawDB } from './db.js';
 import { DBMemory, DBMemoryVersion, OutboundMessage } from './types.js';
+import { errorMessage } from './errors.js';
 
 // v1.0: Deduplication — write result with conflict detection
 export interface WriteResult {
@@ -332,8 +333,8 @@ export class MemoryPool {
     for (const callback of this.subscribers.values()) {
       try {
         callback(message);
-      } catch (e) {
-        console.error('Error notifying subscriber:', e);
+      } catch (e: unknown) {
+        console.error('Error notifying subscriber:', errorMessage(e));
       }
     }
   }

@@ -167,7 +167,7 @@ export class WSServer {
           console.error(`[WoClaw] Failed to process message from ${agentId}:`, e);
           this.sendError(ws, 'internal_error', 'Failed to process message');
         });
-      } catch (e) {
+      } catch (e: unknown) {
         this.sendError(ws, 'invalid_message', 'Failed to parse message');
       }
     });
@@ -535,7 +535,7 @@ export class WSServer {
       if (agent.ws.readyState === 1) {
         try {
           agent.ws.ping();
-        } catch (e) {
+        } catch (e: unknown) {
           console.error(`[WoClaw] Ping failed for ${agentId}`);
           this.handleDisconnect(agentId);
         }

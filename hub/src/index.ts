@@ -9,6 +9,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import http from 'http';
 import type { StorageConfig } from './types.js';
+import { errorMessage } from './errors.js';
 
 function buildDefaultStorageConfig(): StorageConfig {
   const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
@@ -63,8 +64,8 @@ async function main() {
       const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
       config = { ...config, ...fileConfig };
       console.log(`[WoClaw] Loaded config from ${configPath}`);
-    } catch (e) {
-      console.error(`[WoClaw] Failed to load config: ${e}`);
+    } catch (e: unknown) {
+      console.error(`[WoClaw] Failed to load config: ${errorMessage(e)}`);
       process.exit(1);
     }
   }
