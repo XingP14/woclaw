@@ -78,8 +78,8 @@ the `0.x` stage. Public releases are tag-driven, not heartbeat-driven.
 | Surface | Version source | Public trigger | Required preflight |
 | --- | --- | --- | --- |
 | Hub npm | `hub/package.json` | tag `hub/vX.Y.Z` -> `hub-publish.yml` | `cd hub && npm ci && npm run build && npm test` |
-| Hub Docker | `hub/package.json` and tag | tag `hub/vX.Y.Z` -> `docker-publish.yml` | hub preflight plus Docker build metadata check |
-| OpenClaw plugin | `plugin/package.json` and `plugin/openclaw.plugin.json` | tag `plugin/vX.Y.Z` -> `publish.yml` | `cd plugin && npm ci && npm run build && npm pack --dry-run` |
+| Hub Docker | `hub/package.json` and tag | tag `hub/vX.Y.Z` or default-branch push -> `docker.yml` | hub preflight plus Docker build metadata and image tag check |
+| OpenClaw plugin | `plugin/package.json` and `plugin/openclaw.plugin.json` | tag `plugin/vX.Y.Z` -> `publish.yml` | `cd plugin && npm ci && npm run build && npm test && npm pack --dry-run` |
 | Hooks | `packages/woclaw-hooks/package.json` | tag `hooks/vX.Y.Z` -> `hooks-publish.yml` | package dry run and hook install smoke test |
 | Codex hooks | `packages/codex-woclaw/package.json` | maintainer-controlled npm publish | `npm pack --dry-run`, installer smoke test |
 | MCP bridge | `mcp-bridge/package.json` | maintainer-controlled npm publish | build/copy check and MCP stdio smoke test |

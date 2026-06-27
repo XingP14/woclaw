@@ -11,10 +11,10 @@
     "start": "node bin/woclaw.js",
     "build": "mkdir -p dist && npx tsc --project tsconfig.build.json && cp -r skills openclaw.plugin.json bin dist/",
     "prepublishOnly": "npm run build",
-    "test": "echo 'No tests yet' && exit 0"
+    "test": "vitest run test/channel.test.ts"
   },
   "dependencies": {
-    "ws": "^8.16.0"
+    "ws": "^8.21.0"
   },
   "peerDependencies": {
     "openclaw": ">=2026.1.0"
@@ -61,10 +61,18 @@
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^1.6.1"
   },
   "bugs": {
     "url": "https://github.com/XingP14/woclaw/issues"
   },
-  "homepage": "https://github.com/XingP14/woclaw#readme"
+  "homepage": "https://github.com/XingP14/woclaw#readme",
+  "overrides": {
+    "hono": "^4.12.25",
+    "protobufjs": "^7.6.3",
+    "tar": "^7.5.16",
+    "undici": "^8.5.0",
+    "ws": "^8.21.0"
+  }
 }

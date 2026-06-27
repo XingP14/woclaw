@@ -29,6 +29,15 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^1.6.1",
     "typescript": "^5.4.5",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "ws": "^8.21.0"
+  },
+  "overrides": {
+    "ws": "^8.21.0",
+    "uuid": "^14.0.1",
+    "hono": "^4.12.27",
+    "protobufjs": "^8.6.5",
+    "tar": "^7.5.17",
+    "undici": "^8.5.0"
   }
 }

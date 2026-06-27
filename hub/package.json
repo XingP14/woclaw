@@ -29,8 +29,8 @@
     "better-sqlite3": "^12.4.1",
     "mysql2": "^3.14.5",
     "node-cron": "^4.2.1",
-    "uuid": "^9.0.1",
-    "ws": "^8.16.0"
+    "uuid": "^14.0.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -38,8 +38,7 @@
     "@types/ws": "^8.5.10",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^1.6.0",
-    "ws": "^8.16.0"
+    "vitest": "^1.6.0"
   },
   "engines": {
     "node": ">=18.0.0"
