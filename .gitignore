@@ -50,3 +50,6 @@ site-static/
 # Local memory notes.
 # Agent runtime notes belong outside release source control.
 memory/
+
+# Editor / sed backup files
+*.bak

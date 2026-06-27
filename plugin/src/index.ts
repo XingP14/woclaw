@@ -3,22 +3,30 @@
 
 // @ts-ignore - openclaw is a peer dependency, types resolved at runtime
 import { defineChannelPluginEntry } from 'openclaw/plugin-sdk/core';
-import { woclawChannelPlugin, channelInstance } from './channel.js';
+import { woclawChannelPlugin, channelInstance, type WoClawAdapterRuntime, type WoClawPluginConfig } from './channel.js';
 import { readFileSync } from 'fs';
 import { homedir } from 'os';
 
-function initWoclaw(api: any) {
+// Shape of ~/.openclaw/openclaw.json (or the in-memory equivalent). Only
+// the bits the plugin reads are typed; unknown fields are ignored.
+interface OpenClawFileConfig {
+  channels?: { woclaw?: WoClawPluginConfig };
+  plugins?: { entries?: Record<string, { config?: WoClawPluginConfig }> };
+  [key: string]: unknown;
+}
+
+function initWoclaw(api: WoClawAdapterRuntime) {
   // Read config from file first (most reliable - works regardless of api.cfg state)
-  let fileCfg: any = null;
+  let fileCfg: OpenClawFileConfig | null = null;
   try {
-    fileCfg = JSON.parse(readFileSync(`${homedir()}/.openclaw/openclaw.json`, 'utf-8'));
+    fileCfg = JSON.parse(readFileSync(`${homedir()}/.openclaw/openclaw.json`, 'utf-8')) as OpenClawFileConfig;
   } catch { /* ignore - will fall back to api.cfg */ }
 
   // File config takes priority, then api.cfg, then api.runtime.cfg
-  const effectiveCfg = fileCfg ?? api.cfg ?? api.runtime?.cfg;
-  const channelsCfg = effectiveCfg?.channels?.['woclaw'];
-  const pluginCfg = effectiveCfg?.plugins?.entries?.['xingp14-woclaw']?.config;
-  const cfg = channelsCfg || pluginCfg || {};
+  const fileCfgResolved: WoClawPluginConfig | undefined = fileCfg?.channels?.['woclaw']
+    ?? fileCfg?.plugins?.entries?.['xingp14-woclaw']?.config;
+  const apiCfg: WoClawPluginConfig | undefined = api?.cfg ?? api?.runtime?.cfg;
+  const cfg: WoClawPluginConfig = fileCfgResolved ?? apiCfg ?? {};
   if (cfg.enabled !== false) {
     const serviceKind = process.env.OPENCLAW_SERVICE_KIND?.trim();
     const serviceMarker = process.env.OPENCLAW_SERVICE_MARKER?.trim();

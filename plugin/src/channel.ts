@@ -33,6 +33,51 @@ export interface WoClawResolvedAccount {
   autoJoin: string[];
 }
 
+// WoClaw channel config shape as authored in OpenClaw's channels.woclaw YAML/JSON
+// (or in plugins.entries['xingp14-woclaw'].config when the user chooses the
+//  plugins.entries form). Mirrors the fields the adapter actually reads at
+// runtime; everything else is ignored.
+export interface WoClawAccountInput {
+  hubUrl?: string;
+  agentId?: string;
+  token?: string;
+  autoJoin?: string[];
+}
+
+export interface WoClawPluginConfig {
+  enabled?: boolean;
+  hubUrl?: string;
+  agentId?: string;
+  token?: string;
+  autoJoin?: string[];
+  topics?: string[];
+  accounts?: Record<string, WoClawAccountInput>;
+}
+
+// Minimal slice of the OpenClaw runtime that the adapter actually uses.
+// Two surfaces that the adapter reads from:
+//   1. PluginRuntime  (OpenClaw passes this to setRuntime / register as
+//      the top-level object — has dispatch + logger + cfg directly).
+//   2. OpenClawPluginApi (OpenClaw also passes a "full api" wrapper that
+//      has the PluginRuntime nested at `api.runtime`, plus api.logger
+//      and api.cfg as siblings). The adapter only reads dispatch +
+//      logger + cfg + runtime.dispatch, so the interface below covers
+//      both call shapes without forcing the adapter to declare `any`.
+// Forward-compat: the index signature stays `unknown` (not `any`) so
+// accidental property access still requires a narrowing step.
+export interface WoClawAdapterRuntime {
+  dispatch?: (msg: WoClawDispatchPayload) => void;
+  logger?: WoClawLogger;
+  cfg?: WoClawPluginConfig;
+  runtime?: {
+    dispatch?: (msg: WoClawDispatchPayload) => void;
+    logger?: WoClawLogger;
+    cfg?: WoClawPluginConfig;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 
 // Inbound message discriminated union from WoClaw Hub WebSocket.
 // Covers all msg.type cases handled by handleMessage().
@@ -318,26 +363,33 @@ export const channelInstance = new WoClawChannelInstance();
 // Channel Config Adapter
 // ============================================================================
 
-function listAccountIds(cfg: any): string[] {
-  const accounts = cfg?.channels?.['woclaw']?.accounts;
+function listAccountIds(cfg: WoClawPluginConfig | undefined): string[] {
+  const accounts = cfg?.accounts;
   if (!accounts) return ['default'];
   return Object.keys(accounts);
 }
 
-function resolveAccount(cfg: any, accountId?: string | null): WoClawResolvedAccount {
-  const section = cfg?.channels?.['woclaw'];
+function resolveAccount(cfg: WoClawPluginConfig | undefined, accountId?: string | null): WoClawResolvedAccount {
   const accId = accountId ?? 'default';
-  const account = section?.accounts?.[accId] ?? {};
+  const account = cfg?.accounts?.[accId];
   return {
     accountId: accId,
-    hubUrl: account.hubUrl ?? section?.hubUrl ?? 'ws://localhost:8080',
-    agentId: account.agentId ?? section?.agentId ?? '',
-    token: account.token ?? section?.token ?? '',
-    autoJoin: account.autoJoin ?? section?.autoJoin ?? [],
+    hubUrl: account?.hubUrl ?? cfg?.hubUrl ?? 'ws://localhost:8080',
+    agentId: account?.agentId ?? cfg?.agentId ?? '',
+    token: account?.token ?? cfg?.token ?? '',
+    autoJoin: account?.autoJoin ?? cfg?.autoJoin ?? [],
   };
 }
 
-function inspectAccount(cfg: any, accountId?: string | null): any {
+interface WoClawInspectResult {
+  enabled: boolean;
+  configured: boolean;
+  hubUrl: string;
+  agentId: string;
+  tokenStatus: 'available' | 'missing';
+}
+
+function inspectAccount(cfg: WoClawPluginConfig | undefined, accountId?: string | null): WoClawInspectResult {
   const account = resolveAccount(cfg, accountId);
   return {
     enabled: Boolean(account.hubUrl && account.agentId && account.token),
@@ -363,13 +415,11 @@ function unconfiguredReason(account: WoClawResolvedAccount): string {
 // Channel Setup Adapter
 // ============================================================================
 
-function applyAccountConfig({ cfg, accountId, input }: { cfg: any; accountId: string; input: any }): any {
-  const config = { ...cfg };
-  if (!config.channels) config.channels = {};
-  if (!config.channels['woclaw']) config.channels['woclaw'] = { accounts: {} };
-  if (!config.channels['woclaw'].accounts) config.channels['woclaw'].accounts = {};
+function applyAccountConfig({ cfg, accountId, input }: { cfg: WoClawPluginConfig | undefined; accountId: string; input: WoClawAccountInput }): WoClawPluginConfig {
+  const config: WoClawPluginConfig = { ...(cfg ?? {}) };
+  if (!config.accounts) config.accounts = {};
 
-  config.channels['woclaw'].accounts[accountId] = {
+  config.accounts[accountId] = {
     hubUrl: input.hubUrl,
     agentId: input.agentId,
     token: input.token,
@@ -379,7 +429,7 @@ function applyAccountConfig({ cfg, accountId, input }: { cfg: any; accountId: st
   return config;
 }
 
-function afterAccountConfigWritten(params: { cfg: any; accountId: string; runtime: any }): void {
+function afterAccountConfigWritten(params: { cfg: WoClawPluginConfig | undefined; accountId: string; runtime: WoClawAdapterRuntime | undefined }): void {
   const account = resolveAccount(params.cfg, params.accountId);
   if (isConfigured(account)) {
     const dispatchFn = (msg: WoClawDispatchPayload) => {
@@ -387,10 +437,10 @@ function afterAccountConfigWritten(params: { cfg: any; accountId: string; runtim
         params.runtime.dispatch(msg);
       }
     };
-    const logger = params.runtime?.logger ?? {
+    const logger: WoClawLogger = params.runtime?.logger ?? {
       info: (msg: string) => console.log(msg),
       warn: (msg: string) => console.warn(msg),
-      error: (msg: string, ...args: any[]) => console.error(msg, ...args),
+      error: (msg: string, ...args: unknown[]) => console.error(msg, ...args),
       debug: (msg: string) => console.debug(msg),
     };
     channelInstance.initialize(account, dispatchFn, logger);
@@ -449,11 +499,9 @@ export const woclawChannelPlugin: ChannelPlugin = {
     deliveryMode: 'direct',
   },
   // Lifecycle hooks - OpenClaw calls these on the plugin object directly
-  setChannelRuntime: (runtime: any) => {
-    const cfg = runtime?.cfg ?? {};
-    const channelsCfg = cfg?.channels?.['woclaw'];
-    const pluginCfg = cfg?.plugins?.entries?.['xingp14-woclaw']?.config;
-    const effectiveCfg = channelsCfg || pluginCfg || {};
+  setChannelRuntime: (runtime: WoClawAdapterRuntime) => {
+    const cfg = runtime?.cfg;
+    const effectiveCfg = cfg ?? {};
     const logger = runtime?.logger ?? {
       info: console.error.bind(null, '[WoClaw]'),
       warn: console.error.bind(null, '[WoClaw WARN:]'),
@@ -467,11 +515,9 @@ export const woclawChannelPlugin: ChannelPlugin = {
       channelInstance.initialize(effectiveCfg, dispatchFn, logger);
     }
   },
-  register: (api: any) => {
-    const cfg = api?.cfg ?? {};
-    const channelsCfg = cfg?.channels?.['woclaw'];
-    const pluginCfg = cfg?.plugins?.entries?.['xingp14-woclaw']?.config;
-    const effectiveCfg = channelsCfg || pluginCfg || {};
+  register: (api: WoClawAdapterRuntime) => {
+    const cfg = api?.cfg;
+    const effectiveCfg = cfg ?? {};
     const logger = api?.logger ?? {
       info: console.error.bind(null, '[WoClaw]'),
       warn: console.error.bind(null, '[WoClaw WARN:]'),
