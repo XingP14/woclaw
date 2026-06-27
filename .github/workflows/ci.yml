@@ -85,7 +85,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install workspace dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci
 
       - name: Check skill frontmatter
         run: npm run sync:skills:check
