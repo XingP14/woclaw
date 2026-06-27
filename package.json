@@ -4,12 +4,13 @@
   "private": true,
   "description": "WoClaw - Shared memory and messaging hub for AI agents",
   "scripts": {
-    "test": "npm run test:unit",
-    "test:unit": "npm run test --workspace=hub --workspace=plugin",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run test --workspace=hub && npm run test --workspace=plugin && npm run test --workspace=woclaw-vscode --if-present",
     "test:integration": "vitest run --config vitest.config.ts integration-test/",
     "test:coverage": "npm run test:coverage --workspace=hub",
     "build": "npm run build --workspace=hub && npm run build --workspace=plugin",
-    "build:all": "npm run build && npm run build --workspace=packages/woclaw-hooks",
+    "build:all": "npm run build --workspace=hub && npm run build --workspace=plugin && npm run build --workspace=woclaw-mcp && npm run compile --workspace=woclaw-vscode",
+    "pack:check": "npm pack --dry-run --workspace=hub && npm pack --dry-run --workspace=plugin && npm pack --dry-run --workspace=woclaw-hooks && npm pack --dry-run --workspace=woclaw-mcp && npm pack --dry-run --workspace=woclaw-codex --ignore-scripts && npm pack --dry-run --workspace=opencode-woclaw && npm pack --dry-run --workspace=woclaw-vscode",
     "sync:skills": "node scripts/sync-skill-frontmatter.mjs --all",
     "sync:skills:check": "node scripts/sync-skill-frontmatter.mjs --all --check",
     "sync:skills:write": "node scripts/sync-skill-frontmatter.mjs --all --write"
@@ -17,8 +18,12 @@
   "workspaces": [
     "hub",
     "plugin",
+    "mcp-bridge",
     "packages/woclaw-hooks",
-    "packages/woclaw-mcp"
+    "packages/codex-woclaw",
+    "packages/codex-woclaw-example",
+    "packages/opencode-woclaw-plugin",
+    "packages/woclaw-vscode"
   ],
   "license": "MIT",
   "devDependencies": {

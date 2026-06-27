@@ -6,9 +6,72 @@ on:
   pull_request:
     branches: [main, master]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  hub:
-    name: Hub (lint + build + test)
+  package:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Hub
+            path: hub
+            install: npm ci
+            verify: npx tsc --noEmit && npm run build && npm test && npm pack --dry-run
+          - name: OpenClaw plugin
+            path: plugin
+            install: npm ci
+            verify: npx tsc --noEmit --project tsconfig.build.json && npm run build && npm test && npm pack --dry-run
+          - name: MCP bridge
+            path: mcp-bridge
+            install: npm ci
+            verify: npm run build && npm pack --dry-run
+          - name: Hook package
+            path: packages/woclaw-hooks
+            install: ''
+            verify: npm pack --dry-run
+          - name: Codex package
+            path: packages/codex-woclaw
+            install: ''
+            verify: npm pack --dry-run --ignore-scripts
+          - name: OpenCode package
+            path: packages/opencode-woclaw-plugin
+            install: ''
+            verify: npm pack --dry-run
+          - name: VS Code extension
+            path: packages/woclaw-vscode
+            install: npm ci
+            verify: npm run compile && npm test && npm pack --dry-run
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            hub/package-lock.json
+            plugin/package-lock.json
+            mcp-bridge/package-lock.json
+            packages/woclaw-vscode/package-lock.json
+
+      - name: Install dependencies
+        if: matrix.install != ''
+        working-directory: ${{ matrix.path }}
+        run: ${{ matrix.install }}
+
+      - name: Verify package
+        working-directory: ${{ matrix.path }}
+        run: ${{ matrix.verify }}
+
+  integration:
+    name: Root integration
     runs-on: ubuntu-latest
 
     steps:
@@ -19,24 +82,16 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: hub/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        working-directory: hub
-        run: npm install
+      - name: Install workspace dependencies
+        run: npm ci --ignore-scripts
 
-      - name: TypeScript check
-        working-directory: hub
-        run: npx tsc --noEmit
+      - name: Check skill frontmatter
+        run: npm run sync:skills:check
 
-      - name: Build
-        working-directory: hub
-        run: npm run build
+      - name: Build release packages
+        run: npm run build:all
 
-      - name: Test
-        working-directory: hub
-        run: npm test
-
-  # plugin-lint disabled: persistent npm install failure in GitHub Actions ubuntu-latest
-  # tracked in https://github.com/XingP14/woclaw/issues
-  # Local verification: npx tsc --noEmit && npm run build work correctly
+      - name: Run integration tests
+        run: npm run test:integration

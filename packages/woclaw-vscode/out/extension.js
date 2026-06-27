@@ -149,9 +149,9 @@ class MemoryTreeDataProvider {
     async search(q) {
         this.query = q;
         this.entries = q
-            ? ((await httpGet(`/memory?limit=50`)) || []).filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
+            ? ((await httpGet('/memory?limit=50')) || []).filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
                 m.value.toLowerCase().includes(q.toLowerCase()))
-            : ((await httpGet(`/memory?limit=50`)) || []);
+            : ((await httpGet('/memory?limit=50')) || []);
         this._onDidChangeTreeData.fire(undefined);
     }
     getTreeItem(el) { return el; }
