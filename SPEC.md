@@ -1,5 +1,10 @@
 # WoClaw - 技术规格文档
 
+> Status: historical reference. This file describes early architecture and may
+> lag behind the current monorepo. Use `docs/PROJECT-GOVERNANCE.md`,
+> `docs/ROADMAP.md`, `docs/API.md`, and package-local READMEs as the current
+> operating sources of truth.
+
 > 本文档描述 WoClaw 的技术架构、设计决策和实现细节
 > 最新路线图请查看 [docs/ROADMAP.md](./docs/ROADMAP.md)
 

@@ -42,7 +42,7 @@ the operating model.
 | `docs/superpowers/` | Design specs and implementation plans for larger changes | internal agent workflow |
 | `scripts/` | Repository maintenance automation, especially SKILL metadata sync | local and CI tooling |
 | `integration-test/` | Cross-package integration tests | CI/local verification |
-| `memory/` | Historical automated notes | not a release artifact |
+| `memory/` | Local automated notes only; ignored and not tracked | not a release artifact |
 
 ## Product Direction
 
@@ -143,8 +143,8 @@ testing plan, and rollback plan.
 - Prefer package-local changes. Do not edit every subpackage unless the change is
   genuinely cross-package and scripted.
 - Keep generated output out of source control unless the package release requires
-  it. Avoid committing `coverage/`, `node_modules/`, runtime memory, browser
-  profiles, OpenClaw state, and temporary archives.
+  it. Avoid committing `coverage/`, `node_modules/`, runtime memory, Python
+  caches, browser profiles, OpenClaw state, and temporary archives.
 - Use structured APIs and parsers for JSON, package metadata, and workflow files.
 - Keep TypeScript type tightening paired with tests where behavior could drift.
 - For DB or protocol changes, update `docs/API.md`, `docs/README.md`,
@@ -251,4 +251,3 @@ OpenClaw cron agents must obey this project-specific loop:
 9. Verify registry or Docker artifact after publish.
 10. Record the release in `CHANGELOG.md` and docs if user-visible behavior
     changed.
-

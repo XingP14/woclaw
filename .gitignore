@@ -33,6 +33,10 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Test coverage
 coverage/
 
@@ -43,5 +47,6 @@ coverage/
 site-static/
 .worktrees/
 
-# Local memory notes (workspace daily logs accidentally in this dir)
+# Local memory notes.
+# Agent runtime notes belong outside release source control.
 memory/
