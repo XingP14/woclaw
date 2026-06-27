@@ -1,5 +1,9 @@
 # WoClaw 维护规则
 
+> OpenClaw 和其他自动化 agent 的完整项目结构、计划、测试矩阵、发布节奏和工作约束见
+> [`docs/PROJECT-GOVERNANCE.md`](./docs/PROJECT-GOVERNANCE.md)。本文件只保留
+> CI/CD 优先级规则。
+
 ## CI/CD 优先级规则
 
 ### 核心原则：CI/CD 失败 > 所有其他事项
