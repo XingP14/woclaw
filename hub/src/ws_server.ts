@@ -176,8 +176,8 @@ export class WSServer {
       this.handleDisconnect(agentId);
     });
 
-    ws.on('error', (err: Error) => {
-      console.error(`[WoClaw] WebSocket error for ${agentId}:`, err.message);
+    ws.on('error', (err: unknown) => {
+      console.error(`[WoClaw] WebSocket error for ${agentId}:`, errorMessage(err));
       this.handleDisconnect(agentId);
     });
   }
@@ -536,7 +536,7 @@ export class WSServer {
         try {
           agent.ws.ping();
         } catch (e: unknown) {
-          console.error(`[WoClaw] Ping failed for ${agentId}`);
+          console.error(`[WoClaw] Ping failed for ${agentId}:`, errorMessage(e));
           this.handleDisconnect(agentId);
         }
       }
