@@ -149,8 +149,7 @@ export class RestServer {
     const requiresAuth = method !== 'GET' || path === '/admin/token/status';
     const isAuthorized = this.wsServer?.isTokenAuthorized(token) ?? token === this.config.authToken;
     if (requiresAuth && !isAuthorized) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      RestServer.sendJsonError(res, 401, 'Unauthorized');
       return;
     }
 
@@ -199,8 +198,7 @@ export class RestServer {
         const intent = url.searchParams.get('intent');
         const limit = parseInt(url.searchParams.get('limit') || '10');
         if (!q) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'q (query) parameter required' }));
+          RestServer.sendJsonError(res, 400, 'q (query) parameter required');
         } else {
           await this.handleMemoryRecall(res, q, intent || undefined, Math.min(limit, 50));
         }
@@ -218,8 +216,7 @@ export class RestServer {
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 50);
         const scope = url.searchParams.get('scope') || 'all';
         if (!q) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing required query param: q' }));
+          RestServer.sendJsonError(res, 400, 'Missing required query param: q');
           return;
         }
         const memories = await this.memory.search(q, limit, scope);
@@ -310,24 +307,21 @@ export class RestServer {
           try {
             const { source, target, type, weight, metadata = {} } = JSON.parse(body);
             if (!source || !target || !type) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Missing required fields: source, target, type' }));
+              RestServer.sendJsonError(res, 400, 'Missing required fields: source, target, type');
               return;
             }
             const edge = this.graph.addEdge({ source, target, type, weight, metadata });
             res.writeHead(201, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ edge }));
           } catch (e: unknown) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: errorMessage(e) }));
+            RestServer.sendJsonError(res, 400, errorMessage(e));
           }
         });
       } else if (path.startsWith('/graph/edges/') && method === 'DELETE') {
         const edgeId = decodeURIComponent(path.slice(14));
         const removed = this.graph.removeEdge(edgeId);
         if (!removed) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Edge not found' }));
+          RestServer.sendJsonError(res, 404, 'Edge not found');
           return;
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -351,15 +345,13 @@ export class RestServer {
           const maxDepth = parseInt(url.searchParams.get('maxDepth') || '5');
 const result = this.graph.findPath(from, to, maxDepth);
           if (!result) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'No path found' }));
+            RestServer.sendJsonError(res, 404, 'No path found');
           } else {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ path: result }));
           }
         } else {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid path format. Use /graph/paths/:from/:to' }));
+          RestServer.sendJsonError(res, 400, 'Invalid path format. Use /graph/paths/:from/:to');
         }
       } else if (path.startsWith('/graph/related/') && method === 'GET') {
         const nodeId = decodeURIComponent(path.slice(15));
@@ -370,8 +362,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(related));
         } catch (e: unknown) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: errorMessage(e) }));
+          RestServer.sendJsonError(res, 404, errorMessage(e));
         }
       } else if (path === '/admin/token/status' && method === 'GET') {
         this.handleTokenStatus(res);
@@ -389,16 +380,14 @@ const result = this.graph.findPath(from, to, maxDepth);
           try {
             const { hubId, wsUrl, federationToken } = JSON.parse(body);
             if (!hubId || !wsUrl || !federationToken) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Missing required fields: hubId, wsUrl, federationToken' }));
+              RestServer.sendJsonError(res, 400, 'Missing required fields: hubId, wsUrl, federationToken');
               return;
             }
             this.wsServer?.addFederationPeer?.({ hubId, wsUrl, federationToken, status: 'disconnected', lastSeen: 0, connectedAgents: 0 });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, hubId }));
           } catch (e: unknown) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: errorMessage(e) }));
+            RestServer.sendJsonError(res, 400, errorMessage(e));
           }
         });
       } else if (path === '/federation/send' && method === 'POST') {
@@ -408,16 +397,14 @@ const result = this.graph.findPath(from, to, maxDepth);
           try {
             const { targetHubId, agentId, payload } = JSON.parse(body);
             if (!targetHubId || !agentId) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Missing required fields: targetHubId, agentId' }));
+              RestServer.sendJsonError(res, 400, 'Missing required fields: targetHubId, agentId');
               return;
             }
             const sent = this.wsServer?.federationSendToAgent?.(targetHubId, agentId, payload) ?? false;
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: sent }));
           } catch (e: unknown) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: errorMessage(e) }));
+            RestServer.sendJsonError(res, 400, errorMessage(e));
           }
         });
       // v1.0: Session Memory routes
@@ -429,16 +416,14 @@ const result = this.graph.findPath(from, to, maxDepth);
       }
     } catch (e: unknown) {
       console.error('[WoClaw] REST error:', errorMessage(e));
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
   // v1.0: Token rotation status
   private handleTokenStatus(res: http.ServerResponse): void {
     if (!this.wsServer) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'WebSocket server not available' }));
+      RestServer.sendJsonError(res, 503, 'WebSocket server not available');
       return;
     }
     const status = this.wsServer.getTokenStatus();
@@ -449,8 +434,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v1.0: Token rotation — generate new token, old token valid during grace period
   private handleTokenRotate(req: http.IncomingMessage, res: http.ServerResponse): void {
     if (!this.wsServer) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'WebSocket server not available' }));
+      RestServer.sendJsonError(res, 503, 'WebSocket server not available');
       return;
     }
     const url2 = new URL(req.url!, `http://${req.headers.host}`);
@@ -523,8 +507,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v0.4: Agent discovery endpoint
   private handleAgentsList(res: http.ServerResponse): void {
     if (!this.wsServer) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Agent info not available' }));
+      RestServer.sendJsonError(res, 503, 'Agent info not available');
       return;
     }
     const agents = this.wsServer.getAgentsInfo();
@@ -535,8 +518,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v1.0: Rate limit status
   private handleRateLimits(res: http.ServerResponse): void {
     if (!this.wsServer) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Rate limit info not available' }));
+      RestServer.sendJsonError(res, 503, 'Rate limit info not available');
       return;
     }
     const statuses = this.wsServer.getRateLimitStatuses();
@@ -585,8 +567,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         },
       }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -601,8 +582,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     try {
       const { key, value, tags, ttl } = JSON.parse(body);
       if (!key) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'key required' }));
+        RestServer.sendJsonError(res, 400, 'key required');
         return;
       }
       const { mem, duplicate, conflict, previousValue } = await this.memory.write(key, value ?? '', 'rest-api', tags ?? [], ttl ?? 0);
@@ -623,16 +603,14 @@ const result = this.graph.findPath(from, to, maxDepth);
         previousValue,
       }));
     } catch (e: unknown) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 400, errorMessage(e));
     }
   }
 
   private async handleMemoryGet(res: http.ServerResponse, key: string): Promise<void> {
     const mem = await this.memory.read(key);
     if (!mem) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Key not found' }));
+      RestServer.sendJsonError(res, 404, 'Key not found');
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -650,8 +628,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleMemoryDelete(res: http.ServerResponse, key: string): Promise<void> {
     const deleted = await this.memory.delete(key);
     if (!deleted) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Key not found' }));
+      RestServer.sendJsonError(res, 404, 'Key not found');
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -719,8 +696,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v0.4: Delegation REST API dispatcher
   private handleDelegations(req: http.IncomingMessage, res: http.ServerResponse, url: URL, path: string, method: string): void {
     if (!this.wsServer) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Delegation not available' }));
+      RestServer.sendJsonError(res, 503, 'Delegation not available');
       return;
     }
 
@@ -728,8 +704,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     if (path === '/delegations/pending' && method === 'GET') {
       const agentId = url.searchParams.get('agentId');
       if (!agentId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'agentId query param required' }));
+        RestServer.sendJsonError(res, 400, 'agentId query param required');
         return;
       }
       const pending = this.wsServer.getDelegations({ toAgent: agentId })
@@ -758,8 +733,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         try {
           const { id: requestedId, toAgent, task, topic } = JSON.parse(body);
           if (!toAgent || !task) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'toAgent and task required' }));
+            RestServer.sendJsonError(res, 400, 'toAgent and task required');
             return;
           }
           const id = requestedId || uuidv4();
@@ -798,8 +772,7 @@ const result = this.graph.findPath(from, to, maxDepth);
             note: delegation.note ?? null,
           }));
         } catch (e: unknown) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: errorMessage(e) }));
+          RestServer.sendJsonError(res, 400, errorMessage(e));
         }
       });
       return;
@@ -811,8 +784,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const id = delegMatch[1];
       const d = this.wsServer.getDelegation(id);
       if (!d) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Delegation not found' }));
+        RestServer.sendJsonError(res, 404, 'Delegation not found');
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -825,8 +797,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const id = delegMatch[1];
       const d = this.wsServer.getDelegation(id);
       if (!d) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Delegation not found' }));
+        RestServer.sendJsonError(res, 404, 'Delegation not found');
         return;
       }
       // Update in-memory directly (REST-side cancel)
@@ -875,16 +846,14 @@ const result = this.graph.findPath(from, to, maxDepth);
         try {
           const { type, label, metadata = {} } = JSON.parse(body);
           if (!type || !label) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing required fields: type, label' }));
+            RestServer.sendJsonError(res, 400, 'Missing required fields: type, label');
             return;
           }
           const node = this.graph.addNode({ type, label, metadata });
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ node }));
         } catch (e: unknown) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: errorMessage(e) }));
+          RestServer.sendJsonError(res, 400, errorMessage(e));
         }
       });
       return;
@@ -896,8 +865,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const id = nodeMatch[1];
       const node = this.graph.getNode(id);
       if (!node) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Node not found' }));
+        RestServer.sendJsonError(res, 404, 'Node not found');
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -910,8 +878,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const id = nodeMatch[1];
       const removed = this.graph.removeNode(id);
       if (!removed) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Node not found' }));
+        RestServer.sendJsonError(res, 404, 'Node not found');
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -940,16 +907,14 @@ const result = this.graph.findPath(from, to, maxDepth);
         try {
           const { source, target, type, weight, metadata = {} } = JSON.parse(body);
           if (!source || !target || !type) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing required fields: source, target, type' }));
+            RestServer.sendJsonError(res, 400, 'Missing required fields: source, target, type');
             return;
           }
           const edge = this.graph.addEdge({ source, target, type, weight, metadata });
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ edge }));
         } catch (e: unknown) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: errorMessage(e) }));
+          RestServer.sendJsonError(res, 400, errorMessage(e));
         }
       });
       return;
@@ -961,8 +926,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const id = edgeMatch[1];
       const removed = this.graph.removeEdge(id);
       if (!removed) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Edge not found' }));
+        RestServer.sendJsonError(res, 404, 'Edge not found');
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -999,8 +963,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions, count: sessions.length }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -1030,8 +993,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, session }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1040,16 +1002,14 @@ const result = this.graph.findPath(from, to, maxDepth);
     try {
       const session = await this.sessionStore.getSession(id);
       if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found' }));
+        RestServer.sendJsonError(res, 404, 'Session not found');
         return;
       }
       await this.sessionStore.incrementAccessCount(id);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ session }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -1063,8 +1023,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1075,8 +1034,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       res.writeHead(deleted ? 200 : 404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: deleted, id }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -1090,8 +1048,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1106,8 +1063,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1120,8 +1076,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions, count: sessions.length, query: q }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -1135,8 +1090,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
@@ -1148,8 +1102,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleMemoryPrune(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     if (!this.forgettingScheduler) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'ForgettingScheduler not configured' }));
+      RestServer.sendJsonError(res, 400, 'ForgettingScheduler not configured');
       return;
     }
     let body = '';
@@ -1160,8 +1113,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, evicted: result }));
       } catch (e: unknown) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 500, errorMessage(e));
       }
     });
   }
@@ -1196,19 +1148,16 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
       }).catch((e: unknown) => {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 500, errorMessage(e));
       });
     } catch (e: unknown) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage(e) }));
+      RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
 
   private async handleMemoryPruneSimple(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     if (!this.forgettingScheduler) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'ForgettingScheduler not configured' }));
+      RestServer.sendJsonError(res, 400, 'ForgettingScheduler not configured');
       return;
     }
     let body = '';
@@ -1218,8 +1167,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, evicted: result }));
       }).catch((e: unknown) => {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 500, errorMessage(e));
       });
     });
   }
@@ -1239,25 +1187,21 @@ const result = this.graph.findPath(from, to, maxDepth);
     for await (const chunk of req) { body += chunk; }
     let parsed: unknown;
     try { parsed = JSON.parse(body); } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      RestServer.sendJsonError(res, 400, 'Invalid JSON body');
       return;
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Body must be a JSON object' }));
+      RestServer.sendJsonError(res, 400, 'Body must be a JSON object');
       return;
     }
     const { type, label, metadata } = parsed as { type?: unknown; label?: unknown; metadata?: unknown };
     if (typeof type !== 'string' || typeof label !== 'string') {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'type and label are required strings' }));
+      RestServer.sendJsonError(res, 400, 'type and label are required strings');
       return;
     }
     const validTypes = ['memory', 'agent', 'topic'] as const;
     if (!validTypes.includes(type as (typeof validTypes)[number])) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: `type must be one of: ${validTypes.join(', ')}` }));
+      RestServer.sendJsonError(res, 400, `type must be one of: ${validTypes.join(', ')}`);
       return;
     }
     const meta: Record<string, unknown> = (metadata && typeof metadata === 'object' && !Array.isArray(metadata))
@@ -1271,8 +1215,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private handleGraphNodeGet(res: http.ServerResponse, nodeId: string): void {
     const node = this.graph.getNode(nodeId);
     if (!node) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Node not found' }));
+      RestServer.sendJsonError(res, 404, 'Node not found');
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1282,8 +1225,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private handleGraphNodeDelete(res: http.ServerResponse, nodeId: string): void {
     const deleted = this.graph.removeNode(nodeId);
     if (!deleted) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Node not found' }));
+      RestServer.sendJsonError(res, 404, 'Node not found');
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1327,8 +1269,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ topic: { name: topic.name, isPrivate: topic.isPrivate, agents: [...topic.agents] } }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1341,16 +1282,14 @@ const result = this.graph.findPath(from, to, maxDepth);
       try {
         const { agentId, ttlMs } = JSON.parse(body);
         if (!agentId) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing required field: agentId' }));
+          RestServer.sendJsonError(res, 400, 'Missing required field: agentId');
           return;
         }
         const token = this.topics.inviteToTopic(topicName, agentId, ttlMs);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, inviteToken: token, topic: topicName, invitedAgent: agentId }));
       } catch (e: unknown) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 400, errorMessage(e));
       }
     });
   }
@@ -1363,19 +1302,40 @@ const result = this.graph.findPath(from, to, maxDepth);
       try {
         const { agentId, inviteToken } = JSON.parse(body);
         if (!agentId || !inviteToken) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing required fields: agentId, inviteToken' }));
+          RestServer.sendJsonError(res, 400, 'Missing required fields: agentId, inviteToken');
           return;
         }
         const topic = this.topics.joinPrivateTopic(agentId, topicName, inviteToken);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, topic: { name: topic.name, isPrivate: true, agents: [...topic.agents] } }));
       } catch (e: unknown) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: errorMessage(e) }));
+        RestServer.sendJsonError(res, 403, errorMessage(e));
       }
     });
   }
 
 
+
+  // ─── JSON error response helper (deduped from 65+ inline sites) ─────────
+  //
+  // Replaces the 2-line pattern:
+  //   res.writeHead(status, { 'Content-Type': 'application/json' });
+  //   res.end(JSON.stringify({ error: msg }));
+  // which appeared 65+ times across 400/401/403/404/500/503 responses.
+  //
+  // Why a static helper (not instance method):
+  //   - pure function of (res, status, msg) — no `this` access needed
+  //   - callable from any future handler that imports RestServer
+  //   - keeps test surface narrow (one method, not 65 inline sites)
+  //
+  // 405 sites deliberately NOT migrated (they omit Content-Type per HTTP
+  // convention; preserving that micro-distinction is intentional).
+  private static sendJsonError(
+    res: http.ServerResponse,
+    status: number,
+    msg: string,
+  ): void {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: msg }));
+  }
 }
