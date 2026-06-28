@@ -98,8 +98,8 @@ export class RestServer {
           cert: readFileSync(this.config.tlsCert!),
         };
         this.server = https.createServer(tlsOptions, (req, res) => {
-          void this.handleRequest(req, res).catch((e) => {
-            console.error('[WoClaw] REST handler error:', e);
+          void this.handleRequest(req, res).catch((e: unknown) => {
+          console.error('[WoClaw] REST handler error:', errorMessage(e));
             if (!res.headersSent) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
             }
@@ -113,8 +113,8 @@ export class RestServer {
       }
     } else {
       this.server = http.createServer((req, res) => {
-        void this.handleRequest(req, res).catch((e) => {
-          console.error('[WoClaw] REST handler error:', e);
+        void this.handleRequest(req, res).catch((e: unknown) => {
+          console.error('[WoClaw] REST handler error:', errorMessage(e));
           if (!res.headersSent) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
           }

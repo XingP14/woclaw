@@ -61,8 +61,8 @@ export class FederationManager {
     const syncConfig = this.config.federationSync;
     if (!syncConfig?.enabled || !syncConfig.syncIntervalMs) return;
     this.syncInterval = setInterval(() => {
-      this.syncImportantMemories().catch(err => {
-        console.error('[WoClaw Federation] Periodic sync error:', err);
+      this.syncImportantMemories().catch((err: unknown) => {
+        console.error('[WoClaw Federation] Periodic sync error:', errorMessage(err));
       });
     }, syncConfig.syncIntervalMs);
     console.log(`[WoClaw Federation] Periodic memory sync enabled (interval: ${syncConfig.syncIntervalMs}ms, threshold: ${syncConfig.importanceThreshold ?? 7.0})`);

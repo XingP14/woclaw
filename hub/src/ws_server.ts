@@ -163,8 +163,8 @@ export class WSServer {
     ws.on('message', (data: Buffer) => {
       try {
         const msg: InboundMessage = JSON.parse(data.toString());
-        void this.handleMessage(agentId, msg).catch((e) => {
-          console.error(`[WoClaw] Failed to process message from ${agentId}:`, e);
+        void this.handleMessage(agentId, msg).catch((e: unknown) => {
+          console.error(`[WoClaw] Failed to process message from ${agentId}:`, errorMessage(e));
           this.sendError(ws, 'internal_error', 'Failed to process message');
         });
       } catch (e: unknown) {

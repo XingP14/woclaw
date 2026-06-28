@@ -157,7 +157,7 @@ async function main() {
   process.on('SIGTERM', shutdown);
 }
 
-main().catch((e) => {
-  console.error('[WoClaw] Fatal error:', e);
+main().catch((e: unknown) => {
+  console.error('[WoClaw] Fatal error:', errorMessage(e));
   process.exit(1);
 });
