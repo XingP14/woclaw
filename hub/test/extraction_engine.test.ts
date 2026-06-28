@@ -207,3 +207,49 @@ describe('ExtractionEngine', () => {
     });
   });
 });
+
+/**
+ * 06-29 cron: assert engine.ts has no inline `require(` calls + uses top-level
+ * provider imports. Mirrors 903552d (vscode) + 8e8a6de (evaluator.ts)
+ * require→top-level-import migration. The legacy pattern was
+ * `createRequire(import.meta.url)` + `new (require('./providers/...js').X)()`
+ * which delays provider-class resolution until the first createExtractionProvider
+ * call and prevented tsc from statically verifying the provider module surface.
+ */
+describe('ExtractionEngine module-shape (06-29 require-migration regression)', () => {
+  it('engine.ts has no inline require(...) calls', async () => {
+    const fs = await import('fs');
+    const url = await import('url');
+    const src = fs.readFileSync(
+      url.fileURLToPath(new URL('../src/extraction/engine.ts', import.meta.url)),
+      'utf8',
+    );
+    // Strip string-literal mentions (e.g. inside comments / JSDoc) — only count
+    // actual call-expression require( patterns.
+    const calls = src.match(/require\(/g) ?? [];
+    expect(calls).toEqual([]);
+  });
+
+  it('engine.ts imports AnthropicProvider / OllamaProvider / OpenAIProvider at top level', async () => {
+    const fs = await import('fs');
+    const url = await import('url');
+    const src = fs.readFileSync(
+      url.fileURLToPath(new URL('../src/extraction/engine.ts', import.meta.url)),
+      'utf8',
+    );
+    expect(src).toMatch(/from '\.\/providers\/anthropic\.js'/);
+    expect(src).toMatch(/from '\.\/providers\/ollama\.js'/);
+    expect(src).toMatch(/from '\.\/providers\/openai\.js'/);
+  });
+
+  it('engine.ts no longer imports createRequire from module', async () => {
+    const fs = await import('fs');
+    const url = await import('url');
+    const src = fs.readFileSync(
+      url.fileURLToPath(new URL('../src/extraction/engine.ts', import.meta.url)),
+      'utf8',
+    );
+    expect(src).not.toMatch(/from 'module'/);
+    expect(src).not.toMatch(/createRequire/);
+  });
+});
