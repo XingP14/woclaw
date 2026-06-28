@@ -37,6 +37,7 @@ exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const http = __importStar(require("http"));
+const path = __importStar(require("path"));
 let statusBarItem;
 let pollTimer = null;
 let treeRefresh = null;
@@ -109,7 +110,7 @@ class TopicsTreeDataProvider {
             item.type = t.type;
             item.contextValue = 'topic';
             item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-            item.iconPath = vscode.Uri.file(require('path').join(__dirname, '..', '..', 'media', 'topic.svg'));
+            item.iconPath = TopicsTreeDataProvider.TOPIC_ICON_URI;
             item.tooltip = `${t.type} • ${t.messageCount} messages • ${t.agents.length} agents`;
             return item;
         });
@@ -119,6 +120,12 @@ class TopicsTreeDataProvider {
         this._onDidChangeTreeData.fire(undefined);
     }
 }
+// Resolved at module load (out/extension.js → ../../media/topic.svg).
+// Hoisted from a per-render `require('path').join(...)` so the path module is
+// imported once at the top of the file (ESM-style) instead of being lazily
+// resolved on every tree refresh — parallels the require()→top-level-import
+// migration done in 8e8a6de for src/core/evaluator.ts.
+TopicsTreeDataProvider.TOPIC_ICON_URI = vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'topic.svg'));
 class AgentsTreeDataProvider {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();

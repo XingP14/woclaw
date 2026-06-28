@@ -136,3 +136,38 @@ test('woclaw-vscode: httpGet is generic + every call site passes an explicit typ
     );
   }
 });
+
+test('woclaw-vscode: no inline require(...) calls + path is imported at top of file (regression: 06-29 cron require→top-level-import)', () => {
+  // The single `require('path').join(...)` call inside TopicsTreeDataProvider.getChildren
+  // was hoisted to a class-scoped static `TOPIC_ICON_URI` constant built from a
+  // top-level `import * as path from 'path'` (this round, parallel to 8e8a6de
+  // migrating 10 require() calls to top-level imports in src/core/evaluator.ts).
+  // This regression test fails if a future change re-introduces an inline
+  // `require(...)` in src/extension.ts (e.g. someone copy-pastes from old code).
+  // Strip line comments (// ...) and block comments (/* ... */) before scanning.
+  // The class-scoped `TOPIC_ICON_URI` block contains the word `require(...)` inside
+  // a comment describing the migration; we don't want to flag comments, only code.
+  const codeOnly = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+    .replace(/\/\/.*$/gm, '');           // line comments
+  const requireRe = /\brequire\s*\(/;
+  assert.ok(
+    !requireRe.test(codeOnly),
+    'regression: src/extension.ts contains an inline require(...) call; migrate to a top-level import',
+  );
+  // Sanity: the top of the file imports path.
+  assert.ok(
+    /import\s+\*\s+as\s+path\s+from\s+['"]path['"]/.test(src),
+    'regression: top-level `import * as path from "path"` not found in src/extension.ts',
+  );
+  // Sanity: the hoisted constant is present.
+  assert.ok(
+    /private\s+static\s+readonly\s+TOPIC_ICON_URI/.test(src),
+    'regression: TopicsTreeDataProvider.TOPIC_ICON_URI class constant missing',
+  );
+  // Sanity: there is at least one call site that uses the hoisted constant.
+  assert.ok(
+    /TopicsTreeDataProvider\.TOPIC_ICON_URI/.test(src),
+    'regression: no call site references TopicsTreeDataProvider.TOPIC_ICON_URI',
+  );
+});
