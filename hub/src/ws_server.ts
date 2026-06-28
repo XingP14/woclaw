@@ -467,6 +467,18 @@ export class WSServer {
   }
 
   /**
+   * Serialize a delegation result payload (delegationId + result + summary) into
+   * the string envelope that is embedded in the `content` field of a topic message
+   * broadcast for a completed delegation. Extracted to eliminate the 3 identical
+   * inline JSON.stringify sites in handleDelegateResult (L706/L714/L725); all 3
+   * sites now call this helper so any future schema change (e.g. adding
+   * delegation.completedAt or delegation.error) lives in exactly one place.
+   */
+  private serializeDelegationResult(d: import('./types.js').Delegation): string {
+    return JSON.stringify({ delegationId: d.id, result: d.result, summary: d.summary });
+  }
+
+  /**
    * Check rate limit for an agent.
    * Uses sliding window counter: keeps timestamps of recent messages within the window.
    * Returns { limited: false } if OK, { limited: true, retryAfter: ms } if exceeded.
@@ -703,7 +715,7 @@ export class WSServer {
         id: uuidv4(),
         topic: delegation.topic,
         from: agentId,
-        content: JSON.stringify({ delegationId: delegation.id, result: delegation.result, summary: delegation.summary }),
+        content: this.serializeDelegationResult(delegation),
         timestamp: Date.now(),
       });
       const recipients = this.topics.broadcast(delegation.topic, {
@@ -711,7 +723,7 @@ export class WSServer {
         type: 'message',
         topic: delegation.topic,
         from: agentId,
-        content: JSON.stringify({ delegationId: delegation.id, result: delegation.result, summary: delegation.summary }),
+        content: this.serializeDelegationResult(delegation),
         timestamp: Date.now(),
       });
       for (const rid of recipients) {
@@ -722,7 +734,7 @@ export class WSServer {
             type: 'message',
             topic: delegation.topic,
             from: agentId,
-            content: JSON.stringify({ delegationId: delegation.id, result: delegation.result, summary: delegation.summary }),
+            content: this.serializeDelegationResult(delegation),
             timestamp: Date.now(),
           } as OutboundMessage);
         }
