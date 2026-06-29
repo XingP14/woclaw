@@ -64,6 +64,26 @@ function parseNodeTypes(raw: string | null): GraphNodeType[] | undefined {
   return out.length > 0 ? out : undefined;
 }
 
+/**
+ * Read a numeric query-string parameter and parse it as an integer.
+ *
+ * Centralizes the `parseInt(url.searchParams.get(name) || String(defaultValue))`
+ * pattern that was previously inlined at 7 sites (limit / depth / maxDepth /
+ * gracePeriodMs). Treats both `null` and `""` as missing (matching the
+ * `||` short-circuit used by 6 of the 7 original sites). Returns NaN for
+ * unparseable values, preserving the prior `parseInt('abc')` behavior so
+ * downstream `Math.min(..., cap)` / SQL LIMIT semantics are byte-identical
+ * for the 6 sites that previously used `||`. The single site that used
+ * `??` (handleSessionSearch L1029) now also treats empty-string as missing,
+ * which is a small behavior tightening (NaN -> defaultValue for ?limit=);
+ * downstream `Math.min(NaN, 50)` is already `NaN`, so the only externally
+ * observable change is `?limit=` no longer passing NaN through to SQL.
+ */
+function parseIntParam(url: URL, name: string, defaultValue: number): number {
+  const raw = url.searchParams.get(name) || String(defaultValue);
+  return parseInt(raw, 10);
+}
+
 export class RestServer {
   private server: http.Server | null = null;
   private db: ClawDB;
@@ -196,7 +216,7 @@ export class RestServer {
       } else if (path.startsWith('/memory/recall')) {
         const q = url.searchParams.get('q');
         const intent = url.searchParams.get('intent');
-        const limit = parseInt(url.searchParams.get('limit') || '10');
+        const limit = parseIntParam(url, 'limit', 10);
         if (!q) {
           RestServer.sendJsonError(res, 400, 'q (query) parameter required');
         } else {
@@ -213,7 +233,7 @@ export class RestServer {
       // v1.0: GET /memory/search?q=...&limit=10 -- precise keyword search
       } else if (path === '/memory/search' && method === 'GET') {
         const q = url.searchParams.get('q');
-        const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 50);
+        const limit = Math.min(parseIntParam(url, 'limit', 10), 50);
         const scope = url.searchParams.get('scope') || 'all';
         if (!q) {
           RestServer.sendJsonError(res, 400, 'Missing required query param: q');
@@ -325,8 +345,8 @@ export class RestServer {
         RestServer.sendJsonSuccess(res, 200, this.graph.getStats());
       } else if (path.startsWith('/graph/traverse/') && method === 'GET') {
         const nodeId = decodeURIComponent(path.slice(16));
-        const depth = parseInt(url.searchParams.get('depth') || '1');
-        const limit = parseInt(url.searchParams.get('limit') || '50');
+        const depth = parseIntParam(url, 'depth', 1);
+        const limit = parseIntParam(url, 'limit', 50);
         const edgeTypes = parseEdgeTypes(url.searchParams.get('edgeTypes'));
         const nodeTypes = parseNodeTypes(url.searchParams.get('nodeTypes'));
         const results = this.graph.traverse(nodeId, { depth, limit, edgeTypes, nodeTypes });
@@ -335,7 +355,7 @@ export class RestServer {
         const parts = decodeURIComponent(path.slice(14)).split('/');
         if (parts.length >= 2) {
           const [from, to] = parts;
-          const maxDepth = parseInt(url.searchParams.get('maxDepth') || '5');
+          const maxDepth = parseIntParam(url, 'maxDepth', 5);
 const result = this.graph.findPath(from, to, maxDepth);
           if (!result) {
             RestServer.sendJsonError(res, 404, 'No path found');
@@ -425,7 +445,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     const url2 = new URL(req.url!, `http://${req.headers.host}`);
-    const graceMs = parseInt(url2.searchParams.get('gracePeriodMs') || '300000');
+    const graceMs = parseIntParam(url2, 'gracePeriodMs', 300000);
     const newToken = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     const result = this.wsServer.rotateToken(newToken, graceMs);
     RestServer.sendJsonSuccess(res, 200, {
@@ -1026,7 +1046,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleSessionSearch(res: http.ServerResponse, url: URL): Promise<void> {
     const q = url.searchParams.get('q') ?? '';
-    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 50);
+    const limit = Math.min(parseIntParam(url, 'limit', 20), 50);
     try {
       const sessions = await this.sessionStore.searchSessions(q, limit);
       RestServer.sendJsonSuccess(res, 200, { sessions, count: sessions.length, query: q });
