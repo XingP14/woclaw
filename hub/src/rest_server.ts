@@ -428,25 +428,23 @@ const result = this.graph.findPath(from, to, maxDepth);
     const graceMs = parseInt(url2.searchParams.get('gracePeriodMs') || '300000');
     const newToken = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     const result = this.wsServer.rotateToken(newToken, graceMs);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       success: true,
       newToken: result.newToken,
       gracePeriodEnd: new Date(result.gracePeriodEnd).toISOString(),
       gracePeriodMs: graceMs,
-    }));
+    });
   }
 
   private handleHealth(res: http.ServerResponse): void {
     const stats = this.topics.getStats();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       status: 'ok',
       uptime: process.uptime(),
       timestamp: Date.now(),
       agents: stats.totalAgents,
       topics: stats.totalTopics,
-    }));
+    });
   }
 
   /**
@@ -517,8 +515,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const tags = tagsFilter.split(',').map(t => t.trim());
       allMemory = allMemory.filter(m => tags.some(t => m.tags.includes(t)));
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       memory: allMemory.map(m => ({
         key: m.key,
         value: m.value,
@@ -528,7 +525,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         updatedAt: m.updatedAt,
         updatedBy: m.updatedBy,
       }))
-    }));
+    });
   }
 
   private async handleMemoryStats(res: http.ServerResponse): Promise<void> {
@@ -540,8 +537,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         : 0;
       const totalTranscriptChars = sessions.reduce((sum, session) => sum + (session.transcript?.length || 0), 0);
       const totalSummaryChars = sessions.reduce((sum, session) => sum + (session.summary?.length || 0), 0);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
+      RestServer.sendJsonSuccess(res, 200, {
         count,
         avgImportance,
         storageSize: {
@@ -549,7 +545,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           summaryChars: totalSummaryChars,
           approxBytes: totalTranscriptChars + totalSummaryChars,
         },
-      }));
+      });
     } catch (e: unknown) {
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
@@ -597,8 +593,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 404, 'Key not found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       key: mem.key,
       value: mem.value,
       tags: mem.tags,
@@ -606,7 +601,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       expireAt: mem.expireAt,
       updatedAt: mem.updatedAt,
       updatedBy: mem.updatedBy,
-    }));
+    });
   }
 
   private async handleMemoryDelete(res: http.ServerResponse, key: string): Promise<void> {
@@ -621,8 +616,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   // v0.4: Memory Versioning endpoint
   private async handleMemoryVersions(res: http.ServerResponse, key: string): Promise<void> {
     const versions = await this.memory.getVersions(key);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       key,
       count: versions.length,
       versions: versions.map(v => ({
@@ -635,14 +629,13 @@ const result = this.graph.findPath(from, to, maxDepth);
         updatedAt: v.updatedAt,
         updatedBy: v.updatedBy,
       }))
-    }));
+    });
   }
 
   // v0.4: Semantic Recall endpoint
   private async handleMemoryRecall(res: http.ServerResponse, query: string, intent?: string, limit: number = 10): Promise<void> {
     const results = await this.memory.recall(query, intent, limit);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       query,
       intent: intent || null,
       count: results.length,
@@ -655,13 +648,12 @@ const result = this.graph.findPath(from, to, maxDepth);
         updatedAt: m.updatedAt,
         updatedBy: m.updatedBy,
       }))
-    }));
+    });
   }
 
   private async handleMemoryByTag(res: http.ServerResponse, tag: string): Promise<void> {
     const results = await this.memory.queryByTag(tag);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       tag,
       count: results.length,
       memory: results.map(m => ({
@@ -673,7 +665,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         updatedAt: m.updatedAt,
         updatedBy: m.updatedBy,
       }))
-    }));
+    });
   }
 
   // v0.4: Delegation REST API dispatcher
@@ -745,13 +737,12 @@ const result = this.graph.findPath(from, to, maxDepth);
             delegation.note = 'Target agent not connected';
             delegation.updatedAt = Date.now();
           }
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
+          RestServer.sendJsonSuccess(res, 200, {
             success: true,
             id,
             status: delegation.status,
             note: delegation.note ?? null,
-          }));
+          });
         } catch (e: unknown) {
           RestServer.sendJsonError(res, 400, errorMessage(e));
         }
@@ -1192,12 +1183,11 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleTopicMessages(res: http.ServerResponse, topic: string, limit?: string | null): Promise<void> {
     const limitNum = Math.min(parseInt(limit || '50'), 200);
     const messages = await this.db.getMessages(topic, limitNum);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    RestServer.sendJsonSuccess(res, 200, {
       topic,
       messages: messages.reverse(),
       count: messages.length,
-    }));
+    });
   }
 
   close(): void {
