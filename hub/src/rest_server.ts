@@ -121,9 +121,8 @@ export class RestServer {
           void this.handleRequest(req, res).catch((e: unknown) => {
           console.error('[WoClaw] REST handler error:', errorMessage(e));
             if (!res.headersSent) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
+              RestServer.sendJsonError(res, 500, 'Internal server error');
             }
-            res.end(JSON.stringify({ error: 'Internal server error' }));
           });
         });
         console.log(`[WoClaw] REST API running on https://${this.config.host}:${this.config.restPort} (TLS)`);
@@ -136,9 +135,8 @@ export class RestServer {
         void this.handleRequest(req, res).catch((e: unknown) => {
           console.error('[WoClaw] REST handler error:', errorMessage(e));
           if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            RestServer.sendJsonError(res, 500, 'Internal server error');
           }
-          res.end(JSON.stringify({ error: 'Internal server error' }));
         });
       });
       console.log(`[WoClaw] REST API running on http://${this.config.host}:${this.config.restPort}`);
@@ -182,24 +180,21 @@ export class RestServer {
         if (method === 'GET') {
           await this.handleTopicsList(res);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       // v0.4: Agent discovery
       } else if (path === '/agents') {
         if (method === 'GET') {
           this.handleAgentsList(res);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       // v1.0: Rate limiting status
       } else if (path === '/rate-limits') {
         if (method === 'GET') {
           this.handleRateLimits(res);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       } else if (path === '/memory') {
         if (method === 'GET') {
@@ -207,8 +202,7 @@ export class RestServer {
         } else if (method === 'POST') {
           await this.handleMemoryWrite(req, res);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       } else if (path === '/memory/stats' && method === 'GET') {
         await this.handleMemoryStats(res);
@@ -227,8 +221,7 @@ export class RestServer {
         if (method === 'GET') {
           await this.handleMemoryByTag(res, tag);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       // v1.0: GET /memory/search?q=...&limit=10 -- precise keyword search
       } else if (path === '/memory/search' && method === 'GET') {
@@ -250,8 +243,7 @@ export class RestServer {
           if (method === 'GET') {
             await this.handleMemoryVersions(res, key);
           } else {
-            res.writeHead(405);
-            res.end(JSON.stringify({ error: 'Method not allowed' }));
+            RestServer.sendJsonError(res, 405, 'Method not allowed');
           }
         } else {
           const key = decodeURIComponent(memPath);
@@ -260,8 +252,7 @@ export class RestServer {
           } else if (method === 'DELETE') {
             await this.handleMemoryDelete(res, key);
           } else {
-            res.writeHead(405);
-            res.end(JSON.stringify({ error: 'Method not allowed' }));
+            RestServer.sendJsonError(res, 405, 'Method not allowed');
           }
         }
       } else if (path.startsWith('/topics/')) {
@@ -279,8 +270,7 @@ export class RestServer {
           }
           this.handleTopicCreate(req, res, topicName);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       // v0.4: Delegation REST endpoints
       } else if (path === '/delegations' || path.startsWith('/delegations')) {
@@ -293,8 +283,7 @@ export class RestServer {
         } else if (method === 'POST') {
           this.handleGraphNodeCreate(req, res);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       } else if (path.startsWith('/graph/nodes/')) {
         const nodeId = decodeURIComponent(path.slice(13));
@@ -303,8 +292,7 @@ export class RestServer {
         } else if (method === 'DELETE') {
           this.handleGraphNodeDelete(res, nodeId);
         } else {
-          res.writeHead(405);
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
       } else if (path === '/graph' && method === 'GET') {
         // Redirect /graph to /graph/nodes
@@ -419,8 +407,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       } else if (path === '/sessions' || path.startsWith('/sessions/')) {
         this.handleSessionRequest(req, res, path, method, url);
       } else {
-        res.writeHead(405);
-        res.end(JSON.stringify({ error: 'Method not allowed' }));
+        RestServer.sendJsonError(res, 405, 'Method not allowed');
       }
     } catch (e: unknown) {
       console.error('[WoClaw] REST error:', errorMessage(e));
