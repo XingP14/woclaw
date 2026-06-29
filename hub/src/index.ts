@@ -11,6 +11,38 @@ import http from 'http';
 import type { StorageConfig } from './types.js';
 import { errorMessage } from './errors.js';
 
+/**
+ * Parse an integer-valued process.env variable.
+ *
+ * Mirrors the dedup chain applied to URL query params (rest_server.ts
+ * parseIntParam at L82-L86, 06-30 05:13 commit 045f1d7): collapses the
+ * 4 inline `parseInt(process.env.X || 'default')` and
+ * `process.env.X ? parseInt(process.env.X) : undefined` sites in
+ * buildDefaultStorageConfig() and DEFAULT_CONFIG into a single helper
+ * with explicit defaultValue semantics.
+ *
+ * Semantics:
+ *   - Missing env var OR empty string ('') → `opts.default` if provided,
+ *     else `undefined`.
+ *     (matches original 4 sites: 2 `||` sites treat empty as missing → default,
+ *      2 `?` sites treat empty as missing → undefined)
+ *   - Present non-empty env var → `parseInt(value, 10)`. Unparseable values
+ *     (e.g. PORT=abc) yield NaN — identical to the original inline behavior
+ *     (preserves downstream propagation: NaN → port validation catches it).
+ *
+ * @param name - process.env variable name (e.g. 'PORT', 'MYSQL_PORT')
+ * @param opts.default - default integer to return when env var is missing/empty.
+ *                       Omit (or pass undefined) to return undefined instead.
+ * @returns parsed integer, default, or undefined
+ */
+function parseEnvInt(name: string, opts: { default?: number } = {}): number | undefined {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') {
+    return opts.default;
+  }
+  return parseInt(raw, 10);
+}
+
 function buildDefaultStorageConfig(): StorageConfig {
   const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
   if (dbType === 'mysql') {
@@ -18,11 +50,11 @@ function buildDefaultStorageConfig(): StorageConfig {
       type: 'mysql',
       mysql: process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_DATABASE ? {
         host: process.env.MYSQL_HOST,
-        port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : undefined,
+        port: parseEnvInt('MYSQL_PORT'),
         user: process.env.MYSQL_USER,
         password: process.env.MYSQL_PASSWORD || undefined,
         database: process.env.MYSQL_DATABASE,
-        connectionLimit: process.env.MYSQL_CONNECTION_LIMIT ? parseInt(process.env.MYSQL_CONNECTION_LIMIT) : undefined,
+        connectionLimit: parseEnvInt('MYSQL_CONNECTION_LIMIT'),
       } : undefined,
     };
   }
@@ -34,8 +66,8 @@ function buildDefaultStorageConfig(): StorageConfig {
 }
 
 const DEFAULT_CONFIG: Config = {
-  port: parseInt(process.env.PORT || '8080'),
-  restPort: parseInt(process.env.REST_PORT || '8081'),
+  port: parseEnvInt('PORT', { default: 8080 }),
+  restPort: parseEnvInt('REST_PORT', { default: 8081 }),
   host: process.env.HOST || '0.0.0.0',
   dataDir: process.env.DATA_DIR || '/data',
   storage: buildDefaultStorageConfig(),
