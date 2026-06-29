@@ -302,7 +302,7 @@ export class RestServer {
         res.end(JSON.stringify({ edges, count: edges.length }));
       } else if (path === '/graph/edges' && method === 'POST') {
         let body = '';
-        req.on('data', chunk => { body += chunk; });
+        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
         req.on('end', () => {
           try {
             const { source, target, type, weight, metadata = {} } = JSON.parse(body);
@@ -574,7 +574,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleMemoryWrite(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const body = await new Promise<string>((resolve, reject) => {
       let data = '';
-      req.on('data', chunk => { data += chunk; });
+      req.on('data', (chunk: Buffer) => { data += chunk.toString('utf8'); });
       req.on('end', () => resolve(data));
       req.on('error', reject);
     });
@@ -728,7 +728,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     // POST /delegations — create delegation (REST → WebSocket routing)
     if (path === '/delegations' && method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk; });
+      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
       req.on('end', () => {
         try {
           const { id: requestedId, toAgent, task, topic } = JSON.parse(body);
@@ -841,7 +841,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     // POST /graph/nodes — create a node
     if (path === '/graph/nodes' && method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk; });
+      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
       req.on('end', () => {
         try {
           const { type, label, metadata = {} } = JSON.parse(body);
@@ -902,7 +902,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     // POST /graph/edges — create an edge
     if (path === '/graph/edges' && method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk; });
+      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
       req.on('end', () => {
         try {
           const { source, target, type, weight, metadata = {} } = JSON.parse(body);
