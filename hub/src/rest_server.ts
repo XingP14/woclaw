@@ -220,8 +220,7 @@ export class RestServer {
           return;
         }
         const memories = await this.memory.search(q, limit, scope);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ memories, count: memories.length, query: q, scope }));
+        RestServer.sendJsonSuccess(res, 200, { memories, count: memories.length, query: q, scope });
         return;
       } else if (path.startsWith('/memory/')) {
         const memPath = path.slice(8);
@@ -290,16 +289,14 @@ export class RestServer {
       } else if (path === '/graph' && method === 'GET') {
         // Redirect /graph to /graph/nodes
         const nodes = this.graph.getNodes(undefined);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ nodes, count: nodes.length }));
+        RestServer.sendJsonSuccess(res, 200, { nodes, count: nodes.length });
       } else if (path === '/graph/edges' && method === 'GET') {
         const edges = this.graph.getEdges({
           source: url.searchParams.get('source') || undefined,
           target: url.searchParams.get('target') || undefined,
           type: parseEdgeType(url.searchParams.get('type')),
         });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ edges, count: edges.length }));
+        RestServer.sendJsonSuccess(res, 200, { edges, count: edges.length });
       } else if (path === '/graph/edges' && method === 'POST') {
         let body = '';
         req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
@@ -311,8 +308,7 @@ export class RestServer {
               return;
             }
             const edge = this.graph.addEdge({ source, target, type, weight, metadata });
-            res.writeHead(201, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ edge }));
+            RestServer.sendJsonSuccess(res, 201, { edge });
           } catch (e: unknown) {
             RestServer.sendJsonError(res, 400, errorMessage(e));
           }
@@ -324,11 +320,9 @@ export class RestServer {
           RestServer.sendJsonError(res, 404, 'Edge not found');
           return;
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, deleted: edgeId }));
+        RestServer.sendJsonSuccess(res, 200, { success: true, deleted: edgeId });
       } else if (path === '/graph/stats' && method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(this.graph.getStats()));
+        RestServer.sendJsonSuccess(res, 200, this.graph.getStats());
       } else if (path.startsWith('/graph/traverse/') && method === 'GET') {
         const nodeId = decodeURIComponent(path.slice(16));
         const depth = parseInt(url.searchParams.get('depth') || '1');
@@ -336,8 +330,7 @@ export class RestServer {
         const edgeTypes = parseEdgeTypes(url.searchParams.get('edgeTypes'));
         const nodeTypes = parseNodeTypes(url.searchParams.get('nodeTypes'));
         const results = this.graph.traverse(nodeId, { depth, limit, edgeTypes, nodeTypes });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ results, count: results.length }));
+        RestServer.sendJsonSuccess(res, 200, { results, count: results.length });
       } else if (path.startsWith('/graph/paths/') && method === 'GET') {
         const parts = decodeURIComponent(path.slice(14)).split('/');
         if (parts.length >= 2) {
@@ -347,8 +340,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           if (!result) {
             RestServer.sendJsonError(res, 404, 'No path found');
           } else {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ path: result }));
+            RestServer.sendJsonSuccess(res, 200, { path: result });
           }
         } else {
           RestServer.sendJsonError(res, 400, 'Invalid path format. Use /graph/paths/:from/:to');
@@ -359,8 +351,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         const nodeTypes = parseNodeTypes(url.searchParams.get('nodeTypes'));
         try {
           const related = this.graph.getRelated(nodeId, { edgeTypes, nodeTypes });
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(related));
+          RestServer.sendJsonSuccess(res, 200, related);
         } catch (e: unknown) {
           RestServer.sendJsonError(res, 404, errorMessage(e));
         }
@@ -371,8 +362,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       // v1.0: Federation REST endpoints
       } else if (path === '/federation/peers' && method === 'GET') {
         const peers = this.wsServer?.getFederationPeersStatus?.() ?? [];
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ peers }));
+        RestServer.sendJsonSuccess(res, 200, { peers });
       } else if (path === '/federation/peers' && method === 'POST') {
         let body = '';
         req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
@@ -384,8 +374,7 @@ const result = this.graph.findPath(from, to, maxDepth);
               return;
             }
             this.wsServer?.addFederationPeer?.({ hubId, wsUrl, federationToken, status: 'disconnected', lastSeen: 0, connectedAgents: 0 });
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, hubId }));
+            RestServer.sendJsonSuccess(res, 200, { success: true, hubId });
           } catch (e: unknown) {
             RestServer.sendJsonError(res, 400, errorMessage(e));
           }
@@ -401,8 +390,7 @@ const result = this.graph.findPath(from, to, maxDepth);
               return;
             }
             const sent = this.wsServer?.federationSendToAgent?.(targetHubId, agentId, payload) ?? false;
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: sent }));
+            RestServer.sendJsonSuccess(res, 200, { success: sent });
           } catch (e: unknown) {
             RestServer.sendJsonError(res, 400, errorMessage(e));
           }
@@ -427,8 +415,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     const status = this.wsServer.getTokenStatus();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status }));
+    RestServer.sendJsonSuccess(res, 200, { status });
   }
 
   // v1.0: Token rotation — generate new token, old token valid during grace period
@@ -500,8 +487,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const live = stats.topicDetails.find(t => t.name === name);
       return { name, agents: live ? live.agents : 0 };
     });
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ topics: merged }));
+    RestServer.sendJsonSuccess(res, 200, { topics: merged });
   }
 
   // v0.4: Agent discovery endpoint
@@ -511,8 +497,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     const agents = this.wsServer.getAgentsInfo();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ agents, count: agents.length }));
+    RestServer.sendJsonSuccess(res, 200, { agents, count: agents.length });
   }
 
   // v1.0: Rate limit status
@@ -522,8 +507,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       return;
     }
     const statuses = this.wsServer.getRateLimitStatuses();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ rateLimits: statuses, count: statuses.length }));
+    RestServer.sendJsonSuccess(res, 200, { rateLimits: statuses, count: statuses.length });
   }
 
   private async handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null): Promise<void> {
@@ -631,8 +615,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 404, 'Key not found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, key }));
+    RestServer.sendJsonSuccess(res, 200, { success: true, key });
   }
 
   // v0.4: Memory Versioning endpoint
@@ -709,8 +692,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       }
       const pending = this.wsServer.getDelegations({ toAgent: agentId })
         .filter(d => d.status === 'requested' || d.status === 'accepted' || d.status === 'running');
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ delegations: pending, count: pending.length }));
+      RestServer.sendJsonSuccess(res, 200, { delegations: pending, count: pending.length });
       return;
     }
 
@@ -720,8 +702,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const toAgent = url.searchParams.get('toAgent') ?? undefined;
       const status = url.searchParams.get('status') ?? undefined;
       const all = this.wsServer.getDelegations({ fromAgent, toAgent, status: status || undefined });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ delegations: all, count: all.length }));
+      RestServer.sendJsonSuccess(res, 200, { delegations: all, count: all.length });
       return;
     }
 
@@ -787,8 +768,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 404, 'Delegation not found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ delegation: d }));
+      RestServer.sendJsonSuccess(res, 200, { delegation: d });
       return;
     }
 
@@ -819,8 +799,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           updatedAt: d.updatedAt,
         } as import('./types.js').OutboundMessage);
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, delegation: d }));
+      RestServer.sendJsonSuccess(res, 200, { success: true, delegation: d });
       return;
     }
 
@@ -833,8 +812,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       const url2 = new URL(req.url!, `http://${req.headers.host}`);
       const type = url2.searchParams.get('type') as GraphNodeType | null;
       const nodes = this.graph.getNodes(type || undefined);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ nodes, count: nodes.length }));
+      RestServer.sendJsonSuccess(res, 200, { nodes, count: nodes.length });
       return;
     }
 
@@ -850,8 +828,7 @@ const result = this.graph.findPath(from, to, maxDepth);
             return;
           }
           const node = this.graph.addNode({ type, label, metadata });
-          res.writeHead(201, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ node }));
+          RestServer.sendJsonSuccess(res, 201, { node });
         } catch (e: unknown) {
           RestServer.sendJsonError(res, 400, errorMessage(e));
         }
@@ -868,8 +845,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 404, 'Node not found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ node }));
+      RestServer.sendJsonSuccess(res, 200, { node });
       return;
     }
 
@@ -881,8 +857,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 404, 'Node not found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, deleted: id }));
+      RestServer.sendJsonSuccess(res, 200, { success: true, deleted: id });
       return;
     }
 
@@ -894,8 +869,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         target: url2.searchParams.get('target') || undefined,
         type: parseEdgeType(url2.searchParams.get('type')),
       });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ edges, count: edges.length }));
+      RestServer.sendJsonSuccess(res, 200, { edges, count: edges.length });
       return;
     }
 
@@ -911,8 +885,7 @@ const result = this.graph.findPath(from, to, maxDepth);
             return;
           }
           const edge = this.graph.addEdge({ source, target, type, weight, metadata });
-          res.writeHead(201, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ edge }));
+          RestServer.sendJsonSuccess(res, 201, { edge });
         } catch (e: unknown) {
           RestServer.sendJsonError(res, 400, errorMessage(e));
         }
@@ -929,15 +902,13 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 404, 'Edge not found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, deleted: id }));
+      RestServer.sendJsonSuccess(res, 200, { success: true, deleted: id });
       return;
     }
 
     // GET /graph/stats
     if (path === '/graph/stats' && method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(this.graph.getStats()));
+      RestServer.sendJsonSuccess(res, 200, this.graph.getStats());
       return;
     }
 
@@ -960,8 +931,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleSessionList(res: http.ServerResponse): Promise<void> {
     try {
       const sessions = await this.sessionStore.listSessions();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ sessions, count: sessions.length }));
+      RestServer.sendJsonSuccess(res, 200, { sessions, count: sessions.length });
     } catch (e: unknown) {
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
@@ -990,8 +960,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           createdAt: now,
         };
         await this.sessionStore.registerSession(session);
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, session }));
+        RestServer.sendJsonSuccess(res, 201, { success: true, session });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1006,8 +975,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         return;
       }
       await this.sessionStore.incrementAccessCount(id);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session }));
+      RestServer.sendJsonSuccess(res, 200, { session });
     } catch (e: unknown) {
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
@@ -1020,8 +988,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       try {
         const updates = JSON.parse(body) as Partial<DBSession>;
         await this.sessionStore.updateSession(id, updates);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
+        RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1045,8 +1012,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       try {
         const { adjustment, reason, agentId } = JSON.parse(body);
         await this.sessionStore.addFeedback(id, agentId ?? 'unknown', adjustment ?? 0, reason);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
+        RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1060,8 +1026,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       try {
         const { flagged } = JSON.parse(body);
         await this.sessionStore.flagSession(id, !!flagged);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
+        RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1073,8 +1038,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 50);
     try {
       const sessions = await this.sessionStore.searchSessions(q, limit);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ sessions, count: sessions.length, query: q }));
+      RestServer.sendJsonSuccess(res, 200, { sessions, count: sessions.length, query: q });
     } catch (e: unknown) {
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
@@ -1087,8 +1051,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleMemoryEviction(res: http.ServerResponse): Promise<void> {
     try {
       const candidates = await this.db.getEvictionCandidates(3.0, 3.0, 20);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
+      RestServer.sendJsonSuccess(res, 200, { sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length });
     } catch (e: unknown) {
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
@@ -1096,8 +1059,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private async handleMemoryPruneStatus(res: http.ServerResponse): Promise<void> {
     const status = this.forgettingScheduler?.getStatus() ?? { running: false, config: null, nextDaily: null, nextWeekly: null };
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ scheduler: status }));
+    RestServer.sendJsonSuccess(res, 200, { scheduler: status });
   }
 
   private async handleMemoryPrune(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -1110,8 +1072,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     req.on('end', async () => {
       try {
         const result = await this.forgettingScheduler!.triggerEviction();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, evicted: result }));
+        RestServer.sendJsonSuccess(res, 200, { success: true, evicted: result });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 500, errorMessage(e));
       }
@@ -1145,8 +1106,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   private async handleMemoryEvictionSimple(res: http.ServerResponse): Promise<void> {
     try {
       this.db.getEvictionCandidates(3.0, 3.0, 20).then(candidates => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length }));
+        RestServer.sendJsonSuccess(res, 200, { sessions: candidates.sessions, memories: candidates.memories, count: candidates.sessions.length + candidates.memories.length });
       }).catch((e: unknown) => {
         RestServer.sendJsonError(res, 500, errorMessage(e));
       });
@@ -1164,8 +1124,7 @@ const result = this.graph.findPath(from, to, maxDepth);
     req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
     req.on('end', () => {
       this.forgettingScheduler!.triggerEviction().then(result => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, evicted: result }));
+        RestServer.sendJsonSuccess(res, 200, { success: true, evicted: result });
       }).catch((e: unknown) => {
         RestServer.sendJsonError(res, 500, errorMessage(e));
       });
@@ -1178,8 +1137,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   private handleGraphNodesList(res: http.ServerResponse, type?: GraphNodeType): void {
     const nodes = this.graph.getNodes(type);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ nodes, count: nodes.length }));
+    RestServer.sendJsonSuccess(res, 200, { nodes, count: nodes.length });
   }
 
   private async handleGraphNodeCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -1208,8 +1166,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       ? metadata as Record<string, unknown>
       : {};
     const node = this.graph.addNode({ type: type as (typeof validTypes)[number], label, metadata: meta });
-    res.writeHead(201, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ node }));
+    RestServer.sendJsonSuccess(res, 201, { node });
   }
 
   private handleGraphNodeGet(res: http.ServerResponse, nodeId: string): void {
@@ -1218,8 +1175,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 404, 'Node not found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ node }));
+    RestServer.sendJsonSuccess(res, 200, { node });
   }
 
   private handleGraphNodeDelete(res: http.ServerResponse, nodeId: string): void {
@@ -1228,8 +1184,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 404, 'Node not found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, deleted: nodeId }));
+    RestServer.sendJsonSuccess(res, 200, { success: true, deleted: nodeId });
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -1266,8 +1221,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           this.topics.createTopic(topicName, false);
         }
         const topic = this.topics.getTopic(topicName)!;
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ topic: { name: topic.name, isPrivate: topic.isPrivate, agents: [...topic.agents] } }));
+        RestServer.sendJsonSuccess(res, 201, { topic: { name: topic.name, isPrivate: topic.isPrivate, agents: [...topic.agents] } });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1286,8 +1240,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           return;
         }
         const token = this.topics.inviteToTopic(topicName, agentId, ttlMs);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, inviteToken: token, topic: topicName, invitedAgent: agentId }));
+        RestServer.sendJsonSuccess(res, 200, { success: true, inviteToken: token, topic: topicName, invitedAgent: agentId });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 400, errorMessage(e));
       }
@@ -1306,8 +1259,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           return;
         }
         const topic = this.topics.joinPrivateTopic(agentId, topicName, inviteToken);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, topic: { name: topic.name, isPrivate: true, agents: [...topic.agents] } }));
+        RestServer.sendJsonSuccess(res, 200, { success: true, topic: { name: topic.name, isPrivate: true, agents: [...topic.agents] } });
       } catch (e: unknown) {
         RestServer.sendJsonError(res, 403, errorMessage(e));
       }
@@ -1337,5 +1289,30 @@ const result = this.graph.findPath(from, to, maxDepth);
   ): void {
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: msg }));
+  }
+
+  // ─── JSON success response helper (mirror of sendJsonError) ─────────────
+  //
+  // Replaces the 2-line pattern:
+  //   res.writeHead(200|201, { 'Content-Type': 'application/json' });
+  //   res.end(JSON.stringify(body));
+  // which appeared across success responses (memory reads, graph queries,
+  // session ops, etc.). Generalized to accept any JSON body shape; the
+  // caller passes the literal object so call-site readability stays high.
+  //
+  // Sites NOT migrated (deliberate):
+  //   - L137 OPTIONS preflight: writeHead(200) + end() with no body
+  //   - L568 handleMemoryWrite: custom response headers (X-WoClaw-Conflict,
+  //     X-WoClaw-Duplicate) need a different writeHead shape
+  //   - 405 Method-not-allowed sites: parity with sendJsonError carve-out
+  //   - multi-line body literals (token rotate, health, etc.): left inline
+  //     for readability until a follow-up step collapses them
+  private static sendJsonSuccess(
+    res: http.ServerResponse,
+    status: 200 | 201,
+    body: unknown,
+  ): void {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
   }
 }
