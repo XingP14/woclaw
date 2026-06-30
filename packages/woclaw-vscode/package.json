@@ -122,7 +122,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "package": "vsce package",
-    "test": "node --test test/eventemitter.test.js"
+    "test": "node --test test/eventemitter.test.js test/res_on_data_typed_chunk.test.js"
   },
   "vsce": {
     "publisher": "XingP14",

@@ -20,7 +20,7 @@ function httpGet<T = unknown>(path: string): Promise<T | null> {
     const url = getHubUrl();
     const req = http.get(`${url}${path}`, (res) => {
       let data = '';
-      res.on('data', (chunk) => data += chunk);
+      res.on('data', (chunk: Buffer) => { data += chunk.toString('utf8'); });
       res.on('end', () => {
         try { resolve(JSON.parse(data)); }
         catch { resolve(null); }
