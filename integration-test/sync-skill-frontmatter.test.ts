@@ -245,3 +245,109 @@ describe('sync-skill-frontmatter.mjs --include', () => {
   });
 });
 
+
+// 07-01 03:03 cron addition: --write previously silently no-op'd SKILL.md files
+// whose frontmatter had no `compatible_with:` line. The script reported
+// "wrote X (0 → N items)" but the file was unchanged. Two real cases:
+//   (a) frontmatter present, no compatible_with line → inject at end of frontmatter
+//   (b) no frontmatter at all → cannot auto-inject; surface a warning + treat as drift
+//   (c) --exclude <csv> lets the operator drop a file from sync without editing it
+//       (e.g. skill spec docs that are intentionally not compatible_with lists)
+describe('sync-skill-frontmatter.mjs --write edge cases (07-01 03:03 cron regression fix)', () => {
+  let tmpRoot: string;
+  const scriptRun = (args: string[]) => spawnSync('node', [scriptPath, ...args], {
+    cwd: tmpRoot,
+    env: { ...process.env, WOCLAW_ROOT: tmpRoot },
+    encoding: 'utf8',
+  });
+
+  beforeAll(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-edge-'));
+    // Layout: 1 packages file with canonical [a, b, c, d, e]
+    const codex = join(tmpRoot, 'packages', 'codex-woclaw');
+    mkdirSync(codex, { recursive: true });
+    writeFileSync(join(codex, 'SKILL.md'),
+      `---\nname: codex-woclaw\ncompatible_with: [a, b, c, d, e]\n---\n\n# body\n`);
+    // 1 shim: frontmatter present but NO compatible_with line
+    const shimFm = join(tmpRoot, 'plugin', 'skills', 'woclaw');
+    mkdirSync(shimFm, { recursive: true });
+    writeFileSync(join(shimFm, 'SKILL.md'),
+      `---\nname: woclaw\ndescription: test shim without compatible_with\nmetadata:\n  files:\n    - SKILL.md\n---\n\n# shim body\n`);
+    // 1 shim: no frontmatter at all
+    const shimNoFm = join(tmpRoot, 'plugin', 'skills', 'woclaw-hub-test');
+    mkdirSync(shimNoFm, { recursive: true });
+    writeFileSync(join(shimNoFm, 'SKILL.md'),
+      `# Skill Spec Doc\n\nThis is intentionally a doc, not a shim.\n`);
+  });
+
+  afterAll(() => {
+    if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('regression: --write injects compatible_with when frontmatter has no compatible_with line', () => {
+    // Without --include, only the 1 packages file is scanned. We need --include
+    // to surface the shims, then --write should inject the canonical list into
+    // the shim's frontmatter (NOT just leave the file unchanged).
+    const r = scriptRun(['--include', 'plugin/skills', '--write']);
+    expect(r.status).toBe(0);
+    const shim = join(tmpRoot, 'plugin', 'skills', 'woclaw', 'SKILL.md');
+    const content = readFileSync(shim, 'utf8');
+    // The injection must place compatible_with INSIDE the frontmatter block
+    // (before the closing ---), preserving the description and metadata keys.
+    expect(content).toMatch(/^---\nname: woclaw\ndescription: test shim without compatible_with\nmetadata:\n {2}files:\n {4}- SKILL.md\ncompatible_with: \[[^\]]+\]\n---/);
+    // Body must still be present AFTER the frontmatter.
+    expect(content).toMatch(/\n# shim body\n?$/);
+    // Order matters: union = [a, b, c, d, e] from codex.
+    const m = content.match(/compatible_with: \[([^\]]+)\]/);
+    expect(m).not.toBeNull();
+    expect(m![1].split(',').map(s => s.trim()).filter(Boolean)).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it('regression: --write is idempotent on injected files (second pass rewrites nothing)', () => {
+    // After the previous test, the woclaw shim has compatible_with (injected
+    // on pass 1). A second --write must NOT change that shim — even though
+    // the overall count is 1/3 (woclaw-hub-test still drifts, that's expected).
+    // We verify idempotence by snapshotting the shim after pass 1 + diffing
+    // after pass 2: the bytes must be byte-identical.
+    const shimPath = join(tmpRoot, 'plugin', 'skills', 'woclaw', 'SKILL.md');
+    const before = readFileSync(shimPath, 'utf8');
+    const r = scriptRun(['--include', 'plugin/skills', '--write']);
+    expect(r.status).toBe(0);
+    const after = readFileSync(shimPath, 'utf8');
+    expect(after).toBe(before);
+  });
+
+  it('regression: --check exits 1 on no-frontmatter shim and prints a warning to stderr', () => {
+    // The woclaw-hub-test shim has no frontmatter at all. --check must:
+    //   - exit 1 (drift)
+    //   - print a warning to stderr pointing at the file
+    const r = scriptRun(['--include', 'plugin/skills', '--check']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/no frontmatter block/);
+    expect(r.stderr).toMatch(/woclaw-hub-test/);
+    // The file must be UNCHANGED (we deliberately do not auto-create frontmatter
+    // since that would risk clobbering body content).
+    const content = readFileSync(join(tmpRoot, 'plugin', 'skills', 'woclaw-hub-test', 'SKILL.md'), 'utf8');
+    expect(content).toMatch(/^# Skill Spec Doc/);
+    expect(content).not.toMatch(/^---/);
+  });
+
+  it('--exclude <csv> drops a pkg from sync (used for skill spec docs)', () => {
+    // --exclude plugin/skills:woclaw-hub-test should make --check exit 0 even
+    // though woclaw-hub-test is still on disk and has no frontmatter.
+    const r = scriptRun(['--include', 'plugin/skills', '--exclude', 'plugin/skills:woclaw-hub-test', '--check']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/all SKILL.md compatible_with lists in sync/);
+    // The excluded file must still be untouched.
+    const content = readFileSync(join(tmpRoot, 'plugin', 'skills', 'woclaw-hub-test', 'SKILL.md'), 'utf8');
+    expect(content).toMatch(/^# Skill Spec Doc/);
+  });
+
+  it('--exclude is a no-op for unknown tags (does not crash, does not affect other files)', () => {
+    // Random unknown tag — script should still converge the rest.
+    const r = scriptRun(['--include', 'plugin/skills', '--exclude', 'plugin/skills:does-not-exist', '--check']);
+    // woclaw-hub-test is still in scope and still drifts → exit 1.
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/no frontmatter block/);
+  });
+});

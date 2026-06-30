@@ -10,6 +10,7 @@
 //   node scripts/sync-skill-frontmatter.mjs --source <pkg>        # treat <pkg> as canonical list
 //   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
 //   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
+//   node scripts/sync-skill-frontmatter.mjs --exclude <tags>      # comma-sep pkg tags to skip (07-01 03:03 cron: for skill spec docs that are intentionally not compatible_with lists)
 //
 // Strategy:
 //   1. Read every packages/*/SKILL.md frontmatter block (YAML-like, parsed with a
@@ -51,6 +52,15 @@ const includeIdx = process.argv.indexOf('--include');
 const includeDirs = includeIdx > -1
   ? process.argv[includeIdx + 1].split(',').map(s => s.trim()).filter(Boolean)
   : [];
+// --exclude <csv>: comma-separated list of pkg tags to skip during sync.
+// Useful for skill spec docs (e.g. plugin/skills/woclaw-hub-test/SKILL.md) that
+// are intentionally not compatible_with lists. Tag format matches whatever
+// findSkillFiles emits: basename for packages/*, `<dir>:<child>` for
+// --include directories, or `hub` / `mcp-bridge` / `plugin` for top-level.
+const excludeIdx = process.argv.indexOf('--exclude');
+const excludeTags = new Set(excludeIdx > -1
+  ? process.argv[excludeIdx + 1].split(',').map(s => s.trim()).filter(Boolean)
+  : []);
 
 function log(...a) { if (verbose) console.error('[sync]', ...a); }
 
@@ -101,10 +111,35 @@ function rewriteCompatible(rawFrontmatter, newList) {
     .filter(Boolean)
     .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
   const joined = sorted.join(', ');
-  return rawFrontmatter.replace(
-    /^compatible_with:\s*\[.*?\]\s*$/m,
-    `compatible_with: [${joined}]`
-  );
+  // 07-01 03:03 cron fix: if the frontmatter has NO `compatible_with:` line,
+  // the regex replace below is a silent no-op and --write falsely reports
+  // "wrote X (0 → N items)" without actually changing the file. The bug bit
+  // 520a1c7 (--include feature) on the real woclaw monorepo where 3 shim files
+  // (skills/woclaw, plugin/skills/woclaw, plugin/skills/woclaw-hub-test) had
+  // no compatible_with line at all. The script "wrote" them and they stayed
+  // unchanged. Now we inject the line at the end of the frontmatter block
+  // (just before the closing `---`) when the regex misses.
+  const re = /^compatible_with:\s*\[.*?\]\s*$/m;
+  if (re.test(rawFrontmatter)) {
+    return rawFrontmatter.replace(re, `compatible_with: [${joined}]`);
+  }
+  // Inject inside the frontmatter block, just before the closing `---`.
+  // The script captures the full match (---\n...\n---) into rawFrontmatter, so
+  // we splice the new key between the inner content and the trailing closer.
+  // Use indexOf on the LAST `\n---` to find the closing marker — YAML allows
+  // multi-line strings in the body so we cannot assume the frontmatter only
+  // contains one `---` line (the opener is followed by content; only the
+  // closer ends the block).
+  const closerIdx = rawFrontmatter.lastIndexOf('\n---');
+  if (closerIdx < 0) {
+    // Defensive: shouldn't happen since `fm[0]` was matched by /^---\n([\s\S]*?)\n---/,
+    // but if the frontmatter is malformed (no closing ---) bail out by
+    // returning the input unchanged so --write is a no-op rather than
+    // corrupting the file.
+    return rawFrontmatter;
+  }
+  const inner = rawFrontmatter.slice(0, closerIdx);
+  return `${inner}\ncompatible_with: [${joined}]\n---`;
 }
 
 function findSkillFiles(root) {
@@ -231,6 +266,13 @@ function main() {
 
   let changedCount = 0;
   for (const p of parsed) {
+    // 07-01 03:03 cron: --exclude lets the operator drop a file from the
+    // sync without deleting it. Used for skill spec docs that are
+    // intentionally not compatible_with lists.
+    if (excludeTags.has(p.pkg)) {
+      log(p.pkg, 'excluded via --exclude; skipping');
+      continue;
+    }
     const before = p.attrs.compatible_with;
     // Same content AND same order → skip. Order matters: the integration test
     // expects all 7 SKILL.md files to be byte-identical, and a Set-equality
@@ -245,7 +287,16 @@ function main() {
     changedCount++;
     const text = readFileSync(p.path, 'utf8');
     const fm = text.match(/^---\n([\s\S]*?)\n---/);
-    if (!fm) { log(p.pkg, 'no frontmatter — skip'); continue; }
+    if (!fm) {
+      // 07-01 03:03 cron: surface this case so --check exits 1 (drift not
+      // fixable by --write alone — the file is missing frontmatter entirely
+      // and we deliberately do NOT auto-create one, since that would risk
+      // clobbering body content. Operator must add a frontmatter block first).
+      // Note: `changedCount` is already incremented above (line ~264) when we
+      // detected the sameSize/sameOrder mismatch; do NOT double-count here.
+      console.error(`⚠ ${p.pkg}: no frontmatter block — --write cannot inject compatible_with; add \`---\` block manually`);
+      continue;
+    }
     const newFm = rewriteCompatible(fm[0], canonical);
     const newText = text.replace(fm[0], newFm);
     if (writeMode) {
