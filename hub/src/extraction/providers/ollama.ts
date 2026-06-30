@@ -14,6 +14,7 @@ import { errorMessage } from '../../errors.js';
 
 const SCORE_MODEL = 'llama3.1';
 const EXTRACT_MODEL = 'llama3.1';
+const FETCH_TIMEOUT_MS = 30_000;
 
 async function ollamaChat(
   baseUrl: string,
@@ -21,18 +22,31 @@ async function ollamaChat(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string> {
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as Error)?.name === 'AbortError') {
+      throw new Error(`Ollama request aborted after ${FETCH_TIMEOUT_MS}ms timeout`);
+    }
+    throw e;
+  }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const text = await response.text();

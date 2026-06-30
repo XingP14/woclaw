@@ -16,6 +16,7 @@ const SCORE_MODEL = 'gpt-4o-mini';
 const EXTRACT_MODEL = 'gpt-4o';
 const BASE_URL = 'https://api.openai.com/v1';
 const RATE_LIMIT_MS = 500;
+const FETCH_TIMEOUT_MS = 30_000;
 
 let lastCall = 0;
 
@@ -37,21 +38,34 @@ async function openaiChat(
 ): Promise<string> {
   await rateLimit();
 
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature,
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as Error)?.name === 'AbortError') {
+      throw new Error(`OpenAI request aborted after ${FETCH_TIMEOUT_MS}ms timeout`);
+    }
+    throw e;
+  }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const text = await response.text();
