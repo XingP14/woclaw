@@ -18,7 +18,7 @@ function getHubUrl(): string {
 function httpGet<T = unknown>(path: string): Promise<T | null> {
   return new Promise((resolve) => {
     const url = getHubUrl();
-    const req = http.get(`${url}${path}`, (res) => {
+    const req = http.get(`${url}${path}`, (res: http.IncomingMessage) => {
       let data = '';
       res.on('data', (chunk: Buffer) => { data += chunk.toString('utf8'); });
       res.on('end', () => {
