@@ -918,8 +918,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       this.handleMemoryPruneSimple(req, res); return;
     }
 
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Method not allowed for this path' }));
+    RestServer.sendJsonError(res, 405, 'Method not allowed for this path');
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -1097,8 +1096,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         if (subAction === 'flag') { this.handleSessionFlag(req, res, id); return; }
       }
     }
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Method not allowed for /sessions' }));
+    RestServer.sendJsonError(res, 405, 'Method not allowed for /sessions');
   }
 
   private async handleMemoryEvictionSimple(res: http.ServerResponse): Promise<void> {
@@ -1277,8 +1275,9 @@ const result = this.graph.findPath(from, to, maxDepth);
   //   - callable from any future handler that imports RestServer
   //   - keeps test surface narrow (one method, not 65 inline sites)
   //
-  // 405 sites deliberately NOT migrated (they omit Content-Type per HTTP
-  // convention; preserving that micro-distinction is intentional).
+  // All 405 sites are now migrated (798a0ba + follow-up closure): sites
+  // use the same 'Content-Type: application/json' writeHead shape as this
+  // helper, and the body shape {error: msg} matches byte-for-byte.
   private static sendJsonError(
     res: http.ServerResponse,
     status: number,
@@ -1301,7 +1300,8 @@ const result = this.graph.findPath(from, to, maxDepth);
   //   - L137 OPTIONS preflight: writeHead(200) + end() with no body
   //   - L568 handleMemoryWrite: custom response headers (X-WoClaw-Conflict,
   //     X-WoClaw-Duplicate) need a different writeHead shape
-  //   - 405 Method-not-allowed sites: parity with sendJsonError carve-out
+  //   - 405 Method-not-allowed sites: now all routed through sendJsonError
+  //     (parity helper shared between success + error response paths)
   //   - multi-line body literals (token rotate, health, etc.): left inline
   //     for readability until a follow-up step collapses them
   private static sendJsonSuccess(

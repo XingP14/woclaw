@@ -15,17 +15,22 @@ describe('RestServer.sendJsonError 405/500 migration', () => {
     expect(existsSync(REST_SERVER)).toBe(true);
   });
 
-  it('rest_server.ts has 0 inline 2-line 405 Method Not Allowed sites', () => {
+  it('rest_server.ts has 0 inline writeHead(405) Method-Not-Allowed sites (any variant)', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
+    // After 798a0ba + this closure, all 13 405 sites route through sendJsonError.
+    // Gate: any inline `res.writeHead(405, ...)` followed by `res.end(JSON.stringify({error: 'Method not allowed...'}))`
+    // pattern is forbidden. Helper writeHead in sendJsonError does not match (it's in a private static method, not inline).
     const lines = text.split('\n');
     const sites: { line: number; text: string }[] = [];
     for (let i = 0; i < lines.length; i++) {
-      const m1 = lines[i].match(/^\s*res\.writeHead\(405\);?\s*$/);
+      const m1 = lines[i].match(/^\s*res\.writeHead\(405(?:\s*,\s*\{[^}]*\})?\);?\s*$/);
       if (!m1) continue;
-      if (i + 1 >= lines.length) continue;
-      const m2 = lines[i + 1].match(/^\s*res\.end\(JSON\.stringify\(\{\s*error:\s*'Method not allowed'\s*\}\)\);?\s*$/);
-      if (!m2) continue;
+      // Skip the helper-body line (sendJsonError uses res.writeHead(status, ...) — not 405 literally because of `status` param)
+      // Skip comment lines
       if (lines[i].trim().startsWith('//')) continue;
+      if (i + 1 >= lines.length) continue;
+      const m2 = lines[i + 1].match(/^\s*res\.end\(JSON\.stringify\(\{\s*error:/);
+      if (!m2) continue;
       sites.push({ line: i + 1, text: lines[i].trim() });
     }
     expect(sites).toEqual([]);
@@ -47,10 +52,14 @@ describe('RestServer.sendJsonError 405/500 migration', () => {
     expect(sites2).toEqual([]);
   });
 
-  it('sendJsonError(res, 405, ...) is called for all 11 previously-inline 405 sites', () => {
+  it('sendJsonError(res, 405, ...) is called for all 13 405 sites (11 generic + 2 path-specific)', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
     const calls405 = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed'\)/g) || []).length;
-    expect(calls405).toBe(11);
+    expect(calls405).toBe(11); // generic-message sites (798a0ba)
+    const calls405Path = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for this path'\)/g) || []).length;
+    expect(calls405Path).toBe(1); // handleRequest catch-all fallback
+    const calls405Sessions = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for \/sessions'\)/g) || []).length;
+    expect(calls405Sessions).toBe(1); // handleSessionRequest catch-all fallback
   });
 
   it('sendJsonError(res, 500, ...) is called for both 500 sites (TLS + non-TLS server bootstrap)', () => {
@@ -68,10 +77,10 @@ describe('RestServer.sendJsonError 405/500 migration', () => {
     expect(matches.length).toBe(2);
   });
 
-  it('sendJsonError total call count >= 75 (was 63 before this step; +11 405 + +2 500 = +13)', () => {
+  it('sendJsonError total call count >= 77 (was 75 after 798a0ba; +2 path-specific 405 in this closure = 77)', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
     const calls = (text.match(/RestServer\.sendJsonError\(/g) || []).length;
-    expect(calls).toBeGreaterThanOrEqual(75);
+    expect(calls).toBeGreaterThanOrEqual(77);
   });
 
   it('helper signature still accepts arbitrary status: number (status param is `number`, not `200|201|400|405|500`)', () => {
@@ -138,5 +147,27 @@ describe('RestServer.sendJsonError 405/500 migration', () => {
     const body = helperMatch![0];
     expect(body).toMatch(/res\.writeHead\(status, \{ 'Content-Type': 'application\/json' \}\)/);
     expect(body).toMatch(/res\.end\(JSON\.stringify\(\{ error: msg \}\)\)/);
+  });
+
+  it('handleRequest 405 fallback (L921, was inline) is now a sendJsonError call', () => {
+    const text = readFileSync(REST_SERVER, 'utf8');
+    const m = text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for this path'\);/);
+    expect(m).not.toBeNull();
+  });
+
+  it('handleSessionRequest 405 fallback (L1100, was inline) is now a sendJsonError call', () => {
+    const text = readFileSync(REST_SERVER, 'utf8');
+    const m = text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for \/sessions'\);/);
+    expect(m).not.toBeNull();
+  });
+
+  it('0 inline res.end(JSON.stringify({error: ...})) Method-not-allowed sites (all 13 routes via sendJsonError)', () => {
+    const text = readFileSync(REST_SERVER, 'utf8');
+    // Only allowed inside the helper itself; no inline sites
+    const helperBody = text.match(/private static sendJsonError\([\s\S]*?\n  \}\n/);
+    expect(helperBody).not.toBeNull();
+    const outsideHelper = text.replace(helperBody![0], '');
+    const sites = outsideHelper.match(/res\.end\(JSON\.stringify\(\{\s*error:\s*'Method not allowed/g) || [];
+    expect(sites).toEqual([]);
   });
 });
