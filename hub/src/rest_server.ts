@@ -1298,12 +1298,14 @@ const result = this.graph.findPath(from, to, maxDepth);
   //
   // Sites NOT migrated (deliberate):
   //   - L137 OPTIONS preflight: writeHead(200) + end() with no body
-  //   - L568 handleMemoryWrite: custom response headers (X-WoClaw-Conflict,
+  //   - L579 handleMemoryWrite: custom response headers (X-WoClaw-Conflict,
   //     X-WoClaw-Duplicate) need a different writeHead shape
-  //   - 405 Method-not-allowed sites: now all routed through sendJsonError
+  //   - 405 Method-not-allowed sites: all routed through sendJsonError
   //     (parity helper shared between success + error response paths)
-  //   - multi-line body literals (token rotate, health, etc.): left inline
-  //     for readability until a follow-up step collapses them
+  //   - multi-line body literals: closed by 39e7ba4 (10-site migration,
+  //     token rotate + handleHealth + memory list/stats + memory get/
+  //     versions/recall/byTag + delegation accept + topic messages); now
+  //     only carve-outs above remain
   private static sendJsonSuccess(
     res: http.ServerResponse,
     status: 200 | 201,
