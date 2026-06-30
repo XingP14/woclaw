@@ -131,3 +131,117 @@ describe('sync-skill-frontmatter.mjs', () => {
     expect(r.stderr).not.toMatch(/all-mode/);
   });
 });
+
+// 07-01 cron addition: --include <csv> extends discovery to per-skill workspace
+// shims (plugin/skills/*/SKILL.md, skills/*/SKILL.md) that the standard
+// packages/+hub/+mcp-bridge/+plugin/ scan misses. This block covers 4 gates:
+//   1. --include plugin/skills discovers 2 SKILL.md (woclaw + woclaw-hub-test)
+//   2. --include skills discovers 1 SKILL.md (woclaw)
+//   3. union mode writes the canonical list into the included shim files
+//   4. --include survives missing directories (no crash, just a verbose log)
+describe('sync-skill-frontmatter.mjs --include', () => {
+  let tmpRoot: string;
+  let pluginSkillsDir: string;
+  let skillsDir: string;
+  let pkgDir: string;
+
+  function writeShim(dir: string, name: string, body?: string) {
+    mkdirSync(join(dir, name), { recursive: true });
+    const fm = body ?? `---\nname: ${name}\ncompatible_with: [stale-only]\n---\n\n# ${name}\n`;
+    writeFileSync(join(dir, name, 'SKILL.md'), fm);
+  }
+
+  beforeAll(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-include-'));
+    pkgDir = join(tmpRoot, 'packages', 'woclaw-vscode');
+    pluginSkillsDir = join(tmpRoot, 'plugin', 'skills');
+    skillsDir = join(tmpRoot, 'skills');
+    writeShim(pkgDir.replace(/packages.*/, 'packages'), 'woclaw-vscode');
+    // override pkg file with the canonical list to start "in-sync"
+    writeFileSync(
+      join(pkgDir, 'SKILL.md'),
+      `---\nname: woclaw-vscode\ncompatible_with: [a, b, c]\n---\n\n# body\n`,
+    );
+    writeShim(pluginSkillsDir, 'woclaw');
+    writeShim(pluginSkillsDir, 'woclaw-hub-test');
+    writeShim(skillsDir, 'woclaw');
+  });
+
+  afterAll(() => {
+    if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  const run = (args: string[]) => spawnSync('node', [scriptPath, ...args], {
+    cwd: tmpRoot,
+    env: { ...process.env, WOCLAW_ROOT: tmpRoot },
+    encoding: 'utf8',
+  });
+
+  it('--include plugin/skills adds 2 shim files to the default packages scan (1+2=3)', () => {
+    // Default mode (no --all) always scans packages/*, then --include appends.
+    // This block has 1 packages file (woclaw-vscode) + 2 plugin/skills children.
+    const r = run(['--include', 'plugin/skills', '--check', '--verbose']);
+    expect(r.status).toBe(1); // drift exists
+    expect(r.stderr).toMatch(/found 3 SKILL.md files/);
+    expect(r.stderr).toMatch(/include: plugin\/skills/);
+  });
+
+  it('--include skills adds 1 shim file to the default packages scan (1+1=2)', () => {
+    const r = run(['--include', 'skills', '--check', '--verbose']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/found 2 SKILL.md files/);
+  });
+
+  it('--include plugin/skills,skills adds 3 shim files to the default packages scan (1+3=4)', () => {
+    const r = run(['--include', 'plugin/skills,skills', '--check', '--verbose']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/found 4 SKILL.md files/);
+    expect(r.stderr).toMatch(/include: plugin\/skills,skills/);
+  });
+
+  it('--include with packages/* still scopes to 1 packages file + N include files (no --all)', () => {
+    // Without --all, packages/ scan is still on (it's the default), so we get
+    // 1 packages file + 3 include files = 4 total.
+    const r = run(['--include', 'plugin/skills,skills', '--check', '--verbose']);
+    // Already covered above; here we just verify the message does NOT mention
+    // "all-mode: 7 subpackages" (we didn't pass --all).
+    expect(r.stderr).not.toMatch(/all-mode: 7 subpackages/);
+  });
+
+  it('--include plugin/skills,skills --write converges include shims to canonical union', () => {
+    const r = run(['--include', 'plugin/skills,skills', '--write']);
+    expect(r.status).toBe(0);
+    // Both woclaw shims (plugin/skills and skills) should now contain the
+    // union sorted alphabetically. union of [a,b,c] + [stale-only] = [a,b,c,stale-only]
+    for (const dir of [pluginSkillsDir, skillsDir]) {
+      const child = join(dir, 'woclaw', 'SKILL.md');
+      const content = readFileSync(child, 'utf8');
+      const m = content.match(/compatible_with: \[([^\]]+)\]/);
+      expect(m, `expected ${child} to have compatible_with after --write`).not.toBeNull();
+      const items = m![1].split(',').map(s => s.trim()).filter(Boolean);
+      expect(items).toEqual(['a', 'b', 'c', 'stale-only']);
+    }
+  });
+
+  it('--include tolerates a missing directory (no crash, just verbose log)', () => {
+    const r = run(['--include', 'does-not-exist', '--check', '--verbose']);
+    expect(r.status).toBe(0); // packages-only with no extras -> 0/1 in sync
+    expect(r.stderr).toMatch(/include: does-not-exist/);
+  });
+
+  it('--include pkg tag is namespaced (<dir>:<child>) so basename collisions do not clobber', () => {
+    // The 2 plugin/skills children + 1 skills child all have basename `woclaw`,
+    // but their pkg tags differ (`plugin/skills:woclaw` vs `skills:woclaw`),
+    // so --source plugin/skills:woclaw should work as a canonical selector.
+    const r = run(['--include', 'plugin/skills,skills', '--source', 'plugin/skills:woclaw', '--write']);
+    expect(r.status).toBe(0);
+    // plugin/skills:woclaw had 4 items ([a,b,c,stale-only]). The skills:woclaw
+    // shim must now have exactly those 4 items too.
+    const content = readFileSync(join(skillsDir, 'woclaw', 'SKILL.md'), 'utf8');
+    const m = content.match(/compatible_with: \[([^\]]+)\]/);
+    expect(m).not.toBeNull();
+    const items = m![1].split(',').map(s => s.trim()).filter(Boolean);
+    expect(items).toEqual(['a', 'b', 'c', 'stale-only']);
+  });
+});
+

@@ -4,11 +4,12 @@
 // monorepo to eliminate drift between subpackages.
 //
 // Usage:
-//   node scripts/sync-skill-frontmatter.mjs                # dry-run (default; packages/* only)
-//   node scripts/sync-skill-frontmatter.mjs --write        # write back
-//   node scripts/sync-skill-frontmatter.mjs --check        # CI mode: exit 1 if drift, no writes
-//   node scripts/sync-skill-frontmatter.mjs --source <pkg> # treat <pkg> as canonical list
-//   node scripts/sync-skill-frontmatter.mjs --all          # also include hub/ mcp-bridge/ plugin/ SKILL.md
+//   node scripts/sync-skill-frontmatter.mjs                       # dry-run (default; packages/* only)
+//   node scripts/sync-skill-frontmatter.mjs --write               # write back
+//   node scripts/sync-skill-frontmatter.mjs --check               # CI mode: exit 1 if drift, no writes
+//   node scripts/sync-skill-frontmatter.mjs --source <pkg>        # treat <pkg> as canonical list
+//   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
+//   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
 //
 // Strategy:
 //   1. Read every packages/*/SKILL.md frontmatter block (YAML-like, parsed with a
@@ -18,6 +19,10 @@
 //      woclaw-vscode + hub + mcp-bridge + plugin).
 //   2. Build the union of all `compatible_with` items. Optional `--source <pkg>`
 //      uses a single subpackage's list as the canonical list (faster, no growth).
+//   2b. With `--include <csv>`, also scan each listed directory's immediate
+//      children for SKILL.md (one level deep). Used for `plugin/skills/*/SKILL.md`
+//      and `skills/*/SKILL.md`, the per-skill workspace shims that the standard
+//      packages/ + hub/ + mcp-bridge/ + plugin/ scan misses (07-01 cron fix).
 //   3. Sort the items (case-insensitive) and re-emit a stable, single-line list.
 //   4. Print a per-file diff; with --write, rewrite the file in place.
 
@@ -38,6 +43,14 @@ const sourceIdx = process.argv.indexOf('--source');
 const sourcePkg = sourceIdx > -1 ? process.argv[sourceIdx + 1] : null;
 const verbose = args.has('--verbose') || args.has('-v');
 const allMode = args.has('--all') || args.has('-a');
+// --include <csv>: comma-separated list of directories (relative to repoRoot) to
+// scan 1-level deep for SKILL.md. Each child subdir's SKILL.md is added to the
+// discovery list. Used to cover per-skill workspace shims like plugin/skills/*
+// and skills/* that the standard packages/+hub/+mcp-bridge/+plugin/ scan misses.
+const includeIdx = process.argv.indexOf('--include');
+const includeDirs = includeIdx > -1
+  ? process.argv[includeIdx + 1].split(',').map(s => s.trim()).filter(Boolean)
+  : [];
 
 function log(...a) { if (verbose) console.error('[sync]', ...a); }
 
@@ -124,20 +137,75 @@ function findSkillFiles(root) {
       } catch { /* skip — no SKILL.md */ }
     }
   }
-  return out;
+  // 07-01 cron fix: --include <csv> extends discovery to extra 1-level-deep dirs.
+  // This covers `plugin/skills/<name>/SKILL.md` and `skills/<name>/SKILL.md`,
+  // which are the per-skill workspace shims. Without this, those 3 SKILL.md
+  // drift in silence (script never sees them) — caught by 07-01 cron when
+  // `plugin/skills/woclaw/SKILL.md` had no compatible_with field at all while
+  // packages/* had ~100 entries each.
+  for (const sub of includeDirs) {
+    const dir = join(root, sub);
+    let entries;
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      log('--include dir missing or unreadable:', sub);
+      continue;
+    }
+    for (const child of entries) {
+      const childDir = join(dir, child);
+      try {
+        if (!statSync(childDir).isDirectory()) continue;
+      } catch { continue; }
+      const skillPath = join(childDir, 'SKILL.md');
+      try {
+        statSync(skillPath);
+        // Tag with a synthetic pkg name: `<includeDir>:<child>` so the basename
+        // stays unique across nested shims (e.g. plugin/skills/woclaw vs
+        // packages/woclaw-hooks — both would otherwise collapse to `woclaw`).
+        out.push({ path: skillPath, pkg: `${sub}:${child}` });
+        continue;
+      } catch { /* skip — no SKILL.md */ }
+      // Allow plain SKILL.md directly under the include dir (rare; e.g. skills/SKILL.md).
+      if (child === 'SKILL.md') {
+        out.push({ path: join(dir, 'SKILL.md'), pkg: sub });
+      }
+    }
+  }
+  // If any entries are bare strings (the original shape) we kept them — but the
+  // --include branch returns {path,pkg} objects. Normalise to the {path,pkg}
+  // shape so the rest of main() stays uniform.
+  return out.map(x => typeof x === 'string' ? { path: x, pkg: basename(dirname(x)) } : x);
 }
 
 function main() {
-  const files = findSkillFiles(repoRoot);
-  log('found', files.length, 'SKILL.md files', allMode ? '(all-mode: 7 subpackages)' : '(packages-only)');
+  const entries = findSkillFiles(repoRoot);
+  // entries is now an array of {path, pkg} (mixed: packages use basename,
+  // --include uses `<dir>:<child>`). Back-compat: if a legacy caller still
+  // returns strings we wrap them.
+  const files = entries.map(e => typeof e === 'string' ? { path: e, pkg: basename(dirname(e)) } : e);
+  const modeLabel = allMode && includeDirs.length === 0
+    ? '(all-mode: 7 subpackages)'
+    : includeDirs.length > 0
+      ? `(include: ${includeDirs.join(',')})`
+      : '(packages-only)';
+  log('found', files.length, 'SKILL.md files', modeLabel);
   if (!files.length) {
     console.error('No SKILL.md files found under packages/.');
     process.exit(1);
   }
 
-  const parsed = files.map(p => {
-    const pkg = basename(dirname(p));
-    return { path: p, pkg, ...parseFrontmatter(readFileSync(p, 'utf8')) };
+  const parsed = files.map(e => {
+    // 07-01 cron fix: --include may surface SKILL.md files that lack a
+    // compatible_with field (e.g. plugin/skills/woclaw-hub-test/SKILL.md uses
+    // a metadata-block layout). Default missing keys so downstream code can
+    // safely read .attrs.compatible_with without nullish guards.
+    const fm = parseFrontmatter(readFileSync(e.path, 'utf8')) || {
+      attrs: { compatible_with: [] },
+      body: '',
+      raw: '',
+    };
+    return { path: e.path, pkg: e.pkg, ...fm };
   });
 
   let canonical;
