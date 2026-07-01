@@ -11,9 +11,9 @@
     "build": "npm run build --workspace=hub && npm run build --workspace=plugin",
     "build:all": "npm run build --workspace=hub && npm run build --workspace=plugin && npm run build --workspace=woclaw-mcp && npm run compile --workspace=woclaw-vscode",
     "pack:check": "npm pack --dry-run --workspace=hub && npm pack --dry-run --workspace=plugin && npm pack --dry-run --workspace=woclaw-hooks && npm pack --dry-run --workspace=woclaw-mcp && npm pack --dry-run --workspace=woclaw-codex --ignore-scripts && npm pack --dry-run --workspace=opencode-woclaw && npm pack --dry-run --workspace=woclaw-vscode",
-    "sync:skills": "node scripts/sync-skill-frontmatter.mjs --all",
-    "sync:skills:check": "node scripts/sync-skill-frontmatter.mjs --all --check",
-    "sync:skills:write": "node scripts/sync-skill-frontmatter.mjs --all --write"
+    "sync:skills": "node scripts/sync-skill-frontmatter.mjs --all --include 'skills,plugin/skills' --exclude 'plugin/skills:woclaw-hub-test'",
+    "sync:skills:check": "node scripts/sync-skill-frontmatter.mjs --all --include 'skills,plugin/skills' --exclude 'plugin/skills:woclaw-hub-test' --check",
+    "sync:skills:write": "node scripts/sync-skill-frontmatter.mjs --all --include 'skills,plugin/skills' --exclude 'plugin/skills:woclaw-hub-test' --write"
   },
   "workspaces": [
     "hub",

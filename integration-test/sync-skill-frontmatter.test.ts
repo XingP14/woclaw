@@ -351,3 +351,43 @@ describe('sync-skill-frontmatter.mjs --write edge cases (07-01 03:03 cron regres
     expect(r.stderr).toMatch(/no frontmatter block/);
   });
 });
+
+
+// 07-02 01:03 cron addition: package.json `sync:skills*` npm scripts previously
+// invoked the script as `--all --check` / `--all --write` — which **skips**
+// the per-skill workspace shims (skills/, plugin/skills/). The drift in those
+// shims went uncaught by both local `npm run sync:skills:check` and any CI
+// step that mirrors the npm script. This block pins the corrected behaviour:
+// the npm scripts must now pass `--include 'skills,plugin/skills'` and
+// `--exclude 'plugin/skills:woclaw-hub-test'` (the intentionally-frontmatter-
+// less diagnostic skill spec doc).
+//
+// Gates:
+//   1. sync:skills:check script string contains --include 'skills,plugin/skills'
+//   2. sync:skills:check script string contains --exclude plugin/skills:woclaw-hub-test
+//   3. sync:skills (default) and sync:skills:write also carry both flags (parity)
+//   (Note: previously planned a 4th gate — subprocess against a woclaw-shaped
+//    fixture tree — but the script-string assertions in gates 1-3 are sufficient
+//    to pin the regression and don't depend on brittle file-count assertions.)
+describe('package.json sync:skills npm scripts scope (07-02 01:03 cron regression gate)', () => {
+  const _repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const _pkg = JSON.parse(readFileSync(join(_repoRoot, 'package.json'), 'utf8'));
+  const _scripts = _pkg.scripts as Record<string, string>;
+
+  it('sync:skills:check script string includes --include skills,plugin/skills', () => {
+    expect(_scripts['sync:skills:check']).toMatch(/--include\s+['"]?skills,plugin\/skills['"]?/);
+  });
+
+  it('sync:skills:check script string excludes plugin/skills:woclaw-hub-test (intentional no-frontmatter skill spec doc)', () => {
+    // Quoted form (npm-script string) and bare form (when invoked via npm the
+    // shell strips the quotes; either spelling must match for the regression gate).
+    expect(_scripts['sync:skills:check']).toMatch(/--exclude\s+['"]?plugin\/skills:woclaw-hub-test['"]?/);
+  });
+
+  it('sync:skills (default dry-run) and sync:skills:write carry both --include and --exclude (parity)', () => {
+    for (const k of ['sync:skills', 'sync:skills:write']) {
+      expect(_scripts[k], `${k} must include workspace shims`).toMatch(/--include\s+['"]?skills,plugin\/skills['"]?/);
+      expect(_scripts[k], `${k} must exclude woclaw-hub-test`).toMatch(/--exclude\s+['"]?plugin\/skills:woclaw-hub-test['"]?/);
+    }
+  });
+});
