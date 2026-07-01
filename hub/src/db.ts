@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, StorageConfig, DBSession, DBSessionFeedback, ExtractionQueueEntry, MemoryFeedback } from './types.js';
 import { createEncryption, encryptAndSerialize, safeDecryptValue, type EncryptionProvider } from './crypto.js';
-import { errorMessage } from './errors.js';
+import { errorMessage, ignoreDuplicateColumn } from './errors.js';
 
 // ─── SQLite row shapes for `as any` → typed-row migration ─────────────────────
 // Each interface mirrors the SELECT shape from the matching db.prepare(...).all/get
@@ -1055,16 +1055,16 @@ class MySqlStorage implements DbStorage {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
-    // v1.0 migration: add importance/access_count/last_accessed_at to memory table
-    try {
-      await this.pool.execute(`ALTER TABLE memory ADD COLUMN importance_score DOUBLE NOT NULL DEFAULT 5.0`);
-    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
-    try {
-      await this.pool.execute(`ALTER TABLE memory ADD COLUMN access_count INT NOT NULL DEFAULT 0`);
-    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
-    try {
-      await this.pool.execute(`ALTER TABLE memory ADD COLUMN last_accessed_at BIGINT`);
-    } catch (e: unknown) { if (!errorMessage(e).includes('Duplicate column')) throw e; }
+    // v1.0 migration: add importance/access_count/last_accessed_at to memory table.
+    // Each ALTER TABLE is wrapped in ignoreDuplicateColumn so ensureSchema
+    // stays idempotent across repeated restarts (MySQL ER_DUP_FIELDNAME 1060
+    // is the expected 'already applied' signal; any other error still
+    // propagates). The inline try/catch that used to live at
+    // L1061/L1064/L1067 was identical 3x and got extracted to errors.ts
+    // alongside the catch-unknown helpers.
+    await ignoreDuplicateColumn(() => this.pool.execute(`ALTER TABLE memory ADD COLUMN importance_score DOUBLE NOT NULL DEFAULT 5.0`));
+    await ignoreDuplicateColumn(() => this.pool.execute(`ALTER TABLE memory ADD COLUMN access_count INT NOT NULL DEFAULT 0`));
+    await ignoreDuplicateColumn(() => this.pool.execute(`ALTER TABLE memory ADD COLUMN last_accessed_at BIGINT`));
 
     await this.maybeImportLegacyData();
   }
