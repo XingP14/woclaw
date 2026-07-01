@@ -13,7 +13,7 @@
 // so a CI run leaves no junk behind.
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -48,9 +48,10 @@ describe('sync-skill-frontmatter.mjs', () => {
 
   beforeAll(() => {
     tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-'));
-    // Layout mirrors woclaw monorepo: packages/<name>/SKILL.md + hub|mcp-bridge|plugin/SKILL.md (7 files)
+    // Layout mirrors woclaw monorepo: packages/<name>/SKILL.md + hub|mcp-bridge|plugin/SKILL.md (8 files; was 7 before codex-woclaw-example was added 06-28 bbf2489)
     pkgDirs = {
       codex: join(tmpRoot, 'packages', 'codex-woclaw'),
+      codexExample: join(tmpRoot, 'packages', 'codex-woclaw-example'),
       opencode: join(tmpRoot, 'packages', 'opencode-woclaw-plugin'),
       hooks: join(tmpRoot, 'packages', 'woclaw-hooks'),
       vscode: join(tmpRoot, 'packages', 'woclaw-vscode'),
@@ -59,6 +60,7 @@ describe('sync-skill-frontmatter.mjs', () => {
       plugin: join(tmpRoot, 'plugin'),
     };
     writeSkill(pkgDirs.codex, 'codex', ['claude-code', 'opencode']);
+    writeSkill(pkgDirs.codexExample, 'codex-example', ['claude-code', 'opencode']);
     writeSkill(pkgDirs.opencode, 'opencode', ['opencode', 'claude-code']);
     writeSkill(pkgDirs.hooks, 'hooks', ['claude-code', 'opencode', 'vscode']);
     writeSkill(pkgDirs.vscode, 'vscode', ['vscode']);
@@ -71,10 +73,10 @@ describe('sync-skill-frontmatter.mjs', () => {
     if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
   });
 
-  it('--all discovers exactly 7 SKILL.md files (4 packages + hub + mcp-bridge + plugin)', () => {
+  it('--all discovers exactly 8 SKILL.md files (5 packages + hub + mcp-bridge + plugin)', () => {
     const r = scriptRun(['--all', '--verbose']);
     expect(r.status).toBe(0);
-    expect(r.stderr).toMatch(/found 7 SKILL.md files \(all-mode: 7 subpackages\)/);
+    expect(r.stderr).toMatch(/found 8 SKILL.md files \(all-mode: 8 subpackages\)/);
   });
 
   it('--check exits 1 when drift is present, 0 after --write converges', () => {
@@ -98,7 +100,7 @@ describe('sync-skill-frontmatter.mjs', () => {
     const r = scriptRun(['--all', '--write']);
     expect(r.status).toBe(0);
     // The summary line reports "0/7 files out of sync" once converged.
-    expect(r.stdout).toMatch(/0\/7 files out of sync/);
+    expect(r.stdout).toMatch(/0\/8 files out of sync/);
   });
 
   it('--source <pkg> overrides union with one pkg as canonical', () => {
@@ -122,12 +124,12 @@ describe('sync-skill-frontmatter.mjs', () => {
     }
   });
 
-  it('default mode (no flags) is dry-run + packages-only (4 packages, not 7)', () => {
+  it('default mode (no flags) is dry-run + packages-only (5 packages, not 8)', () => {
     // --source resets drift so each packages/* file now has identical content.
     // The default scan covers only packages/* = 4 files (no hub/mcp-bridge/plugin).
     const r = scriptRun(['--verbose']);
     expect(r.status).toBe(0);
-    expect(r.stderr).toMatch(/found 4 SKILL.md files \(packages-only\)/);
+    expect(r.stderr).toMatch(/found 5 SKILL.md files \(packages-only\)/);
     expect(r.stderr).not.toMatch(/all-mode/);
   });
 });
@@ -389,5 +391,76 @@ describe('package.json sync:skills npm scripts scope (07-02 01:03 cron regressio
       expect(_scripts[k], `${k} must include workspace shims`).toMatch(/--include\s+['"]?skills,plugin\/skills['"]?/);
       expect(_scripts[k], `${k} must exclude woclaw-hub-test`).toMatch(/--exclude\s+['"]?plugin\/skills:woclaw-hub-test['"]?/);
     }
+  });
+});
+
+
+// 07-02 01:33 cron addition: the script's doc comments at L19 / L158 / L168 / L223
+// said "(7 subpackages)" and listed only 4 packages (codex-woclaw,
+// opencode-woclaw-plugin, woclaw-hooks, woclaw-vscode), missing
+// `packages/codex-woclaw-example` which was added back on 06-28 (bbf2489 added
+// SKILL.md to it). Actual discovery count after that addition is 8 subpackages
+// (5 packages/* + hub + mcp-bridge + plugin), confirmed by `node scripts/
+// sync-skill-frontmatter.mjs --all` reporting "0/8 files out of sync". This
+// drift went uncaught because no test pinned the comment ↔ discovery parity.
+//
+// rCAUSE: the 7-subpackage count was hand-counted when the script was first
+// written (06-19 cron); adding packages/codex-woclaw-example 9 days later
+// should have bumped the count to 8 in 4 places but didn't. Comments-only
+// changes are easy to forget.
+//
+// rFIX: bump all 4 doc-comment occurrences from "7 subpackages" to "8 subpackages"
+// and add `packages/codex-woclaw-example` to the listed enumeration (now
+// 5 packages/* instead of 4). Also update the all-mode summary string.
+//
+// rTEST: this block — 4 regression tests asserting (1) the L19 doc-comment
+// lists 8 subpackages and includes codex-woclaw-example; (2) the L158/L168
+// enumerate-8 list has 8 numbered entries and includes
+// packages/codex-woclaw-example; (3) the all-mode summary string at L223
+// reads "8 subpackages"; (4) cross-check: the actual count of packages/*
+// directories on disk equals the count listed in the script comment (parity
+// gate — prevents future regressions).
+describe('sync-skill-frontmatter.mjs doc-comment ↔ discovery parity (07-02 01:33 cron regression gate)', () => {
+  const _repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const _scriptPath = join(_repoRoot, 'scripts', 'sync-skill-frontmatter.mjs');
+  const _scriptSrc = readFileSync(_scriptPath, 'utf8');
+
+  it('L19 header comment says "8 subpackages" and enumerates codex-woclaw-example', () => {
+    // After 06-28 bbf2489 added codex-woclaw-example, total is 8 (5 packages + hub + mcp-bridge + plugin).
+    expect(_scriptSrc).toMatch(/\(8 subpackages in total:[^\n]*codex-woclaw-example/);
+  });
+
+  it('findSkillFiles enumerate-8 list has 8 numbered entries including codex-woclaw-example', () => {
+    // Extract the comment block immediately before `for (const top of ['hub', 'mcp-bridge', 'plugin'])`
+    const blockRe = /\/\/ so all (\d+) subpackages stay in sync\.[\s\S]*?for \(const top of \['hub'/;
+    const blockMatch = blockRe.exec(_scriptSrc);
+    expect(blockMatch, 'enumeration block not found').toBeTruthy();
+    const block = blockMatch![0];
+    const numbered = block.match(/^\s*\/\/\s+(\d+)\.\s+/gm) || [];
+    expect(numbered.length).toBe(8);
+    // codex-woclaw-example must appear in the enumeration.
+    expect(block).toMatch(/packages\/codex-woclaw-example/);
+    // Sanity: the original 4 packages must still be present.
+    for (const pkg of ['codex-woclaw', 'opencode-woclaw-plugin', 'woclaw-hooks', 'woclaw-vscode']) {
+      expect(block, `missing packages/${pkg} in enumerate-8 list`).toMatch(new RegExp(`packages/${pkg.replace(/-/g, '\\-')}`));
+    }
+  });
+
+  it('all-mode summary string at L223 reads "8 subpackages"', () => {
+    expect(_scriptSrc).toMatch(/'\(all-mode: 8 subpackages\)'/);
+  });
+
+  it('cross-check: packages/* directory count on disk == count listed in enumerate-8 block (parity gate)', () => {
+    const packagesDir = join(_repoRoot, 'packages');
+    const packagesDirs = readdirSync(packagesDir).filter((n) =>
+      statSync(join(packagesDir, n)).isDirectory(),
+    );
+    // The script enumerates packages/* before the 3 top-level dirs (hub, mcp-bridge, plugin).
+    // Pull the count from the enumerate block.
+    const blockRe = /\/\/ so all (\d+) subpackages stay in sync\./;
+    const m = blockRe.exec(_scriptSrc);
+    expect(m, 'count assertion not found').toBeTruthy();
+    const listedPackages = parseInt(m![1], 10) - 3; // subtract 3 top-level
+    expect(packagesDirs.length).toBe(listedPackages);
   });
 });

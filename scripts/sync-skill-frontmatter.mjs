@@ -16,7 +16,7 @@
 //   1. Read every packages/*/SKILL.md frontmatter block (YAML-like, parsed with a
 //      minimal scanner that respects the inline `[a, b, c]` list form).
 //      With --all, also scan hub/SKILL.md, mcp-bridge/SKILL.md, plugin/SKILL.md
-//      (7 subpackages in total: codex-woclaw, opencode-woclaw-plugin, woclaw-hooks,
+//      (8 subpackages in total: codex-woclaw, codex-woclaw-example, opencode-woclaw-plugin, woclaw-hooks,
 //      woclaw-vscode + hub + mcp-bridge + plugin).
 //   2. Build the union of all `compatible_with` items. Optional `--source <pkg>`
 //      uses a single subpackage's list as the canonical list (faster, no growth).
@@ -156,14 +156,15 @@ function findSkillFiles(root) {
   }
   if (allMode) {
     // Extend coverage to the 3 top-level SKILL.md files (hub, mcp-bridge, plugin)
-    // so all 7 subpackages stay in sync. The "7 subpackages" are:
+    // so all 8 subpackages stay in sync. The "8 subpackages" are:
     //   1. packages/codex-woclaw
-    //   2. packages/opencode-woclaw-plugin
-    //   3. packages/woclaw-hooks
-    //   4. packages/woclaw-vscode
-    //   5. hub
-    //   6. mcp-bridge
-    //   7. plugin
+    //   2. packages/codex-woclaw-example
+    //   3. packages/opencode-woclaw-plugin
+    //   4. packages/woclaw-hooks
+    //   5. packages/woclaw-vscode
+    //   6. hub
+    //   7. mcp-bridge
+    //   8. plugin
     for (const top of ['hub', 'mcp-bridge', 'plugin']) {
       const skillPath = join(root, top, 'SKILL.md');
       try {
@@ -220,7 +221,7 @@ function main() {
   // returns strings we wrap them.
   const files = entries.map(e => typeof e === 'string' ? { path: e, pkg: basename(dirname(e)) } : e);
   const modeLabel = allMode && includeDirs.length === 0
-    ? '(all-mode: 7 subpackages)'
+    ? '(all-mode: 8 subpackages)'
     : includeDirs.length > 0
       ? `(include: ${includeDirs.join(',')})`
       : '(packages-only)';
