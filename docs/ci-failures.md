@@ -17,6 +17,7 @@
 ```
 
 ## CI Failure 2026-06-11 09:11 — woclaw @ ff3d358 / run 27316790587
+- status: ✅ **FIXED** by 06-28 05:23 cron (“已回滚” 及“下一步建议”只反映 09:14 临时状态; 最终解决走 f238696 encryption_integration.test.ts 12/12 + 786c18c ROADMAP 完成 + (b) 架构收口 — encryption 模式下 recall 不可用 已文档化. 与 status snapshot 底部 06-11 09:11 条目 ✅ FIXED 对齐)
 
 **Failed jobs**: Hub (lint + build + test)
 **Root cause**: 真实代码 bug — `hub/src/db.ts` line 591 `tx({ key, value, ... })` 传的是原始入参 `value`（明文），而非 line 520 计算的 `storedValue`（加密后）。导致 encryption-at-rest 在 `setMemory` 路径失效，DB 存的是明文。
@@ -56,3 +57,6 @@
 
 ## Tick note 2026-06-28 05:23
 - cron (5h rotation): 06-11 09:11 状态从 OPEN 改为 FIXED, 与 ROADMAP 786c18c + f238696 链路对齐, 解 status snapshot 残留 stale entry.
+
+## Tick note 2026-07-01 23:23
+- cron (5h rotation): 06-11 09:11 条目补加 - status: ✅ FIXED 行, 与 06-19 条目格式对齐 + 与底部 status snapshot 一致; 解该条目“已回滚 + 需许成拍板”文本与底部 FIXED 标记不一致的残留.
