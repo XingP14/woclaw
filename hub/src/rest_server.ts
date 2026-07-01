@@ -84,6 +84,33 @@ function parseIntParam(url: URL, name: string, defaultValue: number): number {
   return parseInt(raw, 10);
 }
 
+/**
+ * Read the request body as a UTF-8 string.
+ *
+ * Centralizes the inline "data + end" accumulation pattern (previously
+ * repeated at 15 POST / PUT handlers in this file) behind a single helper.
+ * Returns a Promise that resolves with the accumulated body string. Identical
+ * wire-format behavior preserved: each chunk decoded as utf8, all chunks
+ * concatenated.
+ *
+ * The 15 prior inline sites used the event-based form (`data` listener +
+ * `end` listener). The single site that used the async-iterator form
+ * `for await (const chunk of req) { body += chunk; }`
+ * (handleGraphNodeCreate L1137, for-await at L1139) is a different shape and is left untouched —
+ * migrating it would change the body-accumulation path from
+ * Buffer.toString(undefined) to Buffer.toString('utf8') which is not
+ * byte-identical for non-utf8 input. See test/read_json_body.test.ts for the
+ * regression coverage.
+ */
+function readJsonBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 export class RestServer {
   private server: http.Server | null = null;
   private db: ClawDB;
@@ -306,9 +333,7 @@ export class RestServer {
         });
         RestServer.sendJsonSuccess(res, 200, { edges, count: edges.length });
       } else if (path === '/graph/edges' && method === 'POST') {
-        let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-        req.on('end', () => {
+        readJsonBody(req).then(async (body: string) => {
           try {
             const { source, target, type, weight, metadata = {} } = JSON.parse(body);
             if (!source || !target || !type) {
@@ -372,9 +397,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         const peers = this.wsServer?.getFederationPeersStatus?.() ?? [];
         RestServer.sendJsonSuccess(res, 200, { peers });
       } else if (path === '/federation/peers' && method === 'POST') {
-        let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-        req.on('end', () => {
+        readJsonBody(req).then(async (body: string) => {
           try {
             const { hubId, wsUrl, federationToken } = JSON.parse(body);
             if (!hubId || !wsUrl || !federationToken) {
@@ -388,9 +411,7 @@ const result = this.graph.findPath(from, to, maxDepth);
           }
         });
       } else if (path === '/federation/send' && method === 'POST') {
-        let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-        req.on('end', () => {
+        readJsonBody(req).then(async (body: string) => {
           try {
             const { targetHubId, agentId, payload } = JSON.parse(body);
             if (!targetHubId || !agentId) {
@@ -559,12 +580,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleMemoryWrite(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    const body = await new Promise<string>((resolve, reject) => {
-      let data = '';
-      req.on('data', (chunk: Buffer) => { data += chunk.toString('utf8'); });
-      req.on('end', () => resolve(data));
-      req.on('error', reject);
-    });
+    const body = await readJsonBody(req);
 
     try {
       const { key, value, tags, ttl } = JSON.parse(body);
@@ -707,9 +723,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /delegations — create delegation (REST → WebSocket routing)
     if (path === '/delegations' && method === 'POST') {
-      let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-      req.on('end', () => {
+      readJsonBody(req).then(async (body: string) => {
         try {
           const { id: requestedId, toAgent, task, topic } = JSON.parse(body);
           if (!toAgent || !task) {
@@ -816,9 +830,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /graph/nodes — create a node
     if (path === '/graph/nodes' && method === 'POST') {
-      let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-      req.on('end', () => {
+      readJsonBody(req).then(async (body: string) => {
         try {
           const { type, label, metadata = {} } = JSON.parse(body);
           if (!type || !label) {
@@ -873,9 +885,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /graph/edges — create an edge
     if (path === '/graph/edges' && method === 'POST') {
-      let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-      req.on('end', () => {
+      readJsonBody(req).then(async (body: string) => {
         try {
           const { source, target, type, weight, metadata = {} } = JSON.parse(body);
           if (!source || !target || !type) {
@@ -935,9 +945,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', async () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const data = JSON.parse(body) as Partial<DBSession>;
         const now = Date.now();
@@ -979,9 +987,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionUpdate(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', async () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const updates = JSON.parse(body) as Partial<DBSession>;
         await this.sessionStore.updateSession(id, updates);
@@ -1003,9 +1009,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionFeedback(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', async () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const { adjustment, reason, agentId } = JSON.parse(body);
         await this.sessionStore.addFeedback(id, agentId ?? 'unknown', adjustment ?? 0, reason);
@@ -1017,9 +1021,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionFlag(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', async () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const { flagged } = JSON.parse(body);
         await this.sessionStore.flagSession(id, !!flagged);
@@ -1064,9 +1066,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 400, 'ForgettingScheduler not configured');
       return;
     }
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', async () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const result = await this.forgettingScheduler!.triggerEviction();
         RestServer.sendJsonSuccess(res, 200, { success: true, evicted: result });
@@ -1116,9 +1116,7 @@ const result = this.graph.findPath(from, to, maxDepth);
       RestServer.sendJsonError(res, 400, 'ForgettingScheduler not configured');
       return;
     }
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', () => {
+    readJsonBody(req).then(async (body: string) => {
       this.forgettingScheduler!.triggerEviction().then(result => {
         RestServer.sendJsonSuccess(res, 200, { success: true, evicted: result });
       }).catch((e: unknown) => {
@@ -1204,9 +1202,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   // v1.0: Create a topic (optionally private)
   private handleTopicCreate(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const parsed = body ? JSON.parse(body) : {};
         const isPrivate = parsed && typeof parsed === 'object' && (parsed as { isPrivate?: unknown }).isPrivate === true;
@@ -1225,9 +1221,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   // v1.0: Invite an agent to a private topic
   private handleTopicInvite(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const { agentId, ttlMs } = JSON.parse(body);
         if (!agentId) {
@@ -1244,9 +1238,7 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   // v1.0: Join a private topic with invite token
   private handleTopicJoin(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
-    let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
-    req.on('end', () => {
+    readJsonBody(req).then(async (body: string) => {
       try {
         const { agentId, inviteToken } = JSON.parse(body);
         if (!agentId || !inviteToken) {
