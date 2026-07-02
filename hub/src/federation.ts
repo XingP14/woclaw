@@ -5,6 +5,22 @@ import { WebSocket } from 'ws';
 import type { FederationPeer, FederationMessage, Config } from './types.js';
 import { errorMessage } from './errors.js';
 
+
+// Federation-scoped logger: prepends "[WoClaw Federation] " prefix so log lines
+// stay grep-friendly even though the underlying console.* call is the canonical
+// Node stream. All 16 call sites in this file route through these helpers
+// (see hub/test/federation_logger.test.ts for the regression gate); no inline
+// `console.[log|warn|error]('[WoClaw Federation] ...')` should remain.
+function fedLog(msg: string, ...args: unknown[]): void {
+  console.log(`[WoClaw Federation] ${msg}`, ...args);
+}
+function fedWarn(msg: string, ...args: unknown[]): void {
+  console.warn(`[WoClaw Federation] ${msg}`, ...args);
+}
+function fedError(msg: string, ...args: unknown[]): void {
+  console.error(`[WoClaw Federation] ${msg}`, ...args);
+}
+
 export class FederationManager {
   private peers: Map<string, WebSocket> = new Map();  // hubId → WS connection
   private config: Config;
@@ -33,7 +49,7 @@ export class FederationManager {
   /** Start connecting to all configured federation peers */
   start(): void {
     if (!this.config.federationPeers?.length) {
-      console.log('[WoClaw Federation] No peers configured');
+      fedLog('No peers configured');
       return;
     }
     for (const peer of this.config.federationPeers) {
@@ -62,10 +78,10 @@ export class FederationManager {
     if (!syncConfig?.enabled || !syncConfig.syncIntervalMs) return;
     this.syncInterval = setInterval(() => {
       this.syncImportantMemories().catch((err: unknown) => {
-        console.error('[WoClaw Federation] Periodic sync error:', errorMessage(err));
+        fedError('Periodic sync error:', errorMessage(err));
       });
     }, syncConfig.syncIntervalMs);
-    console.log(`[WoClaw Federation] Periodic memory sync enabled (interval: ${syncConfig.syncIntervalMs}ms, threshold: ${syncConfig.importanceThreshold ?? 7.0})`);
+    fedLog(`Periodic memory sync enabled (interval: ${syncConfig.syncIntervalMs}ms, threshold: ${syncConfig.importanceThreshold ?? 7.0})`);
   }
 
   private stopPeriodicSync(): void {
@@ -88,17 +104,17 @@ export class FederationManager {
   /** Connect to a single peer Hub */
   private connectToPeer(peer: FederationPeer): void {
     if (this.peers.has(peer.hubId)) {
-      console.log(`[WoClaw Federation] Already connected to ${peer.hubId}`);
+      fedLog(`Already connected to ${peer.hubId}`);
       return;
     }
 
     peer.status = 'connecting';
-    console.log(`[WoClaw Federation] Connecting to peer ${peer.hubId} at ${peer.wsUrl}`);
+    fedLog(`Connecting to peer ${peer.hubId} at ${peer.wsUrl}`);
 
     const ws = new WebSocket(`${peer.wsUrl}?hubId=${this.config.hubId}&token=${peer.federationToken}`);
 
     ws.on('open', () => {
-      console.log(`[WoClaw Federation] Connected to peer ${peer.hubId}`);
+      fedLog(`Connected to peer ${peer.hubId}`);
       peer.status = 'connected';
       this.peers.set(peer.hubId, ws);
       this.startPing(peer);
@@ -110,12 +126,12 @@ export class FederationManager {
         const msg: FederationMessage = JSON.parse(data.toString());
         this.handleMessage(msg, peer.hubId);
       } catch (e: unknown) {
-        console.error(`[WoClaw Federation] Invalid message from ${peer.hubId}:`, errorMessage(e));
+        fedError(`Invalid message from ${peer.hubId}:`, errorMessage(e));
       }
     });
 
     ws.on('close', (code, reason) => {
-      console.log(`[WoClaw Federation] Disconnected from ${peer.hubId} (code=${code})`);
+      fedLog(`Disconnected from ${peer.hubId} (code=${code})`);
       peer.status = 'disconnected';
       this.peers.delete(peer.hubId);
       this.stopPing(peer.hubId);
@@ -123,7 +139,7 @@ export class FederationManager {
     });
 
     ws.on('error', (err: unknown) => {
-      console.error(`[WoClaw Federation] Error with ${peer.hubId}:`, errorMessage(err));
+      fedError(`Error with ${peer.hubId}:`, errorMessage(err));
     });
   }
 
@@ -147,7 +163,7 @@ export class FederationManager {
     const existing = this.reconnectTimeouts.get(peer.hubId);
     if (existing) clearTimeout(existing);
     const timeout = setTimeout(() => {
-      console.log(`[WoClaw Federation] Reconnecting to ${peer.hubId}`);
+      fedLog(`Reconnecting to ${peer.hubId}`);
       this.connectToPeer(peer);
     }, 10000); // reconnect after 10s
     this.reconnectTimeouts.set(peer.hubId, timeout);
@@ -179,7 +195,7 @@ export class FederationManager {
       case 'hub_info':
         if (msg.payload && typeof msg.payload === 'object') {
           const p = msg.payload as { connectedAgents?: number };
-          console.log(`[WoClaw Federation] Hub info from ${msg.fromHubId}: ${p.connectedAgents ?? 0} agents`);
+          fedLog(`Hub info from ${msg.fromHubId}: ${p.connectedAgents ?? 0} agents`);
         }
         break;
       case 'agent_message':
@@ -209,7 +225,7 @@ export class FederationManager {
         }
         break;
       default:
-        console.warn(`[WoClaw Federation] Unknown message type from ${fromHubId}:`, msg.type);
+        fedWarn(`Unknown message type from ${fromHubId}:`, msg.type);
     }
   }
 
@@ -222,14 +238,14 @@ export class FederationManager {
     for (const mem of important) {
       this.syncMemory(mem.key, mem.value, mem.tags, this.config.hubId);
     }
-    console.log(`[WoClaw Federation] Periodic sync: ${important.length}/${memories.length} memories above threshold ${threshold}`);
+    fedLog(`Periodic sync: ${important.length}/${memories.length} memories above threshold ${threshold}`);
   }
 
   /** Send a message to a specific agent on a peer Hub */
   sendToAgent(targetHubId: string, agentId: string, payload: unknown): boolean {
     const ws = this.peers.get(targetHubId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.warn(`[WoClaw Federation] Not connected to ${targetHubId}`);
+      fedWarn(`Not connected to ${targetHubId}`);
       return false;
     }
     const msg: FederationMessage = {
@@ -257,14 +273,14 @@ export class FederationManager {
         ws.send(JSON.stringify(msg));
       }
     }
-    console.log(`[WoClaw Federation] Synced memory '${key}' to ${this.peers.size} peers`);
+    fedLog(`Synced memory '${key}' to ${this.peers.size} peers`);
   }
 
   /** Request federated memory entries from a specific peer hub */
   requestMemorySync(targetHubId: string): boolean {
     const ws = this.peers.get(targetHubId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.warn(`[WoClaw Federation] Not connected to ${targetHubId} for memory sync`);
+      fedWarn(`Not connected to ${targetHubId} for memory sync`);
       return false;
     }
     const msg: FederationMessage = {
