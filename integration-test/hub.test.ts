@@ -278,30 +278,52 @@ describe('WoClaw Hub Integration Tests', () => {
     });
 
     it('broadcasts message to all topic members', async () => {
-      const msgContent = `broadcast-test-${Date.now()}`;
-      await new Promise((resolve, reject) => {
-        const ws1 = new WebSocket(`${HUB_URL}?agentId=broadcaster&token=${AUTH_TOKEN}`);
-        ws1.on('open', () => {
-          ws1.send(JSON.stringify({ type: 'join', topic: 'broadcast-topic' }));
-          const ws2 = new WebSocket(`${HUB_URL}?agentId=broadcast-receiver&token=${AUTH_TOKEN}`);
-          ws2.on('message', (data) => {
+      // Resolves when ws has received the post-join `history` ack from the hub
+      // (hub/src/ws_server.ts handleJoin sends `{type:'history', topic, messages, agents, ...}`
+      // after joinTopic(), so it is the deterministic join-completion signal).
+      // Replaces the previous `setTimeout 500ms` race which produced flake under
+      // hub/test 2-timeout RED (456/458 pass + 2 fail, broadcast + multi-agent coord).
+      const waitForHistoryAck = (ws: WebSocket, topic: string): Promise<void> =>
+        new Promise((resolve, reject) => {
+          const onMessage = (data: any) => {
             const msg = JSON.parse(data.toString());
-            if (msg.type === 'message' && msg.content === msgContent && msg.from === 'broadcaster') {
-              ws1.close();
-              ws2.close();
-              resolve(undefined);
+            if (msg.type === 'history' && msg.topic === topic) {
+              ws.off('message', onMessage);
+              resolve();
             }
-          });
-          ws2.on('error', reject);
-          ws2.on('open', () => {
-            ws2.send(JSON.stringify({ type: 'join', topic: 'broadcast-topic' }));
-          });
-          setTimeout(() => {
-            ws1.send(JSON.stringify({ type: 'message', topic: 'broadcast-topic', content: msgContent }));
-          }, 500);
+          };
+          ws.on('message', onMessage);
+          ws.on('error', reject);
         });
-        ws1.on('error', reject);
+
+      const msgContent = `broadcast-test-${Date.now()}`;
+      const ws1 = new WebSocket(`${HUB_URL}?agentId=broadcaster&token=${AUTH_TOKEN}`);
+      await new Promise<void>((resolve) => ws1.on('open', () => resolve()));
+      ws1.send(JSON.stringify({ type: 'join', topic: 'broadcast-topic' }));
+      await waitForHistoryAck(ws1, 'broadcast-topic');
+
+      const ws2 = new WebSocket(`${HUB_URL}?agentId=broadcast-receiver&token=${AUTH_TOKEN}`);
+      await new Promise<void>((resolve) => ws2.on('open', () => resolve()));
+      ws2.send(JSON.stringify({ type: 'join', topic: 'broadcast-topic' }));
+      await waitForHistoryAck(ws2, 'broadcast-topic');
+
+      // Both ws1 + ws2 are now confirmed joined (server has processed joinTopic + sent history).
+      // Broadcast from ws1; ws2 must observe the message before the 20s test timeout.
+      await new Promise<void>((resolve, reject) => {
+        const onMsg = (data: any) => {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'message' && msg.content === msgContent && msg.from === 'broadcaster') {
+            ws2.off('message', onMsg);
+            resolve();
+          }
+        };
+        ws2.on('message', onMsg);
+        ws2.on('error', reject);
+        ws1.send(JSON.stringify({ type: 'message', topic: 'broadcast-topic', content: msgContent }));
       });
+
+      ws1.close();
+      ws2.close();
     }, 20000);
 
   describe('WebSocket - Memory via WS', () => {
@@ -396,40 +418,56 @@ describe('WoClaw Hub Integration Tests', () => {
 
   describe('Multi-Agent Coordination', () => {
     it('two agents can coordinate via topics', async () => {
+      // Mirror broadcast test fix: wait for the hub's post-join `history` ack on BOTH
+      // agents before publishing the message, instead of racing a setTimeout against
+      // websocket-open + join-send + server-process time. The previous 800ms race
+      // was the second of the 2 hub.test.ts RED tests (456/458).
+      const waitForHistoryAck = (ws: WebSocket, topic: string): Promise<void> =>
+        new Promise((resolve, reject) => {
+          const onMessage = (data: any) => {
+            const msg = JSON.parse(data.toString());
+            if (msg.type === 'history' && msg.topic === topic) {
+              ws.off('message', onMessage);
+              resolve();
+            }
+          };
+          ws.on('message', onMessage);
+          ws.on('error', reject);
+        });
+
       const coordTopic = `coord-test-${Date.now()}`;
       const msgFromA = `coord-msg-a-${Date.now()}`;
 
-      let bReady = false;
-      await new Promise((resolve, reject) => {
-        const wsA = new WebSocket(`${HUB_URL}?agentId=agent-A&token=${AUTH_TOKEN}`);
-        const wsB = new WebSocket(`${HUB_URL}?agentId=agent-B&token=${AUTH_TOKEN}`);
+      const wsA = new WebSocket(`${HUB_URL}?agentId=agent-A&token=${AUTH_TOKEN}`);
+      const wsB = new WebSocket(`${HUB_URL}?agentId=agent-B&token=${AUTH_TOKEN}`);
+      await Promise.all([
+        new Promise<void>((r) => wsA.on('open', () => r())),
+        new Promise<void>((r) => wsB.on('open', () => r())),
+      ]);
 
-        wsB.on('open', () => {
-          wsB.send(JSON.stringify({ type: 'join', topic: coordTopic }));
-          bReady = true;
-        });
+      wsA.send(JSON.stringify({ type: 'join', topic: coordTopic }));
+      wsB.send(JSON.stringify({ type: 'join', topic: coordTopic }));
+      await Promise.all([
+        waitForHistoryAck(wsA, coordTopic),
+        waitForHistoryAck(wsB, coordTopic),
+      ]);
 
-        wsB.on('message', (data) => {
+      // Both agents are confirmed joined. Publish from A; B must observe the message.
+      await new Promise<void>((resolve, reject) => {
+        const onMsg = (data: any) => {
           const msg = JSON.parse(data.toString());
           if (msg.type === 'message' && msg.content === msgFromA && msg.from === 'agent-A') {
-            wsA.close();
-            wsB.close();
-            resolve(undefined);
+            wsB.off('message', onMsg);
+            resolve();
           }
-        });
+        };
+        wsB.on('message', onMsg);
         wsB.on('error', reject);
-
-        wsA.on('open', () => {
-          wsA.send(JSON.stringify({ type: 'join', topic: coordTopic }));
-        });
-        wsA.on('error', reject);
-
-        setTimeout(() => {
-          if (bReady) {
-            wsA.send(JSON.stringify({ type: 'message', topic: coordTopic, content: msgFromA }));
-          }
-        }, 800);
+        wsA.send(JSON.stringify({ type: 'message', topic: coordTopic, content: msgFromA }));
       });
+
+      wsA.close();
+      wsB.close();
     });
   });
 });
