@@ -10,6 +10,7 @@ import { join, extname } from 'path';
 import http from 'http';
 import type { StorageConfig } from './types.js';
 import { errorMessage } from './errors.js';
+import { hubLog, hubWarn, hubError } from './hub_log.js';
 
 /**
  * Parse an integer-valued process.env variable.
@@ -95,14 +96,14 @@ async function main() {
     try {
       const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
       config = { ...config, ...fileConfig };
-      console.log(`[WoClaw] Loaded config from ${configPath}`);
+      hubLog(`Loaded config from ${configPath}`);
     } catch (e: unknown) {
-      console.error(`[WoClaw] Failed to load config: ${errorMessage(e)}`);
+      hubError(`Failed to load config: ${errorMessage(e)}`);
       process.exit(1);
     }
   }
 
-  console.log(`[WoClaw] Configuration:`);
+  hubLog(`Configuration:`);
   console.log(`  WebSocket Port: ${config.port}`);
   console.log(`  REST Port: ${config.restPort}`);
   console.log(`  Host: ${config.host}`);
@@ -120,7 +121,7 @@ async function main() {
 
   // Initialize database
   const db = new ClawDB(config);
-  console.log('[WoClaw] Database initialized');
+  hubLog('Database initialized');
 
   // Initialize WebSocket server (this also creates TopicsManager and MemoryPool internally)
   const wsServer = new WSServer(config, db);
@@ -164,9 +165,9 @@ async function main() {
     process.on('SIGTERM', () => { uiServer.close(); });
   }
 
-  console.log('[WoClaw] Server started successfully');
+  hubLog('Server started successfully');
   console.log('');
-  console.log('[WoClaw] Endpoints:');
+  hubLog('Endpoints:');
   const wsProto = config.tlsKey ? 'wss' : 'ws';
   const restProto = config.tlsKey ? 'https' : 'http';
   console.log(`  WebSocket: ${wsProto}://${config.host}:${config.port}`);
@@ -176,7 +177,7 @@ async function main() {
 
   // Graceful shutdown
   const shutdown = () => {
-    console.log('[WoClaw] Shutting down...');
+    hubLog('Shutting down...');
     forgettingScheduler.stop();
     restServer.close();
     wsServer.close();
@@ -190,6 +191,6 @@ async function main() {
 }
 
 main().catch((e: unknown) => {
-  console.error('[WoClaw] Fatal error:', errorMessage(e));
+  hubError('Fatal error:', errorMessage(e));
   process.exit(1);
 });

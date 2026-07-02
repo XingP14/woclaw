@@ -8,6 +8,7 @@ import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { ClawDB } from './db.js';
 import { errorMessage } from './errors.js';
+import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { FederationManager } from './federation.js';
 
 // Use ws WebSocket type explicitly
@@ -85,14 +86,14 @@ export class WSServer {
           cert: readFileSync(config.tlsCert!),
         };
         server = https.createServer(tlsOptions);
-        console.log(`[WoClaw] TLS enabled: wss://${config.host}:${config.port}`);
+        hubLog(`TLS enabled: wss://${config.host}:${config.port}`);
       } catch (e: unknown) {
-        console.error(`[WoClaw] Failed to load TLS certificate: ${errorMessage(e)}`);
+        hubError(`Failed to load TLS certificate: ${errorMessage(e)}`);
         throw e;
       }
     } else {
       server = http.createServer();
-      console.log(`[WoClaw] TLS disabled: ws://${config.host}:${config.port}`);
+      hubLog(`TLS disabled: ws://${config.host}:${config.port}`);
     }
 
     this.wss = new WebSocketServer({ server });
@@ -106,7 +107,7 @@ export class WSServer {
       this.pingAll();
     }, 30000);
 
-    console.log(`[WoClaw] WebSocket server running on ${useTLS ? 'wss' : 'ws'}://${config.host}:${config.port}`);
+    hubLog(`WebSocket server running on ${useTLS ? 'wss' : 'ws'}://${config.host}:${config.port}`);
   }
 
   private expireTokenGracePeriodIfNeeded(): void {
@@ -151,7 +152,7 @@ export class WSServer {
     this.agents.set(agentId, agent);
     this.agentByWs.set(ws, agentId);
 
-    console.log(`[WoClaw] Agent connected: ${agentId} (total: ${this.agents.size})`);
+    hubLog(`Agent connected: ${agentId} (total: ${this.agents.size})`);
 
     this.send(ws, {
       type: 'welcome',
@@ -164,7 +165,7 @@ export class WSServer {
       try {
         const msg: InboundMessage = JSON.parse(data.toString());
         void this.handleMessage(agentId, msg).catch((e: unknown) => {
-          console.error(`[WoClaw] Failed to process message from ${agentId}:`, errorMessage(e));
+          hubError(`Failed to process message from ${agentId}:`, errorMessage(e));
           this.sendError(ws, 'internal_error', 'Failed to process message');
         });
       } catch (e: unknown) {
@@ -177,7 +178,7 @@ export class WSServer {
     });
 
     ws.on('error', (err: unknown) => {
-      console.error(`[WoClaw] WebSocket error for ${agentId}:`, errorMessage(err));
+      hubError(`WebSocket error for ${agentId}:`, errorMessage(err));
       this.handleDisconnect(agentId);
     });
   }
@@ -345,7 +346,7 @@ export class WSServer {
       }
     }
 
-    console.log(`[WoClaw] ${agentId} joined topic: ${topic}`);
+    hubLog(`${agentId} joined topic: ${topic}`);
   }
 
   private handleLeave(agentId: string, topic: string): void {
@@ -369,7 +370,7 @@ export class WSServer {
       }
     }
 
-    console.log(`[WoClaw] ${agentId} left topic: ${topic}`);
+    hubLog(`${agentId} left topic: ${topic}`);
   }
 
   private async handleMemoryWrite(fromAgent: string, key: string, value: unknown, tags?: string[], ttl?: number): Promise<void> {
@@ -451,7 +452,7 @@ export class WSServer {
     this.agentByWs.delete(agent.ws);
     this.memory.unsubscribe(agentId);
 
-    console.log(`[WoClaw] Agent disconnected: ${agentId} (remaining: ${this.agents.size})`);
+    hubLog(`Agent disconnected: ${agentId} (remaining: ${this.agents.size})`);
   }
 
   private send(ws: WS, msg: OutboundMessage): void {
@@ -548,7 +549,7 @@ export class WSServer {
         try {
           agent.ws.ping();
         } catch (e: unknown) {
-          console.error(`[WoClaw] Ping failed for ${agentId}:`, errorMessage(e));
+          hubError(`Ping failed for ${agentId}:`, errorMessage(e));
           this.handleDisconnect(agentId);
         }
       }
@@ -819,7 +820,7 @@ export class WSServer {
     this.config.authToken = newToken;
     this.gracePeriodEnd = Date.now() + grace;
     this.gracePeriodMs = grace;
-    console.log(`[WoClaw] Token rotated. Grace ends at ${new Date(this.gracePeriodEnd).toISOString()}`);
+    hubLog(`Token rotated. Grace ends at ${new Date(this.gracePeriodEnd).toISOString()}`);
     return { oldToken, newToken, gracePeriodEnd: this.gracePeriodEnd };
   }
 
@@ -843,7 +844,7 @@ export class WSServer {
     }
     this.wss.close();
     this.db.close();
-    console.log('[WoClaw] Server closed');
+    hubLog('Server closed');
   }
 
   // v1.0: Federation methods (delegated to FederationManager)

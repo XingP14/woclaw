@@ -16,6 +16,7 @@ import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { Config } from './types.js';
 import { errorMessage } from './errors.js';
+import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { WSServer } from './ws_server.js';
 import { GraphStore } from './graph/store.js';
 import type { EdgeType, GraphNodeType } from './graph/types.js';
@@ -146,27 +147,27 @@ export class RestServer {
         };
         this.server = https.createServer(tlsOptions, (req, res) => {
           void this.handleRequest(req, res).catch((e: unknown) => {
-          console.error('[WoClaw] REST handler error:', errorMessage(e));
+          hubError('REST handler error:', errorMessage(e));
             if (!res.headersSent) {
               RestServer.sendJsonError(res, 500, 'Internal server error');
             }
           });
         });
-        console.log(`[WoClaw] REST API running on https://${this.config.host}:${this.config.restPort} (TLS)`);
+        hubLog(`REST API running on https://${this.config.host}:${this.config.restPort} (TLS)`);
       } catch (e: unknown) {
-        console.error(`[WoClaw] Failed to load TLS certificate for REST: ${errorMessage(e)}`);
+        hubError(`Failed to load TLS certificate for REST: ${errorMessage(e)}`);
         throw e;
       }
     } else {
       this.server = http.createServer((req, res) => {
         void this.handleRequest(req, res).catch((e: unknown) => {
-          console.error('[WoClaw] REST handler error:', errorMessage(e));
+          hubError('REST handler error:', errorMessage(e));
           if (!res.headersSent) {
             RestServer.sendJsonError(res, 500, 'Internal server error');
           }
         });
       });
-      console.log(`[WoClaw] REST API running on http://${this.config.host}:${this.config.restPort}`);
+      hubLog(`REST API running on http://${this.config.host}:${this.config.restPort}`);
     }
 
     this.server.listen(this.config.restPort, this.config.host);
@@ -431,7 +432,7 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 405, 'Method not allowed');
       }
     } catch (e: unknown) {
-      console.error('[WoClaw] REST error:', errorMessage(e));
+      hubError('REST error:', errorMessage(e));
       RestServer.sendJsonError(res, 500, errorMessage(e));
     }
   }
@@ -1196,7 +1197,7 @@ const result = this.graph.findPath(from, to, maxDepth);
   close(): void {
     if (this.server) {
       this.server.close();
-      console.log('[WoClaw] REST server closed');
+      hubLog('REST server closed');
     }
   }
 
