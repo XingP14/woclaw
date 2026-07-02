@@ -669,7 +669,7 @@ class SqliteStorage implements DbStorage {
         SELECT key, value, tags, ttl, expire_at, updated_at, updated_by
         FROM memory
         WHERE key = ?
-      `).get(payload.key);
+      `).get(payload.key) as MemoryRowSqlite | undefined;
 
       if (existing) {
         const versionRow = this.db.prepare(`
@@ -730,7 +730,7 @@ class SqliteStorage implements DbStorage {
       SELECT key, value, tags, ttl, expire_at, updated_at, updated_by
       FROM memory
       WHERE key = ?
-    `).get(key);
+    `).get(key) as MemoryRowSqlite | undefined;
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
