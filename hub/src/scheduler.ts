@@ -12,6 +12,7 @@ import type { ClawDB } from './db.js';
 import type { SessionStore } from './session_store.js';
 import type { ExtractionEngine } from './extraction/engine.js';
 import { errorMessage } from './errors.js';
+import { schedLog, schedWarn, schedError } from './scheduler_log.js';
 
 export interface ForgettingConfig {
   /** Default importance floor — memories below this (before feedback) are eviction candidates */
@@ -54,14 +55,14 @@ export class ForgettingScheduler {
    */
   start(): void {
     if (!this.config.enabled) {
-      console.log('[ForgettingScheduler] Disabled — not starting cron jobs');
+      schedLog('Disabled — not starting cron jobs');
       return;
     }
 
     // Daily: queue un-extracted high-importance sessions for AI extraction
     // Runs at 03:00 every day
     this.dailyJob = cron.schedule('0 3 * * *', async () => {
-      console.log('[ForgettingScheduler] Running daily extraction queue scan…');
+      schedLog('Running daily extraction queue scan…');
       await this.runDailyExtractionScan();
     }, {
       timezone: 'UTC',
@@ -70,16 +71,16 @@ export class ForgettingScheduler {
     // Weekly: evict lowest-ranked memories and sessions
     // Runs at 04:00 every Sunday
     this.weeklyJob = cron.schedule('0 4 * * 0', async () => {
-      console.log('[ForgettingScheduler] Running weekly eviction…');
+      schedLog('Running weekly eviction…');
       await this.runWeeklyEviction();
     }, {
       timezone: 'UTC',
     });
 
-    console.log(
-      `[ForgettingScheduler] Started — daily at 03:00 UTC, weekly Sunday 04:00 UTC`,
+    schedLog(
+      `Started — daily at 03:00 UTC, weekly Sunday 04:00 UTC`
     );
-    console.log(`[ForgettingScheduler] Config:`, this.config);
+    schedLog(`Config:`, this.config);
   }
 
   /**
@@ -90,7 +91,7 @@ export class ForgettingScheduler {
     this.weeklyJob?.stop();
     this.dailyJob = null;
     this.weeklyJob = null;
-    console.log('[ForgettingScheduler] Stopped');
+    schedLog('Stopped');
   }
 
   // ─── Daily: queue sessions for extraction ──────────────────────────────────
@@ -117,12 +118,12 @@ export class ForgettingScheduler {
 
       for (const session of toExtract) {
         await this.db.addToExtractionQueue(session.id, Math.round(session.importance));
-        console.log(`[ForgettingScheduler] Queued session ${session.id} (importance=${session.importance})`);
+        schedLog(`Queued session ${session.id} (importance=${session.importance})`);
       }
 
-      console.log(`[ForgettingScheduler] Daily scan complete — queued ${toExtract.length} sessions`);
+      schedLog(`Daily scan complete — queued ${toExtract.length} sessions`);
     } catch (err: unknown) {
-      console.error('[ForgettingScheduler] Daily scan error:', errorMessage(err));
+      schedError('Daily scan error:', errorMessage(err));
     }
   }
 
@@ -156,10 +157,10 @@ export class ForgettingScheduler {
           const ok = await this.sessionStore.deleteSession(s.id);
           if (ok) {
             sessionsDeleted++;
-            console.log(`[ForgettingScheduler] Evicted session ${s.id} (importance=${s.importance.toFixed(2)})`);
+            schedLog(`Evicted session ${s.id} (importance=${s.importance.toFixed(2)})`);
           }
         } catch (err: unknown) {
-          console.warn(`[ForgettingScheduler] Failed to evict session ${s.id}:`, errorMessage(err));
+          schedWarn(`Failed to evict session ${s.id}:`, errorMessage(err));
         }
       }
 
@@ -169,20 +170,20 @@ export class ForgettingScheduler {
           const ok = await this.db.deleteMemory(m.key);
           if (ok) {
             memoriesDeleted++;
-            console.log(`[ForgettingScheduler] Evicted memory "${m.key}" (importance=${m.importance.toFixed(2)})`);
+            schedLog(`Evicted memory "${m.key}" (importance=${m.importance.toFixed(2)})`);
           }
         } catch (err: unknown) {
-          console.warn(`[ForgettingScheduler] Failed to evict memory "${m.key}":`, errorMessage(err));
+          schedWarn(`Failed to evict memory "${m.key}":`, errorMessage(err));
         }
       }
 
-      console.log(
-        `[ForgettingScheduler] Weekly eviction complete — sessions=${sessionsDeleted}, memories=${memoriesDeleted}`,
+      schedLog(
+        `Weekly eviction complete — sessions=${sessionsDeleted}, memories=${memoriesDeleted}`
       );
 
       return { sessions: sessionsDeleted, memories: memoriesDeleted };
     } catch (err: unknown) {
-      console.error('[ForgettingScheduler] Weekly eviction error:', errorMessage(err));
+      schedError('Weekly eviction error:', errorMessage(err));
       return { sessions: 0, memories: 0 };
     }
   }
