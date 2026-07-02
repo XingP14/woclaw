@@ -725,14 +725,6 @@ class SqliteStorage implements DbStorage {
     tx({ key, value: storedValue, updatedBy, tags, ttl, now, expireAt });
   }
 
-  // Decrypt value if encryption is enabled.
-  // Behavior lives in crypto.safeDecryptValue (extracted from this
-  // byte-identical private method that previously existed in both
-  // SqliteStorage and MySqlStorage).
-  private decryptValue(value: string): string {
-    return safeDecryptValue(value, this.encryption);
-  }
-
   async getMemory(key: string): Promise<DBMemory | undefined> {
     const row = this.db.prepare(`
       SELECT key, value, tags, ttl, expire_at, updated_at, updated_by
@@ -742,7 +734,7 @@ class SqliteStorage implements DbStorage {
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
-    mem.value = this.decryptValue(mem.value);
+    mem.value = safeDecryptValue(mem.value, this.encryption);
     if (mem.expireAt > 0 && mem.expireAt < Date.now()) {
       await this.deleteMemory(key);
       return undefined;
@@ -764,7 +756,7 @@ class SqliteStorage implements DbStorage {
     `).all() as MemoryRowSqlite[];
     return rows.map(r => {
       const mem = mapMemoryRow(r);
-      mem.value = this.decryptValue(mem.value);
+      mem.value = safeDecryptValue(mem.value, this.encryption);
       return mem;
     });
   }
@@ -778,7 +770,7 @@ class SqliteStorage implements DbStorage {
     `).all(key) as MemoryVersionRowSqlite[];
     return rows.map(r => {
       const v = mapMemoryVersionRow(r);
-      v.value = this.decryptValue(v.value);
+      v.value = safeDecryptValue(v.value, this.encryption);
       return v;
     });
   }
@@ -1226,14 +1218,6 @@ class MySqlStorage implements DbStorage {
     return rows.map(mapMessageRow);
   }
 
-  // Decrypt value if encryption is enabled.
-  // Behavior lives in crypto.safeDecryptValue (extracted from this
-  // byte-identical private method that previously existed in both
-  // SqliteStorage and MySqlStorage).
-  private decryptValue(value: string): string {
-    return safeDecryptValue(value, this.encryption);
-  }
-
   async setMemory(key: string, value: string, updatedBy: string, tags: string[] = [], ttl: number = 0): Promise<void> {
     // Encrypt value if encryption is enabled
     const storedValue = this.encryption.enabled
@@ -1324,7 +1308,7 @@ class MySqlStorage implements DbStorage {
     if (!row) return undefined;
 
     const mem = mapMemoryRow(row);
-    mem.value = this.decryptValue(mem.value);
+    mem.value = safeDecryptValue(mem.value, this.encryption);
     if (mem.expireAt > 0 && mem.expireAt < Date.now()) {
       await this.deleteMemory(key);
       return undefined;
@@ -1346,7 +1330,7 @@ class MySqlStorage implements DbStorage {
     `);
     return (rows as MemoryRowSqlite[]).map(r => {
       const mem = mapMemoryRow(r);
-      mem.value = this.decryptValue(mem.value);
+      mem.value = safeDecryptValue(mem.value, this.encryption);
       return mem;
     });
   }
@@ -1360,7 +1344,7 @@ class MySqlStorage implements DbStorage {
     `, [key]);
     return (rows as MemoryVersionRowSqlite[]).map(r => {
       const v = mapMemoryVersionRow(r);
-      v.value = this.decryptValue(v.value);
+      v.value = safeDecryptValue(v.value, this.encryption);
       return v;
     });
   }
