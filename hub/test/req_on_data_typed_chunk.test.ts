@@ -21,7 +21,12 @@ import { join } from 'path';
  *   - assert the helper's body uses `chunk.toString('utf8')` (parity with
  *     the 11 originally-typed sites — utf8 is what Node http.IncomingMessage
  *     emits for POST bodies by default)
- *   - sanity floor: at least 1 `readJsonBody` call site in rest_server.ts
+ *   - sanity floor: at least 4 `readJsonBody(req).then(` sites
+ *     (post-07-03 03:43 readJsonObject migration; the rest are now via
+ *     RestServer.readJsonObject<T>(req, res))
+ *
+ * Companion file (read_json_object.test.ts, 07-03 03:43 cron) gates the
+ * readJsonObject helper definition + 13-site migration floor.
  */
 
 const HUB_SRC = join(process.cwd(), 'src');
@@ -65,10 +70,42 @@ describe('hub/src req.on("data", ...) is funneled through readJsonBody helper (0
     expect(restSrc).toMatch(helperRe);
   });
 
-  it('readJsonBody is called at >=15 sites in rest_server.ts (was 15 inline handlers)', () => {
+  it('readJsonBody(req).then( call sites in rest_server.ts: >= 4 (07-03 03:43 cron readJsonObject migration carved out the other 11)', () => {
+    // After the readJsonObject<T>(req, res) migration (07-03 03:43 cron),
+    // 11 of the original 15 readJsonBody(req).then(body => JSON.parse(body))
+    // sites were consolidated into RestServer.readJsonObject<T>(req, res).then(...)
+    // The remaining readJsonBody(req).then( sites are:
+    //   - handleTopicCreate L1209 (special-case: body ? JSON.parse(body) : {} when empty)
+    //   - handleMemoryEviction L1073 + handleMemoryEvictionDry L1123 (no JSON.parse step at all)
+    //   - any future helper-bypass site
+    // Floor of >= 4 keeps these carve-outs in place without re-allowing the
+    // original 15 inline JSON.parse sites to come back.
     const restSrc = readFileSync(join(HUB_SRC, 'rest_server.ts'), 'utf8');
     const callCount = (restSrc.match(/readJsonBody\(req\)\.then\(/g) || []).length;
-    expect(callCount).toBeGreaterThanOrEqual(15);
+    expect(callCount).toBeGreaterThanOrEqual(4);
+  });
+
+  it('readJsonObject(req, res) is called at >= 13 sites in rest_server.ts (07-03 03:43 cron — replaces the JSON.parse body boilerplate)', () => {
+    // RestServer.readJsonObject<T>(req, res, [errorStatus]) consolidates the
+    // readJsonBody(req).then(body => JSON.parse(body)) pattern at 13 POST
+    // handlers (graph/edges POST + /federation/peers POST + /federation/send
+    // POST + handleMemoryWrite await + /delegations POST + handleGraphNodeCreate
+    // POST + handleGraphEdgeUpdate POST + handleSessionCreate + handleSessionUpdate
+    // + handleSessionFeedback + handleSessionFlag + handleTopicInvite +
+    // handleTopicJoin). This is the companion floor for the previous test.
+    const restSrc = readFileSync(join(HUB_SRC, 'rest_server.ts'), 'utf8');
+    const callCount = (restSrc.match(/RestServer\.readJsonObject</g) || []).length;
+    expect(callCount).toBeGreaterThanOrEqual(13);
+  });
+
+  it('readJsonObject helper is defined as a private static method on RestServer (07-03 03:43 cron)', () => {
+    const restSrc = readFileSync(join(HUB_SRC, 'rest_server.ts'), 'utf8');
+    expect(restSrc).toMatch(/private static async readJsonObject<T>\([\s\S]*?Promise<T \| null>/);
+    // helper body uses await readJsonBody(req) + JSON.parse(body) as T
+    const helperRe = /private static async readJsonObject<T>[\s\S]*?await readJsonBody\(req\);[\s\S]*?JSON\.parse\(body\) as T/;
+    expect(restSrc).toMatch(helperRe);
+    // helper routes JSON.parse error through sendJsonError(res, errorStatus, errorMessage(e))
+    expect(restSrc).toMatch(/private static async readJsonObject<T>[\s\S]*?RestServer\.sendJsonError\(res, errorStatus, errorMessage\(e\)\)/);
   });
 
   it('zero req.on("data", ...) sites remain outside the readJsonBody helper (regression gate)', () => {

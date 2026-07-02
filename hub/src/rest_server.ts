@@ -334,9 +334,10 @@ export class RestServer {
         });
         RestServer.sendJsonSuccess(res, 200, { edges, count: edges.length });
       } else if (path === '/graph/edges' && method === 'POST') {
-        readJsonBody(req).then(async (body: string) => {
+        RestServer.readJsonObject<{ source: string; target: string; type: EdgeType; weight?: number; metadata?: Record<string, unknown> }>(req, res).then(async (data) => {
+          if (!data) return;
           try {
-            const { source, target, type, weight, metadata = {} } = JSON.parse(body);
+            const { source, target, type, weight, metadata = {} } = data;
             if (!source || !target || !type) {
               RestServer.sendJsonError(res, 400, 'Missing required fields: source, target, type');
               return;
@@ -398,9 +399,10 @@ const result = this.graph.findPath(from, to, maxDepth);
         const peers = this.wsServer?.getFederationPeersStatus?.() ?? [];
         RestServer.sendJsonSuccess(res, 200, { peers });
       } else if (path === '/federation/peers' && method === 'POST') {
-        readJsonBody(req).then(async (body: string) => {
+        RestServer.readJsonObject<{ hubId: string; wsUrl: string; federationToken: string }>(req, res).then(async (data) => {
+          if (!data) return;
           try {
-            const { hubId, wsUrl, federationToken } = JSON.parse(body);
+            const { hubId, wsUrl, federationToken } = data;
             if (!hubId || !wsUrl || !federationToken) {
               RestServer.sendJsonError(res, 400, 'Missing required fields: hubId, wsUrl, federationToken');
               return;
@@ -412,9 +414,10 @@ const result = this.graph.findPath(from, to, maxDepth);
           }
         });
       } else if (path === '/federation/send' && method === 'POST') {
-        readJsonBody(req).then(async (body: string) => {
+        RestServer.readJsonObject<{ targetHubId: string; agentId: string; payload?: unknown }>(req, res).then(async (data) => {
+          if (!data) return;
           try {
-            const { targetHubId, agentId, payload } = JSON.parse(body);
+            const { targetHubId, agentId, payload } = data;
             if (!targetHubId || !agentId) {
               RestServer.sendJsonError(res, 400, 'Missing required fields: targetHubId, agentId');
               return;
@@ -724,9 +727,10 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /delegations — create delegation (REST → WebSocket routing)
     if (path === '/delegations' && method === 'POST') {
-      readJsonBody(req).then(async (body: string) => {
+      RestServer.readJsonObject<{ id?: string; toAgent: string; task: import('./types.js').DelegationTask; topic?: string }>(req, res).then(async (data) => {
+        if (!data) return;
         try {
-          const { id: requestedId, toAgent, task, topic } = JSON.parse(body);
+          const { id: requestedId, toAgent, task, topic } = data;
           if (!toAgent || !task) {
             RestServer.sendJsonError(res, 400, 'toAgent and task required');
             return;
@@ -831,9 +835,10 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /graph/nodes — create a node
     if (path === '/graph/nodes' && method === 'POST') {
-      readJsonBody(req).then(async (body: string) => {
+      RestServer.readJsonObject<{ type: GraphNodeType; label: string; metadata?: Record<string, unknown> }>(req, res).then(async (data) => {
+        if (!data) return;
         try {
-          const { type, label, metadata = {} } = JSON.parse(body);
+          const { type, label, metadata = {} } = data;
           if (!type || !label) {
             RestServer.sendJsonError(res, 400, 'Missing required fields: type, label');
             return;
@@ -886,9 +891,10 @@ const result = this.graph.findPath(from, to, maxDepth);
 
     // POST /graph/edges — create an edge
     if (path === '/graph/edges' && method === 'POST') {
-      readJsonBody(req).then(async (body: string) => {
+      RestServer.readJsonObject<{ source: string; target: string; type: EdgeType; weight?: number; metadata?: Record<string, unknown> }>(req, res).then(async (data) => {
+        if (!data) return;
         try {
-          const { source, target, type, weight, metadata = {} } = JSON.parse(body);
+          const { source, target, type, weight, metadata = {} } = data;
           if (!source || !target || !type) {
             RestServer.sendJsonError(res, 400, 'Missing required fields: source, target, type');
             return;
@@ -946,9 +952,9 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionCreate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<Partial<DBSession>>(req, res).then(async (data) => {
+      if (!data) return;
       try {
-        const data = JSON.parse(body) as Partial<DBSession>;
         const now = Date.now();
         const session: DBSession = {
           id: data.id ?? uuidv4(),
@@ -988,9 +994,9 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionUpdate(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<Partial<DBSession>>(req, res).then(async (updates) => {
+      if (!updates) return;
       try {
-        const updates = JSON.parse(body) as Partial<DBSession>;
         await this.sessionStore.updateSession(id, updates);
         RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
@@ -1010,9 +1016,10 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionFeedback(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<{ adjustment?: number; reason?: string; agentId?: string }>(req, res).then(async (data) => {
+      if (!data) return;
       try {
-        const { adjustment, reason, agentId } = JSON.parse(body);
+        const { adjustment, reason, agentId } = data;
         await this.sessionStore.addFeedback(id, agentId ?? 'unknown', adjustment ?? 0, reason);
         RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
@@ -1022,9 +1029,10 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   private async handleSessionFlag(req: http.IncomingMessage, res: http.ServerResponse, id: string): Promise<void> {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<{ flagged?: unknown }>(req, res).then(async (data) => {
+      if (!data) return;
       try {
-        const { flagged } = JSON.parse(body);
+        const { flagged } = data;
         await this.sessionStore.flagSession(id, !!flagged);
         RestServer.sendJsonSuccess(res, 200, { success: true });
       } catch (e: unknown) {
@@ -1222,9 +1230,10 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   // v1.0: Invite an agent to a private topic
   private handleTopicInvite(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<{ agentId: string; ttlMs?: number }>(req, res).then(async (data) => {
+      if (!data) return;
       try {
-        const { agentId, ttlMs } = JSON.parse(body);
+        const { agentId, ttlMs } = data;
         if (!agentId) {
           RestServer.sendJsonError(res, 400, 'Missing required field: agentId');
           return;
@@ -1239,9 +1248,10 @@ const result = this.graph.findPath(from, to, maxDepth);
 
   // v1.0: Join a private topic with invite token
   private handleTopicJoin(req: http.IncomingMessage, res: http.ServerResponse, topicName: string): void {
-    readJsonBody(req).then(async (body: string) => {
+    RestServer.readJsonObject<{ agentId: string; inviteToken: string }>(req, res, 403).then(async (data) => {
+      if (!data) return;
       try {
-        const { agentId, inviteToken } = JSON.parse(body);
+        const { agentId, inviteToken } = data;
         if (!agentId || !inviteToken) {
           RestServer.sendJsonError(res, 400, 'Missing required fields: agentId, inviteToken');
           return;
@@ -1306,5 +1316,58 @@ const result = this.graph.findPath(from, to, maxDepth);
   ): void {
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body));
+  }
+
+
+  // ─── JSON request body read+parse helper (parallels readJsonBody module helper) ────
+  //
+  // Replaces the inline pattern at 13 POST/PUT handlers:
+  //   readJsonBody(req).then(async (body: string) => {
+  //     try {
+  //       const X = JSON.parse(body);
+  //       ... validation + operation ...
+  //     } catch (e: unknown) {
+  //       RestServer.sendJsonError(res, <code>, errorMessage(e));
+  //     }
+  //   });
+  //
+  // with:
+  //   RestServer.readJsonObject<T>(req, res).then(async (data) => {
+  //     if (!data) return; // helper already sent the error response
+  //     try {
+  //       ... validation + operation ...   // operation may still throw → catch routes through sendJsonError
+  //     } catch (e: unknown) {
+  //       RestServer.sendJsonError(res, <code>, errorMessage(e));
+  //     }
+  //   });
+  //
+  // On JSON.parse failure: writes a <errorStatus> (default 400) error response
+  // via sendJsonError (byte-identical shape — {error: msg}) and returns null,
+  // so the caller short-circuits via `if (!data) return;`.
+  //
+  // The surrounding try/catch at the call site is preserved for the case where
+  // the downstream operation (addEdge / addFederationPeer / registerSession /
+  // etc.) throws — those errors still need errorMessage(e) routing. The helper
+  // only owns the JSON.parse step + the (body,res) glue — it does NOT swallow
+  // operation errors.
+  //
+  // Why static (not instance): same rationale as sendJsonError/sendJsonSuccess
+  // — pure of (req, res, errorStatus), no `this` access. Calls
+  // `RestServer.sendJsonError` which is also private static — module-level
+  // readJsonBody already takes the same module-level approach for the body
+  // accumulation step. Caller invocation pattern mirrors sendJsonError call
+  // shape: RestServer.readJsonObject<T>(req, res[, errorStatus]).
+  private static async readJsonObject<T>(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    errorStatus: number = 400,
+  ): Promise<T | null> {
+    const body = await readJsonBody(req);
+    try {
+      return JSON.parse(body) as T;
+    } catch (e: unknown) {
+      RestServer.sendJsonError(res, errorStatus, errorMessage(e));
+      return null;
+    }
   }
 }
