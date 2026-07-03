@@ -6,6 +6,7 @@ import { defineChannelPluginEntry } from 'openclaw/plugin-sdk/core';
 import { woclawChannelPlugin, channelInstance, type WoClawAdapterRuntime, type WoClawPluginConfig } from './channel.js';
 import { readFileSync } from 'fs';
 import { homedir } from 'os';
+import { pluginError } from './plugin_log.js';
 
 // Shape of ~/.openclaw/openclaw.json (or the in-memory equivalent). Only
 // the bits the plugin reads are typed; unknown fields are ignored.
@@ -55,11 +56,11 @@ const entry = defineChannelPluginEntry({
   description: 'Connect to WoClaw Hub for topic-based multi-agent communication and shared memory.',
   plugin: woclawChannelPlugin,
   setRuntime: (runtime) => {
-    console.error('[WoClaw] setRuntime called with cfg:', JSON.stringify(runtime?.cfg ? { channels: runtime.cfg.channels ? Object.keys(runtime.cfg.channels) : undefined, plugins: runtime.cfg.plugins ? 'exists' : undefined } : 'no cfg'));
+    pluginError('setRuntime called with cfg:', JSON.stringify(runtime?.cfg ? { channels: runtime.cfg.channels ? Object.keys(runtime.cfg.channels) : undefined, plugins: runtime.cfg.plugins ? 'exists' : undefined } : 'no cfg'));
     initWoclaw({ cfg: runtime.cfg || runtime, runtime, logger: runtime.logger });
   },
   registerFull: (api) => {
-    console.error('[WoClaw] registerFull called');
+    pluginError('registerFull called');
     initWoclaw(api);
   },
 });
