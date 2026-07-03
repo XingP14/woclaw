@@ -5,6 +5,7 @@ import mysql from 'mysql2/promise';
 import type { Config, DBMessage, DBMemory, DBMemoryVersion, MySqlStorageConfig, StorageConfig, DBSession, DBSessionFeedback, ExtractionQueueEntry, MemoryFeedback } from './types.js';
 import { createEncryption, encryptAndSerialize, safeDecryptValue, type EncryptionProvider } from './crypto.js';
 import { errorMessage, ignoreDuplicateColumn } from './errors.js';
+import { dbError } from './db_log.js';
 
 // ─── SQLite row shapes for `as any` → typed-row migration ─────────────────────
 // Each interface mirrors the SELECT shape from the matching db.prepare(...).all/get
@@ -537,7 +538,7 @@ class SqliteStorage implements DbStorage {
       const legacy = JSON.parse(readFileSync(legacyPath, 'utf-8')) as LegacyDbShape;
       await this.importLegacyData(legacy);
     } catch (e: unknown) {
-      console.error('[ClawDB] Failed to import legacy JSON store:', errorMessage(e));
+      dbError(`Failed to import legacy JSON store: ${errorMessage(e)}`);
     }
   }
 
@@ -1084,7 +1085,7 @@ class MySqlStorage implements DbStorage {
       const legacy = JSON.parse(readFileSync(legacyPath, 'utf-8')) as LegacyDbShape;
       await this.importLegacyData(legacy);
     } catch (e: unknown) {
-      console.error('[ClawDB] Failed to import legacy JSON store into MySQL:', errorMessage(e));
+      dbError(`Failed to import legacy JSON store into MySQL: ${errorMessage(e)}`);
     }
   }
 
