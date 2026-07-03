@@ -16,6 +16,7 @@
  */
 
 import { tool } from "@opencode-ai/plugin";
+import { opencodeLog } from "./opencode_plugin_log.js";
 
 const WOCLAW_HUB_URL = process.env.WOCLAW_HUB_URL || "ws://localhost:8080";
 const WOCLAW_TOKEN = process.env.WOCLAW_TOKEN || "WoClaw2026";
@@ -50,7 +51,7 @@ async function woclawRequest(endpoint, options = {}) {
 // ============================================================================
 
 export const WoClawPlugin = async ({ client, directory }) => {
-  console.log("[WoClaw] Plugin initialized. Hub:", WOCLAW_HUB_URL);
+  opencodeLog("Plugin initialized. Hub:", WOCLAW_HUB_URL);
 
   return {
     // -------------------------------------------------------------------------
@@ -73,14 +74,14 @@ export const WoClawPlugin = async ({ client, directory }) => {
         const data = await woclawRequest(`/memory/${projectKey}`);
         
         if (data.exists && data.value) {
-          console.log(`[WoClaw] Loaded shared context (${data.value.length} chars)`);
+          opencodeLog(`Loaded shared context (${data.value.length} chars)`);
           // The context can be injected into the session via client
           // For now just log - actual injection depends on OpenCode API
         } else {
-          console.log("[WoClaw] No shared context found");
+          opencodeLog("No shared context found");
         }
       } catch (err) {
-        console.log("[WoClaw] Could not load shared context:", err.message);
+        opencodeLog("Could not load shared context:", err.message);
       }
     },
 
@@ -98,9 +99,9 @@ export const WoClawPlugin = async ({ client, directory }) => {
           }),
         });
         
-        console.log("[WoClaw] Session snapshot saved to Hub");
+        opencodeLog("Session snapshot saved to Hub");
       } catch (err) {
-        console.log("[WoClaw] Could not save session snapshot:", err.message);
+        opencodeLog("Could not save session snapshot:", err.message);
       }
     },
 

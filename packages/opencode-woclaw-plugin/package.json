@@ -19,6 +19,7 @@
   "license": "MIT",
   "files": [
     "index.js",
+    "opencode_plugin_log.js",
     "SKILL.md",
     "README.md",
     "tests/**/*",
@@ -40,5 +41,9 @@
   "bugs": {
     "url": "https://github.com/XingP14/woclaw/issues"
   },
-  "homepage": "https://github.com/XingP14/woclaw#readme"
+  "homepage": "https://github.com/XingP14/woclaw#readme",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check index.js && node --check opencode_plugin_log.js"
+  }
 }
