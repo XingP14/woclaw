@@ -13,6 +13,7 @@
 
 import { WebSocket } from 'ws';
 import { createInterface } from 'readline';
+import { mcpLog, mcpWarn, mcpError } from './mcp_log.js';
 
 // Parse args
 const args = process.argv.slice(2);
@@ -39,7 +40,7 @@ function connect() {
     
     ws.on('open', () => {
       connected = true;
-      console.error('[WoClaw MCP] Connected to Hub:', hubUrl);
+      mcpLog('Connected to Hub:', hubUrl);
       resolve();
     });
     
@@ -52,17 +53,17 @@ function connect() {
           resolve(msg);
         }
       } catch (e) {
-        console.error('[WoClaw MCP] Parse error:', e.message);
+        mcpError('Parse error:', e.message);
       }
     });
     
     ws.on('error', (err) => {
-      console.error('[WoClaw MCP] WS error:', err.message);
+      mcpError('WS error:', err.message);
     });
     
     ws.on('close', () => {
       connected = false;
-      console.error('[WoClaw MCP] Disconnected, reconnecting in 3s...');
+      mcpWarn('Disconnected, reconnecting in 3s...');
       setTimeout(() => connect().catch(() => {}), 3000);
     });
   });
@@ -263,7 +264,7 @@ async function handleCallTool(name, args) {
 async function main() {
   // Connect to Hub in background
   connect().catch(err => {
-    console.error('[WoClaw MCP] Failed to connect:', err.message);
+    mcpError('Failed to connect:', err.message);
   });
 
   const rl = createInterface({ input: process.stdin });
@@ -302,7 +303,7 @@ async function main() {
 
         process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
       } catch (e) {
-        console.error('[WoClaw MCP] Error:', e.message);
+        mcpError('Error:', e.message);
       }
     }
   }

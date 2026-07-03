@@ -8,8 +8,9 @@
     "woclaw-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "mkdir -p dist && cp -f src/index.js dist/",
-    "start": "node dist/index.js"
+    "build": "mkdir -p dist && cp -f src/index.js dist/ && cp -f src/mcp_log.js dist/",
+    "start": "node dist/index.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "ws": "^8.21.0"
@@ -29,6 +30,7 @@
     "claude-skills"
   ],
   "files": [
+    "test/**/*",
     "dist/**/*",
     "README.md",
     "SKILL.md",
