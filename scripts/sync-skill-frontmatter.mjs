@@ -6,8 +6,15 @@
 // Usage:
 //   node scripts/sync-skill-frontmatter.mjs                       # dry-run (default; packages/* only)
 //   node scripts/sync-skill-frontmatter.mjs --write               # write back
-//   node scripts/sync-skill-frontmatter.mjs --check               # CI mode: exit 1 if drift, no writes
+//   node scripts/sync-skill-frontmatter.mjs --check               # CI mode: exit 0/1/2/3 (see Exit codes), no writes
 //   node scripts/sync-skill-frontmatter.mjs --source <pkg>        # treat <pkg> as canonical list
+//
+// Exit codes (--check only):
+//   0 = all SKILL.md compatible_with lists in sync
+//   1 = auto-fixable drift (run with --write to converge)
+//   2 = manual-fix required: at least one file has NO frontmatter block
+//       (run with --write --exclude '<pkg-tag>' or add a --- block manually)
+//   3 = both (1 + 2) — some files drift and some are missing frontmatter
 //   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
 //   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
 //   node scripts/sync-skill-frontmatter.mjs --exclude <tags>      # comma-sep pkg tags to skip (07-01 03:03 cron: for skill spec docs that are intentionally not compatible_with lists)
@@ -265,7 +272,15 @@ function main() {
     log('union size:', canonical.length);
   }
 
+  // 07-04 04:23 cron: split drift into two buckets so --check can return a
+  // distinct exit code for "auto-fixable" (changedCount) vs "manual-fix
+  // required" (manualFixCount). Pre-this-change, both buckets collapsed to
+  // a single exit 1, which made CI hard to triage (a single missing
+  // frontmatter file would block the gate even though --write could not
+  // fix it). See exit code table at the top of the file.
   let changedCount = 0;
+  const manualFixRequired = []; // [{ pkg, path, reason }]
+  let manualFixCount = 0;
   for (const p of parsed) {
     // 07-01 03:03 cron: --exclude lets the operator drop a file from the
     // sync without deleting it. Used for skill spec docs that are
@@ -285,19 +300,31 @@ function main() {
       log(p.pkg, 'already in sync (' + before.length + ' items)');
       continue;
     }
-    changedCount++;
+    // Peek at the raw file BEFORE we bump any counter, so the no-frontmatter
+    // branch below can route the file into the manual-fix bucket without it
+    // ALSO showing up in the auto-fixable bucket. Pre-this-change, we bumped
+    // `changedCount` unconditionally above this branch (line ~264 in the old
+    // ordering) and then "un-counted" via a comment — but the bump still
+    // happened first, so a missing-frontmatter file was counted in BOTH
+    // buckets and the exit code went 3 instead of 2 when it should have been 2.
+    // (Bug caught 07-04 04:23 cron by the new exit-code semantics test.)
     const text = readFileSync(p.path, 'utf8');
     const fm = text.match(/^---\n([\s\S]*?)\n---/);
     if (!fm) {
-      // 07-01 03:03 cron: surface this case so --check exits 1 (drift not
-      // fixable by --write alone — the file is missing frontmatter entirely
+      // 07-01 03:03 cron: surface this case so --check exits with the
+      // manual-fix bucket (exit 2). The file is missing frontmatter entirely
       // and we deliberately do NOT auto-create one, since that would risk
-      // clobbering body content. Operator must add a frontmatter block first).
-      // Note: `changedCount` is already incremented above (line ~264) when we
-      // detected the sameSize/sameOrder mismatch; do NOT double-count here.
+      // clobbering body content. Operator must add a frontmatter block first.
+      // 07-04 04:23 cron: increment ONLY the manual-fix counter here, not
+      // changedCount — the file cannot be auto-fixed, so it has no business
+      // counting as "auto-fixable drift".
       console.error(`⚠ ${p.pkg}: no frontmatter block — --write cannot inject compatible_with; add \`---\` block manually`);
+      manualFixRequired.push({ pkg: p.pkg, path: p.path, reason: 'no frontmatter block' });
+      manualFixCount++;
       continue;
     }
+    // From here on, the file IS auto-fixable.
+    changedCount++;
     const newFm = rewriteCompatible(fm[0], canonical);
     const newText = text.replace(fm[0], newFm);
     if (writeMode) {
@@ -308,16 +335,40 @@ function main() {
     }
   }
 
-  console.log(`\n[${writeMode ? 'WRITE' : checkMode ? 'CHECK' : 'DRY-RUN'}] ${changedCount}/${parsed.length} files out of sync.`);
+  // 07-04 04:23 cron: include manualFixCount in the summary line so dry-run
+  // and --write modes also surface the no-frontmatter case clearly. Without
+  // this, operators running `node sync-skill-frontmatter.mjs --write`
+  // saw "0/11 files out of sync" even though 1 file was silently skipped.
+  const driftSummary = manualFixCount > 0
+    ? `${changedCount}/${parsed.length} auto-fixable, ${manualFixCount} manual-fix`
+    : `${changedCount}/${parsed.length}`;
+  console.log(`\n[${writeMode ? 'WRITE' : checkMode ? 'CHECK' : 'DRY-RUN'}] ${driftSummary} files drifted.`);
   if (checkMode) {
-    // --check: CI-friendly. exit 1 if any drift detected (without modifying files).
-    // Useful for pre-commit / CI gating: `node sync-skill-frontmatter.mjs --check --all`
-    if (changedCount > 0) {
-      console.log(`✗ drift detected — re-run with --write to fix.`);
-      process.exit(1);
+    // --check: CI-friendly. Exit code encodes the kind of drift found
+    // (see exit-code table at the top of this file):
+    //   0 = clean
+    //   1 = auto-fixable drift (changedCount > 0)
+    //   2 = manual-fix required (manualFixCount > 0)
+    //   3 = both buckets non-empty (1 | 2)
+    // Without this split, a single missing-frontmatter file would surface
+    // the same way as 50 auto-fixable files, so the cron CI gate could
+    // not distinguish "run --write" from "add a frontmatter block manually".
+    const exitCode = (changedCount > 0 ? 1 : 0) | (manualFixCount > 0 ? 2 : 0);
+    if (exitCode === 0) {
+      console.log(`✓ all SKILL.md compatible_with lists in sync.`);
+      process.exit(0);
     }
-    console.log(`✓ all SKILL.md compatible_with lists in sync.`);
-    process.exit(0);
+    if (changedCount > 0) {
+      console.log(`✗ auto-fixable drift detected (${changedCount}/${parsed.length} files) — re-run with --write to fix.`);
+    }
+    if (manualFixCount > 0) {
+      console.log(`✗ manual-fix required (${manualFixCount} file${manualFixCount === 1 ? '' : 's'} missing frontmatter):`);
+      for (const m of manualFixRequired) {
+        console.log(`   - ${m.pkg}: ${m.path} (${m.reason})`);
+      }
+      console.log(`  options: (a) add a --- frontmatter block, or (b) re-run with --write --exclude '<pkg-tag>' to skip`);
+    }
+    process.exit(exitCode);
   }
   if (!writeMode && changedCount > 0) {
     console.log('Re-run with --write to apply.');

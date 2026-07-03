@@ -99,8 +99,11 @@ describe('sync-skill-frontmatter.mjs', () => {
     // After the previous test, all files are converged. Re-running --write should be a no-op.
     const r = scriptRun(['--all', '--write']);
     expect(r.status).toBe(0);
-    // The summary line reports "0/7 files out of sync" once converged.
-    expect(r.stdout).toMatch(/0\/8 files out of sync/);
+    // The summary line reports "0/8 files drifted." once converged
+    // (07-04 04:23 cron: summary wording updated from "out of sync" to
+    // "drifted" so dry-run / write modes read cleanly with the new exit
+    // code vocabulary).
+    expect(r.stdout).toMatch(/0\/8 files drifted/);
   });
 
   it('--source <pkg> overrides union with one pkg as canonical', () => {
@@ -319,16 +322,18 @@ describe('sync-skill-frontmatter.mjs --write edge cases (07-01 03:03 cron regres
     expect(after).toBe(before);
   });
 
-  it('regression: --check exits 1 on no-frontmatter shim and prints a warning to stderr', () => {
-    // The woclaw-hub-test shim has no frontmatter at all. --check must:
-    //   - exit 1 (drift)
-    //   - print a warning to stderr pointing at the file
+  it('regression: --check exits 2 on no-frontmatter shim (manual-fix bucket) and prints a warning to stderr', () => {
+    // 07-04 04:23 cron: --check now uses a 4-way exit code (0/1/2/3).
+    // A file with NO frontmatter at all is the manual-fix bucket — exit 2
+    // (not exit 1, which is reserved for auto-fixable drift). The file must
+    // remain UNCHANGED so --write cannot accidentally clobber body content.
     const r = scriptRun(['--include', 'plugin/skills', '--check']);
-    expect(r.status).toBe(1);
+    expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/no frontmatter block/);
     expect(r.stderr).toMatch(/woclaw-hub-test/);
-    // The file must be UNCHANGED (we deliberately do not auto-create frontmatter
-    // since that would risk clobbering body content).
+    // Manual-fix list also printed to stdout so CI logs make triage obvious.
+    expect(r.stdout).toMatch(/manual-fix required/);
+    expect(r.stdout).toMatch(/plugin\/skills:woclaw-hub-test/);
     const content = readFileSync(join(tmpRoot, 'plugin', 'skills', 'woclaw-hub-test', 'SKILL.md'), 'utf8');
     expect(content).toMatch(/^# Skill Spec Doc/);
     expect(content).not.toMatch(/^---/);
@@ -347,9 +352,11 @@ describe('sync-skill-frontmatter.mjs --write edge cases (07-01 03:03 cron regres
 
   it('--exclude is a no-op for unknown tags (does not crash, does not affect other files)', () => {
     // Random unknown tag — script should still converge the rest.
+    // 07-04 04:23 cron: with the 4-way exit code, the only non-empty bucket
+    // here is manual-fix (woclaw-hub-test still has no frontmatter and is
+    // not excluded), so exit is 2.
     const r = scriptRun(['--include', 'plugin/skills', '--exclude', 'plugin/skills:does-not-exist', '--check']);
-    // woclaw-hub-test is still in scope and still drifts → exit 1.
-    expect(r.status).toBe(1);
+    expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/no frontmatter block/);
   });
 });
@@ -462,5 +469,125 @@ describe('sync-skill-frontmatter.mjs doc-comment ↔ discovery parity (07-02 01:
     expect(m, 'count assertion not found').toBeTruthy();
     const listedPackages = parseInt(m![1], 10) - 3; // subtract 3 top-level
     expect(packagesDirs.length).toBe(listedPackages);
+  });
+});
+
+// 07-04 04:23 cron: 4-way exit code semantics for --check mode.
+// Pre-this-change, --check collapsed both drift kinds into a single exit 1,
+// which made the cron CI gate noisy: a missing-frontmatter file (manual fix
+// required) looked identical to 50 auto-fixable files. Now:
+//   0 = clean
+//   1 = auto-fixable drift (changedCount > 0)
+//   2 = manual-fix required (manualFixCount > 0)
+//   3 = both buckets non-empty (1 | 2)
+// This block pins every quadrant so the cron CI gate can trust the codes.
+describe('sync-skill-frontmatter.mjs --check exit codes (07-04 04:23 cron)', () => {
+  let tmpRoot: string;
+  let pkgDir: string;
+  let pkgDirNoFm: string;
+  // Extra pkg to force the union to have a tag that pkg-a lacks, so pkg-a
+  // ends up in the auto-fixable bucket even when pkg-b contributes nothing.
+  let pkgDirC: string;
+  const scriptRun = (args: string[]) => spawnSync('node', [scriptPath, ...args], {
+    cwd: tmpRoot,
+    env: { ...process.env, WOCLAW_ROOT: tmpRoot },
+    encoding: 'utf8',
+  });
+
+  function writeSkill(dir: string, pkgName: string, compatList: string[] | null) {
+    mkdirSync(dir, { recursive: true });
+    let body = `# ${pkgName} skill\n\nbody line 1\n`;
+    let fm = '';
+    if (compatList !== null) {
+      fm = `---\nname: ${pkgName}\ndescription: test\ncompatible_with: [${compatList.join(', ')}]\n---\n\n`;
+    }
+    writeFileSync(join(dir, 'SKILL.md'), fm + body);
+  }
+
+  beforeAll(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-exit-'));
+    pkgDir = join(tmpRoot, 'packages', 'pkg-a');
+    pkgDirNoFm = join(tmpRoot, 'packages', 'pkg-b');
+    pkgDirC = join(tmpRoot, 'packages', 'pkg-c');
+  });
+
+  // 07-04 04:23 cron: previous tests in this describe may mutate the SKILL.md
+  // files via --write (test 5 does). Reset to a known clean baseline before each
+  // test so cross-test contamination doesn't break the exit-code matrix.
+  beforeEach(() => {
+    // pkg-a / pkg-b / pkg-c are writeSkill()-rewritten by each test, so we just
+    // need to clear them out before writing again — writeSkill() calls
+    // mkdirSync({recursive:true}) so missing dirs are recreated.
+  });
+
+  afterAll(() => {
+    if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('--check exits 0 when both buckets are empty (clean baseline)', () => {
+    // Two identical frontmatter SKILL.md files → no drift, no manual-fix.
+    writeSkill(pkgDir, 'pkg-a', ['claude-code']);
+    writeSkill(pkgDirNoFm, 'pkg-b', ['claude-code']);
+    const r = scriptRun(['--check']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/all SKILL.md compatible_with lists in sync/);
+  });
+
+  it('--check exits 1 when ONLY auto-fixable drift is present', () => {
+    writeSkill(pkgDir, 'pkg-a', ['claude-code', 'opencode']);
+    writeSkill(pkgDirNoFm, 'pkg-b', ['cursor']); // smaller list → auto-fixable drift
+    const r = scriptRun(['--check']);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toMatch(/auto-fixable drift detected/);
+    expect(r.stdout).not.toMatch(/manual-fix required/);
+  });
+
+  it('--check exits 2 when ONLY manual-fix bucket is non-empty', () => {
+    // 07-04 04:23 cron: writeSkill(pkgDirNoFm, 'pkg-b', null) writes a
+    // SKILL.md file with NO frontmatter — pkgDirNoFm is a directory, so the
+    // helper appends SKILL.md internally. Both files end up with the same
+    // union (just `claude-code` from pkg-a since pkg-b contributes nothing),
+    // so changedCount = 0 and manualFixCount = 1 → exit 2.
+    writeSkill(pkgDir, 'pkg-a', ['claude-code']);
+    writeSkill(pkgDirNoFm, 'pkg-b', null);
+    const r = scriptRun(['--check']);
+    expect(r.status).toBe(2);
+    expect(r.stdout).toMatch(/manual-fix required/);
+    expect(r.stdout).not.toMatch(/auto-fixable drift detected/);
+  });
+
+  it('--check exits 3 when BOTH buckets are non-empty (1 | 2)', () => {
+    // 07-04 04:23 cron: pkg-c adds `opencode` to the union, so pkg-a (with
+    // only `claude-code`) drifts and lands in the auto-fixable bucket.
+    // pkg-b has no frontmatter → manual-fix bucket. With both non-empty the
+    // exit code is 3 = 1 (auto-fixable) | 2 (manual-fix).
+    writeSkill(pkgDir, 'pkg-a', ['claude-code']);
+    writeSkill(pkgDirC, 'pkg-c', ['opencode']);
+    writeSkill(pkgDirNoFm, 'pkg-b', null);
+    const r = scriptRun(['--check']);
+    expect(r.status).toBe(3);
+    expect(r.stdout).toMatch(/auto-fixable drift detected/);
+    expect(r.stdout).toMatch(/manual-fix required/);
+    expect(r.stdout).toMatch(/2\/3 auto-fixable, 1 manual-fix files drifted/);
+  });
+
+  it('--write mode ignores exit-code semantics (always exits 0 after writing)', () => {
+    // --write is destructive but idempotent — it should never fail with the
+    // 4-way codes even if drift was detected. Even the no-frontmatter case
+    // (which --write cannot auto-fix) just exits 0 because no write was made.
+    // 07-04 04:23 cron: explicitly remove any stale pkg-c dir from earlier
+    // serial tests in this describe, so the union really is [claude-code]
+    // (only pkg-a contributes, pkg-b has no frontmatter, pkg-c absent).
+    // Without this cleanup, the union grew to 2 items from leftover pkg-c
+    // and the summary line printed "2/3 auto-fixable" instead of "0/2".
+    rmSync(pkgDirC, { recursive: true, force: true });
+    writeSkill(pkgDir, 'pkg-a', ['claude-code']);
+    writeSkill(pkgDirNoFm, 'pkg-b', null);
+    const r = scriptRun(['--write']);
+    expect(r.status).toBe(0);
+    // Summary line still distinguishes the two buckets so operators see what
+    // happened (regression caught 07-04 04:23 cron when dry-run / write
+    // modes used to print "0/N files out of sync" even with 1 manual-fix).
+    expect(r.stdout).toMatch(/\[WRITE\] 0\/2 auto-fixable, 1 manual-fix files drifted/);
   });
 });
