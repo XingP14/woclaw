@@ -6,20 +6,13 @@ import type { FederationPeer, FederationMessage, Config } from './types.js';
 import { errorMessage } from './errors.js';
 
 
-// Federation-scoped logger: prepends "[WoClaw Federation] " prefix so log lines
-// stay grep-friendly even though the underlying console.* call is the canonical
-// Node stream. All 16 call sites in this file route through these helpers
-// (see hub/test/federation_logger.test.ts for the regression gate); no inline
-// `console.[log|warn|error]('[WoClaw Federation] ...')` should remain.
-function fedLog(msg: string, ...args: unknown[]): void {
-  console.log(`[WoClaw Federation] ${msg}`, ...args);
-}
-function fedWarn(msg: string, ...args: unknown[]): void {
-  console.warn(`[WoClaw Federation] ${msg}`, ...args);
-}
-function fedError(msg: string, ...args: unknown[]): void {
-  console.error(`[WoClaw Federation] ${msg}`, ...args);
-}
+// Federation logger helpers (`fedLog` / `fedWarn` / `fedError`) now
+// live in hub/src/federation_log.ts (07-04 01:23 cron) so callers outside
+// hub/src/federation.ts — notably hub/src/ws_server.ts (L65 + L74) — can also
+// use the canonical `[WoClaw Federation] ` prefix without duplicating it.
+// This replaces the previous file-local helpers that were declared here.
+import { fedLog, fedWarn, fedError } from './federation_log.js';
+
 
 export class FederationManager {
   private peers: Map<string, WebSocket> = new Map();  // hubId → WS connection

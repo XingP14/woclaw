@@ -9,6 +9,7 @@ import { MemoryPool } from './memory.js';
 import { ClawDB } from './db.js';
 import { errorMessage } from './errors.js';
 import { hubLog, hubWarn, hubError } from './hub_log.js';
+import { fedLog } from './federation_log.js';
 import { FederationManager } from './federation.js';
 
 // Use ws WebSocket type explicitly
@@ -62,7 +63,7 @@ export class WSServer {
         const { key, value, tags, sourceHub, updatedAt } = payload;
         if (typeof key === 'string' && value !== undefined) {
           await this.memory.write(key, value, `federation:${msg.fromHubId}`, Array.isArray(tags) ? (tags as string[]) : ['federated'], 0);
-          console.log(`[WoClaw Federation] Received federated memory '${key}' from ${msg.fromHubId}`);
+          fedLog(`Received federated memory '${key}' from ${msg.fromHubId}`);
         }
       } else if (msg.type === 'memory_request' && msg.payload) {
         // Respond to memory sync request: send all federated memories
@@ -71,7 +72,7 @@ export class WSServer {
         for (const mem of federated) {
           this.federationManager.syncMemory(mem.key, mem.value, mem.tags || [], this.config.hubId!);
         }
-        console.log(`[WoClaw Federation] Sent ${federated.length} federated memories to ${msg.fromHubId}`);
+        fedLog(`Sent ${federated.length} federated memories to ${msg.fromHubId}`);
       }
     });
     this.federationManager.start();
