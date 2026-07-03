@@ -18,6 +18,9 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+// chain #10: emoji-decoration helpers (9th subpackage consolidation).
+const cliLog = require('./lib/cli_log');
+const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const CLAUDE_HISTORY_FILE = process.env.CLAUDE_HISTORY_FILE || path.join(HOME, '.claude', 'history.jsonl');
@@ -154,15 +157,15 @@ async function writeToHub(sessionId, summary) {
       },
       body: payload,
     });
-    console.log(res.ok ? `  ✅ claude:session:${sessionId}` : `  ⚠️  claude:session:${sessionId} -> ${res.status}`);
+    res.ok ? hooksOk(`  claude:session:${sessionId}`) : hooksWarn(`  claude:session:${sessionId} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  claude:session:${sessionId} -> ${e.message}`);
+    hooksWarn(`  claude:session:${sessionId} -> ${e.message}`);
   }
 }
 
 async function listSessions(limit = 20) {
   const sessions = await loadHistorySessions();
-  console.log(`\n📋 Available Claude Code Sessions (${CLAUDE_HISTORY_FILE})\n`);
+  hooksList(`\nAvailable Claude Code Sessions (${CLAUDE_HISTORY_FILE})\n`);
   if (sessions.size === 0) {
     console.log('  No sessions found.');
     console.log('');
@@ -198,7 +201,7 @@ async function main() {
 
   if (mode === 'all') {
     const ordered = [...sessions.values()].sort((a, b) => String(b.lastTimestamp || '').localeCompare(String(a.lastTimestamp || '')));
-    console.log(`\n🔄 Migrating Claude Code sessions from ${CLAUDE_HISTORY_FILE}...\n`);
+    hooksStep(`\nMigrating Claude Code sessions from ${CLAUDE_HISTORY_FILE}...\n`);
     let migrated = 0;
     for (const session of ordered.slice(0, limitCount)) {
       const summary = buildSummary(session);
@@ -206,7 +209,7 @@ async function main() {
       await writeToHub(session.sessionId, summary);
       migrated++;
     }
-    console.log(`\n✅ Migrated ${migrated} Claude Code sessions\n`);
+    hooksOk(`\nMigrated ${migrated} Claude Code sessions\n`);
   }
 }
 

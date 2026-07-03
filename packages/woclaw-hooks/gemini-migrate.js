@@ -17,6 +17,9 @@
 
 const fs = require('fs');
 const path = require('path');
+// chain #10: emoji-decoration helpers (9th subpackage consolidation).
+const cliLog = require('./lib/cli_log');
+const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const GEMINI_HOME = process.env.GEMINI_HOME || path.join(HOME, '.gemini');
@@ -186,15 +189,15 @@ async function writeToHub(sessionId, summary) {
       },
       body: payload,
     });
-    console.log(res.ok ? `  ✅ gemini:session:${sessionId}` : `  ⚠️  gemini:session:${sessionId} -> ${res.status}`);
+    res.ok ? hooksOk(`  gemini:session:${sessionId}`) : hooksWarn(`  gemini:session:${sessionId} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  gemini:session:${sessionId} -> ${e.message}`);
+    hooksWarn(`  gemini:session:${sessionId} -> ${e.message}`);
   }
 }
 
 async function listSessions(limit = 20) {
   const sessions = loadAllSessions();
-  console.log(`\n📋 Available Gemini CLI Sessions (${GEMINI_HOME})\n`);
+  hooksList(`\nAvailable Gemini CLI Sessions (${GEMINI_HOME})\n`);
   if (sessions.length === 0) {
     console.log('  No Gemini sessions found.');
     console.log('');
@@ -228,7 +231,7 @@ async function main() {
   }
 
   if (mode === 'all') {
-    console.log(`\n🔄 Migrating Gemini CLI sessions from ${GEMINI_HOME}...\n`);
+    hooksStep(`\nMigrating Gemini CLI sessions from ${GEMINI_HOME}...\n`);
     let migrated = 0;
     for (const session of sessions.slice(0, limitCount)) {
       const summary = buildSummary(session);
@@ -236,7 +239,7 @@ async function main() {
       await writeToHub(session.sessionId, summary);
       migrated++;
     }
-    console.log(`\n✅ Migrated ${migrated} Gemini CLI sessions\n`);
+    hooksOk(`\nMigrated ${migrated} Gemini CLI sessions\n`);
   }
 }
 

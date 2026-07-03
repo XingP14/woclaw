@@ -125,6 +125,10 @@ codex_hooks = true
 // process.env.WOCLAW_HUB_URL/TOKEN/PROJECT_KEY continue to win over
 // the baked-in fallback (matches pre-extraction behaviour).
 const envConfig = require('./lib/env-config');
+// chain #10: emoji-decoration helpers extracted from woclaw-hooks
+// console output (5 woclaw-hooks scripts + codex-woclaw cli wrapper).
+const cliLog = require('./lib/cli_log');
+const { hooksOk, hooksWarn, hooksStep, hooksList, hooksHint, hooksNote, hooksConfig, hooksStatus, hooksRemove, hooksErr } = cliLog;
 
 const DEFAULT_CONFIG = {
   WOCLAW_HUB_URL: process.env.WOCLAW_HUB_URL || envConfig.DEFAULT_CONFIG.WOCLAW_HUB_URL,
@@ -148,7 +152,7 @@ function readLine(prompt) {
 }
 
 async function interactiveConfig(existing) {
-  console.log('\n🔧 WoClaw Hub Configuration\n');
+  hooksConfig('\nWoClaw Hub Configuration\n');
   const hubUrl = await readLine(`Hub URL [${existing.WOCLAW_HUB_URL}]: `) || existing.WOCLAW_HUB_URL;
   const token = await readLine(`Hub Token [${existing.WOCLAW_TOKEN}]: `) || existing.WOCLAW_TOKEN;
   const projectKey = await readLine(`Project Key [${existing.WOCLAW_PROJECT_KEY}]: `) || existing.WOCLAW_PROJECT_KEY;
@@ -165,7 +169,7 @@ function saveConfig(config) {
 
 function installHooks(framework, config) {
   const fw = FRAMEWORK_CONFIG[framework];
-  if (!fw) { console.error(`Unknown framework: ${framework}`); process.exit(1); }
+  if (!fw) { hooksErr(`Unknown framework: ${framework}`); process.exit(1); }
 
   ensureDir(fw.hooksDir);
 
@@ -197,15 +201,15 @@ function installHooks(framework, config) {
     }
   }
 
-  if (installed.length) console.log(`✅ Installed (${framework}): ${installed.join(', ')}`);
-  if (missing.length) console.log(`⚠️  Missing hooks: ${missing.join(', ')}`);
+  if (installed.length) hooksOk(`Installed (${framework}): ${installed.join(', ')}`);
+  if (missing.length) hooksWarn(`Missing hooks: ${missing.join(', ')}`);
 
   saveConfig(config);
 
-  console.log(`\n✅ Config written to: ${ENV_FILE}`);
-  console.log('\n📝 Add to your ' + framework + ' config:');
+  hooksOk(`\nConfig written to: ${ENV_FILE}`);
+  hooksNote(`\nAdd to your ${framework} config:`);
   console.log('   ' + fw.settingsHint.replace(/\n/g, '\n   '));
-  console.log('\n💡 Restart your ' + framework + ' session for hooks to take effect.');
+  hooksHint(`\nRestart your ${framework} session for hooks to take effect.`);
 }
 
 function installCodexHooks(fw, config) {
@@ -281,23 +285,23 @@ function installCodexHooks(fw, config) {
 
   fs.writeFileSync(fw.hookJsonFile, JSON.stringify(existingHooks, null, 2));
 
-  if (installed.length) console.log(`✅ Installed (codex): ${installed.join(', ')}`);
-  console.log(`✅ hooks.json written to: ${fw.hookJsonFile}`);
+  if (installed.length) hooksOk(`Installed (codex): ${installed.join(', ')}`);
+  hooksOk(`hooks.json written to: ${fw.hookJsonFile}`);
 
   saveConfig(config);
 
-  console.log(`\n✅ Config written to: ${ENV_FILE}`);
-  console.log('\n📝 Required: Enable Codex hooks in ~/.codex/config.toml:');
+  hooksOk(`\nConfig written to: ${ENV_FILE}`);
+  hooksNote('\nRequired: Enable Codex hooks in ~/.codex/config.toml:');
   console.log(`
    [features]
    codex_hooks = true
   `);
-  console.log('\n💡 Restart Codex CLI after installation. Run: Codex --version to verify.');
+  hooksHint('\nRestart Codex CLI after installation. Run: Codex --version to verify.');
 }
 
 function uninstallHooks(framework) {
   const fw = FRAMEWORK_CONFIG[framework];
-  if (!fw) { console.error(`Unknown framework: ${framework}`); process.exit(1); }
+  if (!fw) { hooksErr(`Unknown framework: ${framework}`); process.exit(1); }
 
   if (framework === 'codex') {
     // Remove shell scripts
@@ -305,7 +309,7 @@ function uninstallHooks(framework) {
       const dst = path.join(fw.hooksDir, `${hook}.sh`);
       if (fs.existsSync(dst)) {
         fs.unlinkSync(dst);
-        console.log(`🗑️  Removed: ${path.basename(dst)}`);
+        hooksRemove(`Removed: ${path.basename(dst)}`);
       }
     }
     // Remove woclaw entries from hooks.json
@@ -334,12 +338,12 @@ function uninstallHooks(framework) {
           }
         }
         fs.writeFileSync(fw.hookJsonFile, JSON.stringify(hooks, null, 2));
-        console.log(`✅ hooks.json updated`);
+        hooksOk('hooks.json updated');
       } catch (e) {
         // ignore
       }
     }
-    console.log(`\n✅ Uninstalled codex hooks. Config preserved at ${ENV_FILE}.`);
+    hooksOk(`\nUninstalled codex hooks. Config preserved at ${ENV_FILE}.`);
     return;
   }
 
@@ -347,15 +351,15 @@ function uninstallHooks(framework) {
     const dst = path.join(fw.hooksDir, `${fw.hookPrefix}${hook}.sh`);
     if (fs.existsSync(dst)) {
       fs.unlinkSync(dst);
-      console.log(`🗑️  Removed: ${path.basename(dst)}`);
+      hooksRemove(`Removed: ${path.basename(dst)}`);
     }
   }
-  console.log(`\n✅ Uninstalled ${framework} hooks. Config preserved at ${ENV_FILE}.`);
+  hooksOk(`\nUninstalled ${framework} hooks. Config preserved at ${ENV_FILE}.`);
 }
 
 function showStatus() {
   const config = loadExistingConfig();
-  console.log('\n📡 WoClaw Hooks Status\n');
+  hooksStatus('\nWoClaw Hooks Status\n');
   console.log(`   Hub URL:     ${config.WOCLAW_HUB_URL}`);
   console.log(`   Token:       ${config.WOCLAW_TOKEN ? '***' + config.WOCLAW_TOKEN.slice(-4) : '(not set)'}`);
   console.log(`   Project Key: ${config.WOCLAW_PROJECT_KEY}`);
@@ -428,8 +432,8 @@ async function main() {
   }
 
   if (!SUPPORTED_FRAMEWORKS.includes(framework)) {
-    console.error(`Unknown framework: ${framework}`);
-    console.error('Supported: ' + SUPPORTED_FRAMEWORKS.join(', '));
+    hooksErr(`Unknown framework: ${framework}`);
+    hooksErr('Supported: ' + SUPPORTED_FRAMEWORKS.join(', '));
     process.exit(1);
   }
 

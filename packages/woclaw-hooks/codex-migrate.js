@@ -18,6 +18,9 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+// chain #10: emoji-decoration helpers (9th subpackage consolidation).
+const cliLog = require('./lib/cli_log');
+const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const CODEX_HOME = process.env.CODEX_HOME || path.join(HOME, '.codex');
@@ -331,7 +334,7 @@ async function* streamHistorySessions(filterFn = () => true, limit = 10) {
  * @param {number} limit
  */
 async function listSessions(limit = 20) {
-  console.log(`\n📋 Available Codex Sessions (${HISTORY_FILE})\n`);
+  hooksList(`\nAvailable Codex Sessions (${HISTORY_FILE})\n`);
   console.log('  Session ID                                  | Created            | Messages | Model');
   console.log('  --------------------------------------------|---------------------|----------|------');
 
@@ -440,9 +443,9 @@ async function writeToHub(sessionId, summary, extra = {}) {
   });
 
   if (req.ok) {
-    console.log(`✅ Written to WoClaw Hub: codex:session:${sessionId}`);
+    hooksOk(`Written to WoClaw Hub: codex:session:${sessionId}`);
   } else {
-    console.error(`⚠️  Failed to write to Hub: ${req.status}`);
+    hooksWarn(`Failed to write to Hub: ${req.status}`);
   }
 }
 
@@ -482,7 +485,7 @@ async function main() {
       break;
 
     case 'all':
-      console.log(`\n🔄 Migrating up to ${limitCount} Codex sessions...\n`);
+      hooksStep(`\nMigrating up to ${limitCount} Codex sessions...\n`);
       let migrated = 0;
       for await (const session of streamHistorySessions(() => true, limitCount)) {
         const si = extractSessionInsights(session);
@@ -496,7 +499,7 @@ async function main() {
           migrated++;
         }
       }
-      console.log(`\n✅ Migrated ${migrated} sessions to WoClaw Hub\n`);
+      hooksOk(`\nMigrated ${migrated} sessions to WoClaw Hub\n`);
       break;
   }
 }

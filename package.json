@@ -5,7 +5,7 @@
   "description": "WoClaw - Shared memory and messaging hub for AI agents",
   "scripts": {
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "npm run test --workspace=hub && npm run test --workspace=plugin && npm run test --workspace=woclaw-vscode --if-present && npm run test --workspace=woclaw-mcp --if-present && npm run test --workspace=opencode-woclaw --if-present",
+    "test:unit": "npm run test --workspace=hub && npm run test --workspace=plugin && npm run test --workspace=woclaw-vscode --if-present && npm run test --workspace=woclaw-mcp --if-present && npm run test --workspace=opencode-woclaw --if-present && npm run test --workspace=woclaw-hooks --if-present",
     "test:integration": "vitest run --config vitest.config.ts integration-test/",
     "test:coverage": "npm run test:coverage --workspace=hub",
     "build": "npm run build --workspace=hub && npm run build --workspace=plugin",

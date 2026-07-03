@@ -20,6 +20,9 @@
 
 const fs = require('fs');
 const path = require('path');
+// chain #10: emoji-decoration helpers (9th subpackage consolidation).
+const cliLog = require('./lib/cli_log');
+const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const STATE_DIR = process.env.OPENCLAW_STATE_DIR || path.join(HOME, '.openclaw');
@@ -404,14 +407,14 @@ async function writeToHub(entry) {
       },
       body: payload,
     });
-    console.log(res.ok ? `  ✅ ${entry.key}` : `  ⚠️  ${entry.key} -> ${res.status}`);
+    res.ok ? hooksOk(`  ${entry.key}`) : hooksWarn(`  ${entry.key} -> ${res.status}`);
   } catch (e) {
-    console.log(`  ⚠️  ${entry.key} -> ${e.message}`);
+    hooksWarn(`  ${entry.key} -> ${e.message}`);
   }
 }
 
 function printList(workspaceRoot, files) {
-  console.log(`\n📋 OpenClaw Workspace (${workspaceRoot})\n`);
+  hooksList(`\nOpenClaw Workspace (${workspaceRoot})\n`);
   if (files.length === 0) {
     console.log('  No workspace memory files found.');
   } else {
@@ -483,9 +486,9 @@ async function main() {
 
   const entries = [...fileEntries, ...storeEntries, ...transcriptEntries];
   if (mode === 'agent-id') {
-    console.log(`\n🔄 Migrating OpenClaw agent scope: ${targetAgent}\n`);
+    hooksStep(`\nMigrating OpenClaw agent scope: ${targetAgent}\n`);
   } else {
-    console.log(`\n🔄 Migrating OpenClaw workspace memory and session stores...\n`);
+    hooksStep(`\nMigrating OpenClaw workspace memory and session stores...\n`);
   }
 
   if (entries.length === 0) {
@@ -502,7 +505,7 @@ async function main() {
     migrated++;
   }
 
-  console.log(`\n✅ Migrated ${migrated} OpenClaw memory entries\n`);
+  hooksOk(`\nMigrated ${migrated} OpenClaw memory entries\n`);
 }
 
 const SHOULD_AUTO_RUN = process.env.WOCLAW_OPENCLAW_MIGRATE_SKIP_MAIN !== '1';
