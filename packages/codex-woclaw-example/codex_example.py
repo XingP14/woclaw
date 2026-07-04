@@ -24,6 +24,9 @@ import asyncio
 import websockets
 import aiohttp
 
+# chain #11: [WoClaw] prefix helper-extraction (Python parallel to chain #10 cli_log)
+from example_log import example_log
+
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -100,20 +103,20 @@ async def ws_connect():
     """Connect to WoClaw Hub via WebSocket."""
     uri = f"{HUB_URL}?agentId={AGENT_ID}&token={TOKEN}"
     ws = await websockets.connect(uri)
-    print(f"[WoClaw] Connected as {AGENT_ID}")
+    example_log(f"Connected as {AGENT_ID}")
     return ws
 
 
 async def ws_join_topic(ws, topic: str):
     """Join a topic."""
     await ws.send(json.dumps({"type": "join", "topic": topic}))
-    print(f"[WoClaw] Joined topic: {topic}")
+    example_log(f"Joined topic: {topic}")
 
 
 async def ws_send_message(ws, topic: str, content: str):
     """Send a message to a topic."""
     await ws.send(json.dumps({"type": "message", "topic": topic, "content": content}))
-    print(f"[WoClaw] Sent to {topic}: {content[:50]}...")
+    example_log(f"Sent to {topic}: {content[:50]}...")
 
 
 # ============================================================================
@@ -139,7 +142,7 @@ async def save_codex_context_to_hub(key: str = "codex:context"):
     """Save Codex session context to WoClaw Hub."""
     context = get_codex_session_context()
     result = await memory_write(key, context)
-    print(f"[WoClaw] Codex context saved: {result}")
+    example_log(f"Codex context saved: {result}")
     return result
 
 
@@ -147,9 +150,9 @@ async def load_hub_context_to_codex(key: str = "codex:context"):
     """Load shared context from WoClaw Hub for Codex session."""
     data = await memory_read(key)
     if data.get("exists"):
-        print(f"[WoClaw] Loaded context: {data['value'][:100]}...")
+        example_log(f"Loaded context: {data['value'][:100]}...")
         return data["value"]
-    print("[WoClaw] No shared context found")
+    example_log("No shared context found")
     return None
 
 
