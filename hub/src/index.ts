@@ -44,8 +44,39 @@ function parseEnvInt(name: string, opts: { default?: number } = {}): number | un
   return parseInt(raw, 10);
 }
 
+/**
+ * Parse a string-valued process.env variable.
+ *
+ * Mirrors the parseEnvInt helper (chain #14, 07-05 02:13 cron): collapses
+ * the 8 inline `process.env.X || 'default'` and `process.env.X || undefined`
+ * sites in buildDefaultStorageConfig() + DEFAULT_CONFIG into a single helper
+ * with explicit defaultValue semantics.
+ *
+ * Semantics:
+ *   - Missing env var OR empty string ('') → `opts.default` if provided,
+ *     else `undefined`.
+ *     (matches original 8 sites: 5 `||` sites with default-string treat empty
+ *      as missing → default; 3 `|| undefined` sites treat empty as missing → undefined)
+ *   - Present non-empty env var → returned verbatim (no trim, no lowercase,
+ *     no parse — preserves downstream `.toLowerCase()` at DB_TYPE call site
+ *     where the canonical-sqlite/mysql comparison depends on lowercased
+ *     downstream behavior).
+ *
+ * @param name - process.env variable name (e.g. 'HOST', 'AUTH_TOKEN')
+ * @param opts.default - default string to return when env var is missing/empty.
+ *                       Omit (or pass undefined) to return undefined instead.
+ * @returns parsed string, default, or undefined
+ */
+function parseEnvString(name: string, opts: { default?: string } = {}): string | undefined {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') {
+    return opts.default;
+  }
+  return raw;
+}
+
 function buildDefaultStorageConfig(): StorageConfig {
-  const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+  const dbType = (parseEnvString('DB_TYPE', { default: 'sqlite' })).toLowerCase();
   if (dbType === 'mysql') {
     return {
       type: 'mysql',
@@ -53,7 +84,7 @@ function buildDefaultStorageConfig(): StorageConfig {
         host: process.env.MYSQL_HOST,
         port: parseEnvInt('MYSQL_PORT'),
         user: process.env.MYSQL_USER,
-        password: process.env.MYSQL_PASSWORD || undefined,
+        password: parseEnvString('MYSQL_PASSWORD'),
         database: process.env.MYSQL_DATABASE,
         connectionLimit: parseEnvInt('MYSQL_CONNECTION_LIMIT'),
       } : undefined,
@@ -62,19 +93,19 @@ function buildDefaultStorageConfig(): StorageConfig {
 
   return {
     type: 'sqlite',
-    sqlitePath: process.env.SQLITE_PATH || undefined,
+    sqlitePath: parseEnvString('SQLITE_PATH'),
   };
 }
 
 const DEFAULT_CONFIG: Config = {
   port: parseEnvInt('PORT', { default: 8080 }),
   restPort: parseEnvInt('REST_PORT', { default: 8081 }),
-  host: process.env.HOST || '0.0.0.0',
-  dataDir: process.env.DATA_DIR || '/data',
+  host: parseEnvString('HOST', { default: '0.0.0.0' }),
+  dataDir: parseEnvString('DATA_DIR', { default: '/data' }),
   storage: buildDefaultStorageConfig(),
-  authToken: process.env.AUTH_TOKEN || 'change-me-in-production',
-  tlsKey: process.env.TLS_KEY || undefined,
-  tlsCert: process.env.TLS_CERT || undefined,
+  authToken: parseEnvString('AUTH_TOKEN', { default: 'change-me-in-production' }),
+  tlsKey: parseEnvString('TLS_KEY'),
+  tlsCert: parseEnvString('TLS_CERT'),
 };
 
 async function main() {
