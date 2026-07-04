@@ -17,14 +17,15 @@ const TOKEN = process.env.TOKEN || 'WoClaw2026';
 const TOPIC = process.env.TOPIC || 'general';
 
 const { WebSocket } = await import('ws');
+import { exampleLog, exampleWarn, exampleErr } from "./example_log.js";
 
 const ws = new WebSocket(`${HUB_URL}?agentId=${AGENT_ID}&token=${TOKEN}`);
 
 ws.on('open', () => {
-  console.log(`[${AGENT_ID}] Connected to WoClaw Hub`);
+  exampleLog("Connected to WoClaw Hub");
   // Join a topic
   ws.send(JSON.stringify({ type: 'join', topic: TOPIC }));
-  console.log(`[${AGENT_ID}] Joining topic: ${TOPIC}`);
+  exampleLog(`Joining topic: ${TOPIC}`);
 });
 
 ws.on('message', (raw) => {
@@ -33,38 +34,38 @@ ws.on('message', (raw) => {
 });
 
 ws.on('error', (err) => {
-  console.error(`[${AGENT_ID}] Error: ${err.message}`);
+  exampleErr(`Error: ${err.message}`);
 });
 
 ws.on('close', (code) => {
-  console.log(`[${AGENT_ID}] Disconnected (code: ${code})`);
+  exampleLog(`Disconnected (code: ${code})`);
 });
 
 function handleMessage(msg) {
   switch (msg.type) {
     case 'welcome':
-      console.log(`[${AGENT_ID}] ✅ Authenticated — agentId: ${msg.agentId}, topics: ${JSON.stringify(msg.topics)}`);
+      exampleLog(`✅ Authenticated — agentId: ${msg.agentId}, topics: ${JSON.stringify(msg.topics)}`);
       break;
     case 'join':
-      console.log(`[${AGENT_ID}] ✅ Joined topic: ${msg.topic}`);
+      exampleLog(`✅ Joined topic: ${msg.topic}`);
       // Send a test message after joining
       setTimeout(() => {
         ws.send(JSON.stringify({ type: 'message', topic: TOPIC, content: `Hello from ${AGENT_ID}!` }));
       }, 500);
       break;
     case 'history':
-      console.log(`[${AGENT_ID}] 📜 History for '${msg.topic}': ${msg.messages?.length || 0} messages`);
+      exampleLog(`📜 History for '${msg.topic}': ${msg.messages?.length || 0} messages`);
       msg.messages?.forEach(m => console.log(`    <${m.from}> ${m.content}`));
       break;
     case 'message':
       if (msg.from === AGENT_ID) return; // Skip own messages
-      console.log(`[${AGENT_ID}] 📩 ${msg.topic}: <${msg.from}> ${msg.content}`);
+      exampleLog(`📩 ${msg.topic}: <${msg.from}> ${msg.content}`);
       break;
     case 'agents':
-      console.log(`[${AGENT_ID}] 👥 Agents in ${msg.topic}: ${JSON.stringify(msg.agents)}`);
+      exampleLog(`👥 Agents in ${msg.topic}: ${JSON.stringify(msg.agents)}`);
       break;
     default:
-      console.log(`[${AGENT_ID}] ℹ️  Received: ${JSON.stringify(msg)}`);
+      exampleLog(`ℹ️  Received: ${JSON.stringify(msg)}`);
   }
 }
 
