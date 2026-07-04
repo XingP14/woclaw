@@ -9,6 +9,7 @@
 
 import { WebSocket } from 'ws';
 import { hostname } from 'os';
+import { createPluginLogger } from './plugin_log.js';
 
 export interface WoClawLogger {
   info: (msg: string) => void;
@@ -503,12 +504,11 @@ export const woclawChannelPlugin: ChannelPlugin = {
   setChannelRuntime: (runtime: WoClawAdapterRuntime) => {
     const cfg = runtime?.cfg;
     const effectiveCfg = cfg ?? {};
-    const logger = runtime?.logger ?? {
-      info: console.error.bind(null, '[WoClaw]'),
-      warn: console.error.bind(null, '[WoClaw WARN:]'),
-      error: console.error.bind(null, '[WoClaw ERROR:]'),
-      debug: console.error.bind(null, '[WoClaw DEBUG:]'),
-    };
+    const logger = runtime?.logger ?? createPluginLogger({
+      warn: '[WoClaw WARN:]',
+      error: '[WoClaw ERROR:]',
+      debug: '[WoClaw DEBUG:]',
+    });
     if (effectiveCfg.enabled !== false) {
       const dispatchFn = (msg: WoClawDispatchPayload) => {
         if (runtime?.dispatch) runtime.dispatch(msg);
@@ -519,12 +519,11 @@ export const woclawChannelPlugin: ChannelPlugin = {
   register: (api: WoClawAdapterRuntime) => {
     const cfg = api?.cfg;
     const effectiveCfg = cfg ?? {};
-    const logger = api?.logger ?? {
-      info: console.error.bind(null, '[WoClaw]'),
-      warn: console.error.bind(null, '[WoClaw WARN:]'),
-      error: console.error.bind(null, '[WoClaw ERROR:]'),
-      debug: console.error.bind(null, '[WoClaw DEBUG:]'),
-    };
+    const logger = api?.logger ?? createPluginLogger({
+      warn: '[WoClaw WARN:]',
+      error: '[WoClaw ERROR:]',
+      debug: '[WoClaw DEBUG:]',
+    });
     if (effectiveCfg.enabled !== false) {
       const dispatchFn = (msg: WoClawDispatchPayload) => {
         if (api?.runtime?.dispatch) api.runtime.dispatch(msg);

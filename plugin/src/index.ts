@@ -6,7 +6,7 @@ import { defineChannelPluginEntry } from 'openclaw/plugin-sdk/core';
 import { woclawChannelPlugin, channelInstance, type WoClawAdapterRuntime, type WoClawPluginConfig } from './channel.js';
 import { readFileSync } from 'fs';
 import { homedir } from 'os';
-import { pluginError } from './plugin_log.js';
+import { pluginError, createPluginLogger } from './plugin_log.js';
 
 // Shape of ~/.openclaw/openclaw.json (or the in-memory equivalent). Only
 // the bits the plugin reads are typed; unknown fields are ignored.
@@ -41,11 +41,11 @@ function initWoclaw(api: WoClawAdapterRuntime) {
       processName.includes('gateway') ||
       process.argv.length <= 1;
     if (!isGatewayService) {
-      const logger = api.logger ?? { info: console.error.bind(null, '[WoClaw]'), warn: console.error.bind(null, '[WoClaw] WARN:'), error: console.error.bind(null, '[WoClaw] ERROR:'), debug: console.error.bind(null, '[WoClaw] DEBUG:') };
+      const logger = api.logger ?? createPluginLogger();
       logger.debug('[WoClaw] Skipping auto-connect outside gateway service');
       return;
     }
-    const logger = api.logger ?? { info: console.error.bind(null, '[WoClaw]'), warn: console.error.bind(null, '[WoClaw] WARN:'), error: console.error.bind(null, '[WoClaw] ERROR:'), debug: console.error.bind(null, '[WoClaw] DEBUG:') };
+    const logger = api.logger ?? createPluginLogger();
     channelInstance.initialize(cfg, (msg) => { if (api.runtime?.dispatch) api.runtime.dispatch(msg); }, logger);
   }
 }
