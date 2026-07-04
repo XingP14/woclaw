@@ -11,6 +11,7 @@ import http from 'http';
 import type { StorageConfig } from './types.js';
 import { errorMessage } from './errors.js';
 import { hubLog, hubWarn, hubError } from './hub_log.js';
+import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
 
 /**
  * Parse an integer-valued process.env variable.
@@ -109,16 +110,7 @@ const DEFAULT_CONFIG: Config = {
 };
 
 async function main() {
-  console.log(`
-  ██████╗ ███████╗██╗   ██╗    ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗
-  ██╔══██╗██╔════╝██║   ██║    ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝
-  ██║  ██║█████╗  ██║   ██║    ██║     ██║██╔██╗ ██║██║   ██║ ╚███╔╝ 
-  ██║  ██║██╔══╝  ╚██╗ ██╔╝    ██║     ██║██║╚██╗██║██║   ██║ ██╔██╗ 
-  ██████╔╝███████╗ ╚████╔╝     ███████╗██║██║ ╚████║╚██████╔╝██╔╝ ██╗
-  ╚═════╝ ╚══════╝  ╚═══╝      ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝
-  
-  OpenClaw Multi-Agent Communication Hub
-  `);
+  printStartupHeader();
 
   // Load config from environment or file
   let config = DEFAULT_CONFIG;
@@ -135,20 +127,7 @@ async function main() {
   }
 
   hubLog(`Configuration:`);
-  console.log(`  WebSocket Port: ${config.port}`);
-  console.log(`  REST Port: ${config.restPort}`);
-  console.log(`  Host: ${config.host}`);
-  console.log(`  Data Dir: ${config.dataDir}`);
-  console.log(`  Storage: ${config.storage?.type || 'sqlite'}`);
-  if (config.storage?.type === 'sqlite') {
-    console.log(`  SQLite Path: ${config.storage.sqlitePath || join(config.dataDir, 'woclaw.sqlite')}`);
-  } else if (config.storage?.type === 'mysql' && config.storage.mysql) {
-    console.log(`  MySQL Host: ${config.storage.mysql.host}:${config.storage.mysql.port || 3306}`);
-    console.log(`  MySQL Database: ${config.storage.mysql.database}`);
-  }
-  console.log(`  Auth Token: ${config.authToken.substring(0, 8)}...`);
-  console.log(`  TLS: ${config.tlsKey ? 'enabled (wss:// + https://)' : 'disabled (ws:// + http://)'}`);
-  console.log('');
+  printConfigDump(config);
 
   // Initialize database
   const db = new ClawDB(config);
@@ -173,10 +152,18 @@ async function main() {
   forgettingScheduler.start();
   restServer.setForgettingScheduler(forgettingScheduler);
 
-  // v1.0: Start Web UI static file server on port 8084
+  // v1.0: Start Web UI static file server on port 8084. The Web UI URL
+  // is appended to the Endpoints banner below — only when the static dir
+  // actually exists (gated by the listen callback path). We capture the
+  // `uiEnabled` flag here and pass it to printEndpointsBanner at the end
+  // of main(); pre-refactor the URL printed inside uiServer.listen itself,
+  // so this round shifts the print site from the listen callback to the
+  // banner helper while preserving the conditional behaviour.
   const uiPort = 8084;
   const publicDir = join(process.cwd(), 'public');
+  let uiEnabled = false;
   if (existsSync(publicDir)) {
+    uiEnabled = true;
     const mimeTypes: Record<string, string> = {
       '.html': 'text/html', '.js': 'application/javascript',
       '.css': 'text/css', '.json': 'application/json',
@@ -189,9 +176,7 @@ async function main() {
       res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
       res.end(readFileSync(filePath));
     });
-    uiServer.listen(uiPort, () => {
-      console.log(`  Web UI:    http://${config.host}:${uiPort}`);
-    });
+    uiServer.listen(uiPort);
     process.on('SIGINT', () => { uiServer.close(); });
     process.on('SIGTERM', () => { uiServer.close(); });
   }
@@ -199,12 +184,7 @@ async function main() {
   hubLog('Server started successfully');
   console.log('');
   hubLog('Endpoints:');
-  const wsProto = config.tlsKey ? 'wss' : 'ws';
-  const restProto = config.tlsKey ? 'https' : 'http';
-  console.log(`  WebSocket: ${wsProto}://${config.host}:${config.port}`);
-  console.log(`  REST API:  ${restProto}://${config.host}:${config.restPort}`);
-  console.log(`  Graph:     ${restProto}://${config.host}:${config.restPort}/graph/{nodes,edges,stats}`);
-  console.log('');
+  printEndpointsBanner(config, uiEnabled ? uiPort : undefined);
 
   // Graceful shutdown
   const shutdown = () => {
