@@ -17,6 +17,7 @@
 //   3 = both (1 + 2) — some files drift and some are missing frontmatter
 //   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
 //   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
+//   node scripts/sync-skill-frontmatter.mjs --diff                # dry-run + per-file unified-diff (07-06 06:43 cron) — shows the byte-level change before --write
 //   node scripts/sync-skill-frontmatter.mjs --exclude <tags>      # comma-sep pkg tags to skip (07-01 03:03 cron: for skill spec docs that are intentionally not compatible_with lists)
 //
 // Strategy:
@@ -51,6 +52,11 @@ const sourceIdx = process.argv.indexOf('--source');
 const sourcePkg = sourceIdx > -1 ? process.argv[sourceIdx + 1] : null;
 const verbose = args.has('--verbose') || args.has('-v');
 const allMode = args.has('--all') || args.has('-a');
+// --diff: in dry-run mode, also print a per-file unified-diff so operators can see
+// the byte-level change before committing --write. Under --write the file already
+// changes on disk (no need to print); under --check the diff is useful so operators
+// can audit what would change before deciding to --write.
+const diffMode = args.has('--diff') || args.has('-d');
 // --include <csv>: comma-separated list of directories (relative to repoRoot) to
 // scan 1-level deep for SKILL.md. Each child subdir's SKILL.md is added to the
 // discovery list. Used to cover per-skill workspace shims like plugin/skills/*
@@ -147,6 +153,36 @@ function rewriteCompatible(rawFrontmatter, newList) {
   }
   const inner = rawFrontmatter.slice(0, closerIdx);
   return `${inner}\ncompatible_with: [${joined}]\n---`;
+}
+
+
+/**
+ * Build a minimal unified-diff (lines starting with ' ', '-', '+') for a single
+ * SKILL.md file. Scope is restricted to the frontmatter block to keep output
+ * short — the rest of the file is byte-identical so showing it would be noise.
+ * Returns a string ready to print to stdout.
+ */
+function formatUnifiedDiff(filePath, beforeText, afterText) {
+  const beforeFmMatch = beforeText.match(/^---\n([\s\S]*?)\n---\n/);
+  const afterFmMatch = afterText.match(/^---\n([\s\S]*?)\n---\n/);
+  const beforeFm = beforeFmMatch ? beforeFmMatch[0] : '<no frontmatter>\n';
+  const afterFm = afterFmMatch ? afterFmMatch[0] : '<no frontmatter>\n';
+  if (beforeFm === afterFm) return '';
+  const beforeLines = beforeFm.split('\n');
+  const afterLines = afterFm.split('\n');
+  const out = ['--- a/' + filePath, '+++ b/' + filePath, '@@ frontmatter @@'];
+  // Emit deletions first, then additions. We use a simple longest-common-prefix
+  // (LCP) approach: lines present in before but not in after are '-', vice versa.
+  const afterSet = new Set(afterLines);
+  const beforeSet = new Set(beforeLines);
+  for (const ln of beforeLines) {
+    if (afterSet.has(ln)) out.push(' ' + ln);
+    else out.push('-' + ln);
+  }
+  for (const ln of afterLines) {
+    if (!beforeSet.has(ln)) out.push('+' + ln);
+  }
+  return out.join('\n');
 }
 
 function findSkillFiles(root) {
@@ -332,6 +368,14 @@ function main() {
       console.log(`✏️  wrote ${p.path} (${before.length} → ${canonical.length} items)`);
     } else {
       console.log(`🔎 would rewrite ${p.path} (${before.length} → ${canonical.length} items)`);
+      if (diffMode) {
+        // 07-06 06:43 cron: --diff prints the byte-level change so operators can
+        // audit the rewrite before committing --write. Scope to the frontmatter
+        // block only — the rest of the file is unchanged so showing it would be
+        // pure noise.
+        const diff = formatUnifiedDiff(p.path, text, newText);
+        if (diff) console.log(diff);
+      }
     }
   }
 

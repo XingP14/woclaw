@@ -591,3 +591,100 @@ describe('sync-skill-frontmatter.mjs --check exit codes (07-04 04:23 cron)', () 
     expect(r.stdout).toMatch(/\[WRITE\] 0\/2 auto-fixable, 1 manual-fix files drifted/);
   });
 });
+
+
+// 07-06 06:43 cron addition: --diff flag prints a per-file unified-diff in
+// dry-run mode so operators can audit the byte-level change before --write.
+// Scoped to the frontmatter block (the rest of the file is byte-identical so
+// showing it would be pure noise). 4 gates:
+//   1. --diff emits a unified-diff hunk per drifted file under default dry-run
+//   2. --diff under --check emits the same diff (still useful pre-merge triage)
+//   3. --diff is silent when --write is also passed (file already changed)
+//   4. --diff is silent when no drift exists (clean baseline)
+describe('sync-skill-frontmatter.mjs --diff (07-06 06:43 cron)', () => {
+  let tmpRoot: string;
+  let pkgA: string;
+  let pkgB: string;
+  const scriptRun = (args: string[]) => spawnSync('node', [scriptPath, ...args], {
+    cwd: tmpRoot,
+    env: { ...process.env, WOCLAW_ROOT: tmpRoot },
+    encoding: 'utf8',
+  });
+
+  function writeSkill(dir: string, pkgName: string, compatList: string[]) {
+    mkdirSync(dir, { recursive: true });
+    const fm = `---\nname: ${pkgName}\ndescription: test\ncompatible_with: [${compatList.join(', ')}]\n---\n\n# ${pkgName} body\n`;
+    writeFileSync(join(dir, 'SKILL.md'), fm);
+  }
+
+  beforeAll(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-diff-'));
+    pkgA = join(tmpRoot, 'packages', 'pkg-a');
+    pkgB = join(tmpRoot, 'packages', 'pkg-b');
+  });
+
+  afterAll(() => {
+    if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  beforeEach(() => {
+    writeSkill(pkgA, 'pkg-a', ['claude-code']);
+    writeSkill(pkgB, 'pkg-b', ['vscode']);
+  });
+
+  it('--diff (dry-run) prints a unified-diff per drifted file (2 files, 2 hunks)', () => {
+    const r = scriptRun(['--diff']);
+    expect(r.status).toBe(0);
+    // Each drifted file emits a `--- a/<path>` + `+++ b/<path>` + `@@ frontmatter @@`
+    // header triple. With 2 drifted files we expect 2 such triples.
+    const aHeaders = (r.stdout.match(/^--- a\//gm) || []).length;
+    const bHeaders = (r.stdout.match(/^\+\+\+ b\//gm) || []).length;
+    expect(aHeaders).toBe(2);
+    expect(bHeaders).toBe(2);
+    // Each hunk header line carries `@@ frontmatter @@` (our scope marker).
+    const hunkHeaders = (r.stdout.match(/^@@ frontmatter @@/gm) || []).length;
+    expect(hunkHeaders).toBe(2);
+    // The diff must include the OLD `compatible_with` line as a `-` deletion
+    // and the NEW line as a `+` addition (the canonical union is sorted).
+    expect(r.stdout).toMatch(/-compatible_with: \[claude-code\]/);
+    expect(r.stdout).toMatch(/\+compatible_with: \[claude-code, vscode\]/);
+  });
+
+  it('--diff under --check emits the same diff hunks (still pre-merge triage useful)', () => {
+    const r = scriptRun(['--diff', '--check']);
+    expect(r.status).toBe(1); // auto-fixable drift → exit 1
+    const aHeaders = (r.stdout.match(/^--- a\//gm) || []).length;
+    expect(aHeaders).toBe(2);
+    // --check summary line still surfaces the drift bucket (regression gate
+    // against accidentally silencing --check output when --diff is also passed).
+    expect(r.stdout).toMatch(/auto-fixable drift detected/);
+  });
+
+  it('--diff is silent when --write is also passed (file already changes on disk)', () => {
+    // Under --write the file IS rewritten, so printing the diff in addition
+    // is noise. The script must NOT emit any diff hunks in --write mode
+    // regardless of --diff's presence.
+    const r = scriptRun(['--diff', '--write']);
+    expect(r.status).toBe(0);
+    const aHeaders = (r.stdout.match(/^--- a\//gm) || []).length;
+    expect(aHeaders).toBe(0);
+    // The rewrite summary line still appears (regression gate).
+    expect(r.stdout).toMatch(/wrote .*pkg-a\/SKILL\.md/);
+    expect(r.stdout).toMatch(/wrote .*pkg-b\/SKILL\.md/);
+  });
+
+  it('--diff is silent when no drift exists (clean baseline)', () => {
+    // beforeEach resets pkg-a / pkg-b back to drift state. For this gate we
+    // explicitly write the CONVERGED compatible_with list into both files so
+    // a follow-up --diff dry-run must NOT emit any diff hunks (otherwise the
+    // per-file hunk count would mis-report "drift"). This is the regression
+    // gate against --diff silently emitting hunks for already-in-sync files.
+    writeSkill(pkgA, 'pkg-a', ['claude-code', 'vscode']);
+    writeSkill(pkgB, 'pkg-b', ['claude-code', 'vscode']);
+    const r = scriptRun(['--diff']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/\[DRY-RUN\] 0\/2 files drifted/);  // dry-run uses "0/N files drifted", not the check-mode "all in sync" line
+    const aHeaders = (r.stdout.match(/^--- a\//gm) || []).length;
+    expect(aHeaders).toBe(0);
+  });
+});
