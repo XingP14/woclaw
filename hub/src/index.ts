@@ -182,7 +182,8 @@ async function main() {
   }
 
   hubLog('Server started successfully');
-  console.log('');
+  // chain #16: blank-line separator moved INTO printEndpointsBanner helper
+  // (was inline at L185, helper now prints leading console.log('') itself)
   hubLog('Endpoints:');
   printEndpointsBanner(config, uiEnabled ? uiPort : undefined);
 

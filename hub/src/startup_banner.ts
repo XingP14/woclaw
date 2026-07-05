@@ -102,6 +102,10 @@ export function printConfigDump(config: Config): void {
  * public/ dir existed).
  */
 export function printEndpointsBanner(config: Config, uiPort?: number): void {
+  // chain #16: leading blank line that was inline at hub/src/index.ts main() L185
+  // (separator between "Server started successfully" and "Endpoints:" section)
+  // — moved INTO the helper so callers no longer carry an orphan console.log('').
+  console.log('');
   const wsProto = config.tlsKey ? 'wss' : 'ws';
   const restProto = config.tlsKey ? 'https' : 'http';
   if (uiPort !== undefined) {

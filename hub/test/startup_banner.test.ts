@@ -328,7 +328,8 @@ describe('hub/src/startup_banner.ts helpers (07-05 05:23 cron regression gate)',
         tlsCert: undefined,
       } as any;
       mod.printEndpointsBanner(cfg);
-      expect(logSpy).toHaveBeenCalledTimes(4);
+      // chain #16: printEndpointsBanner now emits leading blank line, so total is 5 (blank + 3 endpoints + trailing blank)
+      expect(logSpy).toHaveBeenCalledTimes(5);
       const flat = logSpy.mock.calls.map(c => c[0]).join('\n');
       expect(flat).toContain('WebSocket: ws://127.0.0.1:8765');
       expect(flat).toContain('REST API:  http://127.0.0.1:8766');
@@ -349,7 +350,8 @@ describe('hub/src/startup_banner.ts helpers (07-05 05:23 cron regression gate)',
         tlsCert: undefined,
       } as any;
       mod.printEndpointsBanner(cfg, 8084);
-      expect(logSpy).toHaveBeenCalledTimes(5);
+      // chain #16: printEndpointsBanner now emits leading blank line, so total is 6 (blank + Web UI + 3 endpoints + trailing blank)
+      expect(logSpy).toHaveBeenCalledTimes(6);
       const flat = logSpy.mock.calls.map(c => c[0]).join('\n');
       expect(flat).toContain('Web UI:    http://127.0.0.1:8084');
       expect(flat).toContain('WebSocket: ws://127.0.0.1:8765');
@@ -373,5 +375,53 @@ describe('hub/src/startup_banner.ts helpers (07-05 05:23 cron regression gate)',
       expect(flat).toContain('REST API:  https://127.0.0.1:8766');
       expect(flat).toContain('Graph:     https://127.0.0.1:8766/graph/{nodes,edges,stats}');
     });
+  });
+});
+
+// =====================================================================
+// chain #16: blank-line separator moved INTO printEndpointsBanner helper
+// (07-05 07:09 cron regression gate; closes last remaining inline console.log
+// in hub/src/index.ts main() — was at L185 between "Server started" and
+// "Endpoints:" hubLog lines; cosmetic refactor)
+// =====================================================================
+describe('printEndpointsBanner chain #16 leading blank line (07-05 07:09 cron)', () => {
+  // chain #16: leading console.log('') blank-line separator was migrated
+  // FROM hub/src/index.ts main() L185 INTO printEndpointsBanner helper.
+  // Tests below avoid fragile regex body-extraction (the previous regex
+  // /export function printEndpointsBanner\([\s\S]*?\)\s*\{\s*([\s\S]*?)\n\}/
+  // breaks when the helper body contains nested `if (...) { ... }` blocks,
+  // because the non-greedy match terminates at the inner `\n}` first and
+  // returns the wrong body slice). Instead we use grep-style substring
+  // checks against the raw source — robust to indentation / comments /
+  // nested blocks.
+  it('startup_banner.ts printEndpointsBanner body contains leading console.log(\'\') after `=> void {`', () => {
+    const src = readSrc(BANNER_TS);
+    // find the printEndpointsBanner helper declaration
+    const declIdx = src.indexOf('export function printEndpointsBanner(');
+    expect(declIdx).toBeGreaterThan(-1);
+    // find the opening `{` after the closing `)` of the signature
+    const sigEnd = src.indexOf('): void {', declIdx);
+    expect(sigEnd).toBeGreaterThan(-1);
+    const bodyStart = sigEnd + '): void {'.length;
+    // chain #16: the first non-comment, non-whitespace token inside the
+    // helper body must be console.log(''); — use a 200-char window.
+    const window = src.substring(bodyStart, bodyStart + 600);
+    // strip line comments and block comments inside the window
+    const stripped = window
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(stripped.trimStart().startsWith("console.log('');")).toBe(true);
+  });
+
+  it('hub/src/index.ts main() has 0 uncommented console.log(\'\') blank-line separator (chain #16 closure)', () => {
+    const src = readSrc(INDEX_TS);
+    // chain #16: the L185 inline console.log('') was migrated INTO
+    // printEndpointsBanner helper. Strip line comments and block comments
+    // before searching so the trailing `console.log('')` reference inside
+    // the explanatory comment at L186 does not false-positive.
+    const stripped = src
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(stripped).not.toMatch(/console\.log\(''\)/);
   });
 });
