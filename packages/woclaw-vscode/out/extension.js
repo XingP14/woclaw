@@ -49,7 +49,7 @@ function httpGet(path) {
         const url = getHubUrl();
         const req = http.get(`${url}${path}`, (res) => {
             let data = '';
-            res.on('data', (chunk) => data += chunk);
+            res.on('data', (chunk) => { data += chunk.toString('utf8'); });
             res.on('end', () => {
                 try {
                     resolve(JSON.parse(data));
