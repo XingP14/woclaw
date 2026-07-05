@@ -78,7 +78,7 @@ describe('plugin/src/plugin_log.ts helper extraction (07-04 01:43 cron chain #6)
     const indexSrc = readFileSync(resolve(__dirname, '../plugin/src/index.ts'), 'utf-8');
 
     it('imports pluginError from ./plugin_log.js', () => {
-      expect(indexSrc).toMatch(/^import \{ pluginError \} from '\.\/plugin_log\.js';$/m);
+      expect(indexSrc).toMatch(/^import \{ pluginError(, [\w]+)? \} from '\.\/plugin_log\.js';$/m);  // allows createPluginLogger co-import (chain #8 0531355 closure)
     });
 
     it('has exactly 2 pluginError call sites in plugin/src/index.ts', () => {
@@ -108,9 +108,11 @@ describe('plugin/src/plugin_log.ts helper extraction (07-04 01:43 cron chain #6)
       // The { info: console.error.bind(...), warn: ..., error: ..., debug: ... } objects
       // are a different pattern (logger fallback abstraction), not part of this round.
       // Verify they are still present (no accidental migration).
+      // chain #8 0531355 closure: bind-fallback logger objects on old L43+L47 were replaced
+      // by pluginError(0) + createPluginLogger() factories; the bind() pattern is gone.
+      // The test now asserts zero residual bind() patterns (stale >=2 assertion removed).
       const bindMatches = indexSrc.match(/console\.error\.bind\(null, '\[WoClaw\]'\)/g) || [];
-      // L43 + L47 each have 1 `info: console.error.bind(null, '[WoClaw]')` line = 2 sites
-      expect(bindMatches.length).toBeGreaterThanOrEqual(2);
+      expect(bindMatches.length).toBe(0);
     });
   });
 });
