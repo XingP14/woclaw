@@ -66,6 +66,23 @@ function httpGet(path) {
 async function fetchHubHealth() {
     return httpGet('/health');
 }
+// formatHubStatusBar: centralize the 2 statusBarItem.text+color templates used
+// by updateStatusBar. Without this helper, the `$(hubot) WoClaw:` prefix + the
+// green/red hex codes were duplicated across the connected + disconnected
+// branches, which risks drift if one site changes. Chain #18
+// status-bar-format-extraction parallels woclaw-side hub chain #15/#16.
+function formatHubStatusBar(health) {
+    if (health && health.status === 'ok') {
+        return {
+            text: `$(hubot) WoClaw: ${health.agents} agents / ${health.topics} topics`,
+            color: '#4caf50',
+        };
+    }
+    return {
+        text: '$(hubot) WoClaw: Disconnected',
+        color: '#f44336',
+    };
+}
 // ─── Status Bar ───────────────────────────────────────────────────────────────
 async function updateStatusBar() {
     const cfg = vscode.workspace.getConfiguration('woclaw');
@@ -74,16 +91,10 @@ async function updateStatusBar() {
         return;
     }
     const health = await fetchHubHealth();
-    if (health && health.status === 'ok') {
-        statusBarItem.text = `$(hubot) WoClaw: ${health.agents} agents / ${health.topics} topics`;
-        statusBarItem.color = '#4caf50';
-        statusBarItem.show();
-    }
-    else {
-        statusBarItem.text = `$(hubot) WoClaw: Disconnected`;
-        statusBarItem.color = '#f44336';
-        statusBarItem.show();
-    }
+    const fmt = formatHubStatusBar(health);
+    statusBarItem.text = fmt.text;
+    statusBarItem.color = fmt.color;
+    statusBarItem.show();
 }
 // ─── Tree Data Providers ─────────────────────────────────────────────────────
 class TopicsTreeDataProvider {
