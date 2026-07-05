@@ -36,10 +36,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/XingP14/woclaw.git"
+    "url": "git+https://github.com/XingP14/woclaw.git",
+    "directory": "packages/codex-woclaw"
   },
   "bugs": {
     "url": "https://github.com/XingP14/woclaw/issues"
   },
-  "homepage": "https://github.com/XingP14/woclaw#readme"
+  "homepage": "https://github.com/XingP14/woclaw#readme",
+  "author": "XingP14"
 }

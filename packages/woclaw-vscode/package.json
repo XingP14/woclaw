@@ -142,7 +142,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/XingP14/woclaw.git"
+    "url": "git+https://github.com/XingP14/woclaw.git",
+    "directory": "packages/woclaw-vscode"
   },
   "bugs": {
     "url": "https://github.com/XingP14/woclaw/issues"

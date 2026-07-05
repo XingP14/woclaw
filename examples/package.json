@@ -18,5 +18,14 @@
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "check": "node --check example_log.js && node --check ws-client.mjs"
+  },
+  "author": "XingP14",
+  "bugs": {
+    "url": "https://github.com/XingP14/woclaw/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XingP14/woclaw.git",
+    "directory": "examples"
   }
 }
