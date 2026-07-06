@@ -2,7 +2,7 @@
  * packages/woclaw-hooks/tests/cli-log.test.js
  *
  * Regression tests for cli_log.js — helper-extraction per-prefix pattern
- * chain #10 closure. 07-04 06:34 cron.
+ * chain #10 closure + chain #11 gemini 漏更 closure + chain #12 claude 漏更 closure. 07-07 01:03 cron.
  *
  * Mirrors packages/opencode-woclaw-plugin/tests/opencode-plugin-log.test.js
  * structure (12 tests total): all CJS (matches woclaw-hooks subpackage
@@ -11,7 +11,7 @@
  *   - 3 module shape tests
  *   - 3 canonical signature tests
  *   - 3 runtime wire-format parity tests
- *   - 3 closure / import + 55-site migration parity tests
+ *   - 3 closure / import + 61-site migration parity tests
  *
  * Run with: node --test packages/woclaw-hooks/tests/cli-log.test.js
  */
@@ -144,7 +144,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
 
-  // ── closure / 55-site migration parity (3) ───────────────────────────
+  // ── closure / 61-site migration parity (3) ───────────────────────────
   await t.test('all 6 modified files import cli_log via require', () => {
     const installSrc = readFileSync(INSTALL_PATH, 'utf-8');
     const claudeSrc = readFileSync(CLAUDE_PATH, 'utf-8');
@@ -176,7 +176,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
 
-  await t.test('total hook call sites across 6 files = 49 (install 21 + claude 6 + codex-migrate 5 + gemini 6 + openclaw 7 + codex-woclaw-cli 4)', () => {
+  await t.test('total hook call sites across 6 files = 61 (install 21 + claude 12 + codex-migrate 5 + gemini 12 + openclaw 7 + codex-woclaw-cli 4)', () => {
     const RE = /\bhooks(?:Ok|Warn|Step|List|Hint|Note|Config|Status|Remove|Err)\s*\(/g;
     const countCalls = (p) => {
       const src = readFileSync(p, 'utf-8');
@@ -195,7 +195,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
       'codex-woclaw-cli': countCalls(CODEX_CLI_PATH),
     };
     assert.deepEqual(counts,
-      { install: 21, claude: 6, 'codex-migrate': 5, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
+      { install: 21, claude: 12, 'codex-migrate': 5, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
       'migration site counts shifted: got ' + JSON.stringify(counts));
   });
   // ── chain #11 closure: gemini-migrate 漏更 closure (3 new tests) ───────
@@ -238,6 +238,44 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     ];
     for (const re of EXPECTED) {
       assert.match(src, re, 'expected chain #11 call site: ' + re);
+    }
+  });
+  // ── chain #12 closure: claude-migrate 漏更 closure (3 new tests) ───────
+  await t.test('claude-migrate.js: 0 inline status console.log sites remain (excl printHelp template + 2 blank-line spacers)', () => {
+    const src = readFileSync(CLAUDE_PATH, 'utf-8');
+    // Strip the printHelp multi-line template literal call (1 site) and the 2 blank-line spacers.
+    // Remaining inline console.log must be 0 after chain #12 (5 status sites + 1 console.error closed).
+    const stripped = src
+      .replace(/console\.log\(\s*`[\s\S]*?`\s*\);/g, '')                       // 1 multi-line template literal (printHelp)
+      .replace(/console\.log\(\s*''\s*\);/g, '');                                    // 2 blank-line spacers (L171/L179)
+    const INLINE_RE = /console\.log\(/g;
+    const matches = stripped.match(INLINE_RE) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline status console.log sites after chain #12 migration, found ' + matches.length);
+  });
+
+  await t.test('claude-migrate.js: 0 inline console.error sites remain (catch handler migrated to hooksErr)', () => {
+    const src = readFileSync(CLAUDE_PATH, 'utf-8');
+    const matches = src.match(/console\.error\(/g) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline console.error sites after chain #12 migration, found ' + matches.length);
+  });
+
+  await t.test('claude-migrate.js: imports hooksNote + hooksErr from cli_log (chain #12 additions)', () => {
+    const src = readFileSync(CLAUDE_PATH, 'utf-8');
+    assert.match(src, /hooksNote/, 'should destructure hooksNote');
+    assert.match(src, /hooksErr/, 'should destructure hooksErr');
+    // Verify each of the 6 new call sites is present
+    const EXPECTED = [
+      /hooksList\('No sessions found\.'\)/,                                          // was L170
+      /hooksList\(`- \$\{session\.sessionId\}  /,                                   // was L177 (session list item)
+      /hooksWarn\(`Session not found: \$\{targetValue\}`\)/,                         // was L193
+      /hooksNote\(summary\)/,                                                       // was L197
+      /hooksStep\(`→ \$\{session\.sessionId\} /,                                     // was L208 (migration progress)
+      /hooksErr\(err\)/,                                                            // was L217 (catch handler)
+    ];
+    for (const re of EXPECTED) {
+      assert.match(src, re, 'expected chain #12 call site: ' + re);
     }
   });
 });

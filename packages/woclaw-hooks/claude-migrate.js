@@ -20,7 +20,7 @@ const path = require('path');
 const readline = require('readline');
 // chain #10: emoji-decoration helpers (9th subpackage consolidation).
 const cliLog = require('./lib/cli_log');
-const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
+const { hooksOk, hooksWarn, hooksStep, hooksList, hooksNote, hooksErr } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const CLAUDE_HISTORY_FILE = process.env.CLAUDE_HISTORY_FILE || path.join(HOME, '.claude', 'history.jsonl');
@@ -167,14 +167,14 @@ async function listSessions(limit = 20) {
   const sessions = await loadHistorySessions();
   hooksList(`\nAvailable Claude Code Sessions (${CLAUDE_HISTORY_FILE})\n`);
   if (sessions.size === 0) {
-    console.log('  No sessions found.');
+    hooksList('No sessions found.');
     console.log('');
     return;
   }
 
   const ordered = [...sessions.values()].sort((a, b) => String(b.lastTimestamp || '').localeCompare(String(a.lastTimestamp || '')));
   for (const session of ordered.slice(0, limit)) {
-    console.log(`  - ${session.sessionId}  (${session.entries.length} entries)  ${session.project || 'no-project'}`);
+    hooksList(`- ${session.sessionId}  (${session.entries.length} entries)  ${session.project || 'no-project'}`);
   }
   console.log('');
 }
@@ -190,11 +190,11 @@ async function main() {
   if (mode === 'session-id') {
     const session = [...sessions.values()].find((s) => s.sessionId.includes(targetValue) || targetValue.includes(s.sessionId));
     if (!session) {
-      console.log(`Session not found: ${targetValue}`);
+      hooksWarn(`Session not found: ${targetValue}`);
       return;
     }
     const summary = buildSummary(session);
-    console.log(summary);
+    hooksNote(summary);
     await writeToHub(session.sessionId, summary);
     return;
   }
@@ -205,7 +205,7 @@ async function main() {
     let migrated = 0;
     for (const session of ordered.slice(0, limitCount)) {
       const summary = buildSummary(session);
-      console.log(`  → ${session.sessionId} (${session.entries.length} entries)`);
+      hooksStep(`→ ${session.sessionId} (${session.entries.length} entries)`);
       await writeToHub(session.sessionId, summary);
       migrated++;
     }
@@ -214,6 +214,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  hooksErr(err);
   process.exit(1);
 });
