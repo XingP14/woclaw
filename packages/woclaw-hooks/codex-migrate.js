@@ -20,7 +20,7 @@ const path = require('path');
 const readline = require('readline');
 // chain #10: emoji-decoration helpers (9th subpackage consolidation).
 const cliLog = require('./lib/cli_log');
-const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
+const { hooksOk, hooksWarn, hooksStep, hooksList, hooksNote, hooksErr } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const CODEX_HOME = process.env.CODEX_HOME || path.join(HOME, '.codex');
@@ -335,7 +335,7 @@ async function* streamHistorySessions(filterFn = () => true, limit = 10) {
  */
 async function listSessions(limit = 20) {
   hooksList(`\nAvailable Codex Sessions (${HISTORY_FILE})\n`);
-  console.log('  Session ID                                  | Created            | Messages | Model');
+  hooksList('Session ID                                  | Created            | Messages | Model');
   console.log('  --------------------------------------------|---------------------|----------|------');
 
   let count = 0;
@@ -344,12 +344,12 @@ async function listSessions(limit = 20) {
     const date = session.created_at ? session.created_at.slice(0, 19) : 'unknown';
     const msgs = String(session.message_count || 0).padStart(7);
     const model = (session.model || 'unknown').padEnd(30).slice(0, 30);
-    console.log(`  ${id} | ${date} | ${msgs} | ${model}`);
+    hooksList(`${id} | ${date} | ${msgs} | ${model}`);
     count++;
   }
 
   if (count === 0) {
-    console.log('  (no sessions found)');
+    hooksList('(no sessions found)');
   }
   console.log('');
 }
@@ -368,12 +368,12 @@ async function parseSessionById(sessionId) {
     if ((session.session_id || '').toLowerCase().includes(lowerId)) {
       const insights = extractSessionInsights(session);
       const summary = buildSessionSummary(insights);
-      console.log(summary);
+      hooksNote(summary);
       return insights;
     }
   }
 
-  console.error(`Session not found: ${sessionId}`);
+  hooksErr(`Session not found: ${sessionId}`);
   return null;
 }
 
@@ -383,7 +383,7 @@ async function parseSessionById(sessionId) {
  */
 async function parseRolloutFile(filePath) {
   if (!fs.existsSync(filePath)) {
-    console.error(`File not found: ${filePath}`);
+    hooksErr(`File not found: ${filePath}`);
     return null;
   }
 
@@ -404,12 +404,12 @@ async function parseRolloutFile(filePath) {
     .map(e => e.data?.name || e.data?.function?.name || 'unknown')
     .filter(n => n !== 'unknown');
 
-  console.log(`\n📄 Rollout: ${path.basename(filePath)}`);
-  console.log(`   Events: ${events.length}`);
-  console.log(`   Tool calls: ${toolCalls.length}`);
+  hooksNote(`\n📄 Rollout: ${path.basename(filePath)}`);
+  hooksNote(`   Events: ${events.length}`);
+  hooksNote(`   Tool calls: ${toolCalls.length}`);
   if (toolCalls.length > 0) {
     const uniqueTools = [...new Set(toolCalls)];
-    console.log(`   Tools: ${uniqueTools.join(', ')}`);
+    hooksNote(`   Tools: ${uniqueTools.join(', ')}`);
   }
   console.log('');
 
@@ -464,7 +464,7 @@ async function main() {
 
     case 'session-id':
       if (!targetValue) {
-        console.error('--session-id requires a value');
+        hooksErr('--session-id requires a value');
         process.exit(1);
       }
       const insights = await parseSessionById(targetValue);
@@ -478,7 +478,7 @@ async function main() {
 
     case 'session-file':
       if (!targetValue) {
-        console.error('--session-file requires a path');
+        hooksErr('--session-file requires a path');
         process.exit(1);
       }
       await parseRolloutFile(targetValue);
@@ -491,7 +491,7 @@ async function main() {
         const si = extractSessionInsights(session);
         if (si.stats.messages > 0) {
           const summary = buildSessionSummary(si);
-          console.log(`  → ${si.session_id} (${si.stats.messages} msgs)`);
+          hooksStep(`→ ${si.session_id} (${si.stats.messages} msgs)`);
           await writeToHub(si.session_id, summary, {
             model: si.model,
             created_at: si.created_at,
@@ -505,6 +505,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('Error:', err.message);
+  hooksErr(`Error: ${err.message}`);
   process.exit(1);
 });

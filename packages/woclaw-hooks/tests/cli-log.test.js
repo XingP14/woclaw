@@ -2,7 +2,7 @@
  * packages/woclaw-hooks/tests/cli-log.test.js
  *
  * Regression tests for cli_log.js — helper-extraction per-prefix pattern
- * chain #10 closure + chain #11 gemini 漏更 closure + chain #12 claude 漏更 closure. 07-07 01:03 cron.
+ * chain #10 closure + chain #11 gemini 漏更 closure + chain #12 claude 漏更 closure + chain #13 codex-migrate 漏更 closure. 07-07 02:43 cron.
  *
  * Mirrors packages/opencode-woclaw-plugin/tests/opencode-plugin-log.test.js
  * structure (12 tests total): all CJS (matches woclaw-hooks subpackage
@@ -144,7 +144,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
 
-  // ── closure / 61-site migration parity (3) ───────────────────────────
+  // ── closure / 75-site migration parity (3) ───────────────────────────
   await t.test('all 6 modified files import cli_log via require', () => {
     const installSrc = readFileSync(INSTALL_PATH, 'utf-8');
     const claudeSrc = readFileSync(CLAUDE_PATH, 'utf-8');
@@ -195,7 +195,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
       'codex-woclaw-cli': countCalls(CODEX_CLI_PATH),
     };
     assert.deepEqual(counts,
-      { install: 21, claude: 12, 'codex-migrate': 5, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
+      { install: 21, claude: 12, 'codex-migrate': 19, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
       'migration site counts shifted: got ' + JSON.stringify(counts));
   });
   // ── chain #11 closure: gemini-migrate 漏更 closure (3 new tests) ───────
@@ -276,6 +276,55 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     ];
     for (const re of EXPECTED) {
       assert.match(src, re, 'expected chain #12 call site: ' + re);
+    }
+  });
+
+  // ── chain #13 closure: codex-migrate 漏更 closure (3 new tests) ─────────
+  await t.test('codex-migrate.js: 0 inline status console.log sites remain (excl printHelp template + 1 table divider + 2 blank-line spacers)', () => {
+    const src = readFileSync(CODEX_MIGRATE_PATH, 'utf-8');
+    // Strip the printHelp multi-line template literal call (1 site),
+    // the 1 table divider (visual separator), and the 2 blank-line spacers.
+    // Remaining inline console.log must be 0 after chain #13 (14 status/error sites closed).
+    const stripped = src
+      .replace(/console\.log\(\s*`[\s\S]*?`\s*\);/g, '')                  // 1 multi-line template literal (printHelp)
+      .replace(/console\.log\(\s*'\s*-{10,}[^']*'\s*\);/g, '')             // 1 table divider (visual separator)
+      .replace(/console\.log\(\s*''\s*\);/g, '');                          // 2 blank-line spacers (L354/L414)
+    const INLINE_RE = /console\.log\(/g;
+    const matches = stripped.match(INLINE_RE) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline status console.log sites after chain #13 migration, found ' + matches.length);
+  });
+
+  await t.test('codex-migrate.js: 0 inline console.error sites remain (5 error sites migrated to hooksErr)', () => {
+    const src = readFileSync(CODEX_MIGRATE_PATH, 'utf-8');
+    const matches = src.match(/console\.error\(/g) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline console.error sites after chain #13 migration, found ' + matches.length);
+  });
+
+  await t.test('codex-migrate.js: imports hooksNote + hooksErr from cli_log (chain #13 additions)', () => {
+    const src = readFileSync(CODEX_MIGRATE_PATH, 'utf-8');
+    assert.match(src, /hooksNote/, 'should destructure hooksNote');
+    assert.match(src, /hooksErr/, 'should destructure hooksErr');
+    // Verify each of the 14 new call sites is present (table rows + table header + summary + errors + rollout stats + per-session progress + catch)
+    const EXPECTED = [
+      /hooksList\('Session ID\s+\| Created\s+\| Messages \| Model'\)/,        // was L338 (table header)
+      /hooksList\(`\$\{id\} \| \$\{date\} /,                                  // was L347 (table row)
+      /hooksList\('\(no sessions found\)'\)/,                                     // was L352 (table empty)
+      /hooksNote\(summary\)/,                                                       // was L371 (summary output)
+      /hooksErr\(`Session not found: \$\{sessionId\}`\)/,                        // was L376
+      /hooksErr\(`File not found: \$\{filePath\}`\)/,                            // was L386
+      /hooksNote\(`\\n\ud83d\udcc4 Rollout: /,                                    // was L407 (rollout header)
+      /hooksNote\(`   Events: \$\{events\.length\}`\)/,                          // was L408 (events stat)
+      /hooksNote\(`   Tool calls: \$\{toolCalls\.length\}`\)/,                   // was L409 (tool calls stat)
+      /hooksNote\(`   Tools: \$\{uniqueTools\.join\(', '\)\}`\)/,               // was L412 (tools list)
+      /hooksErr\('--session-id requires a value'\)/,                               // was L467
+      /hooksErr\('--session-file requires a path'\)/,                              // was L481
+      /hooksStep\(`→ \$\{si\.session_id\} /,                                      // was L494 (per-session progress)
+      /hooksErr\(`Error: \$\{err\.message\}`\)/,                                 // was L508 (catch handler)
+    ];
+    for (const re of EXPECTED) {
+      assert.match(src, re, 'expected chain #13 call site: ' + re);
     }
   });
 });
