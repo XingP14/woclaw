@@ -171,3 +171,35 @@ test('woclaw-vscode: no inline require(...) calls + path is imported at top of f
     'regression: no call site references TopicsTreeDataProvider.TOPIC_ICON_URI',
   );
 });
+
+test('woclaw-vscode: every _onDidChangeTreeData.fire() call uses literal `undefined` (regression 03768ae hardening)', () => {
+  // The first test in this file only asserts that the argument list is
+  // non-empty (e.g. `_onDidChangeTreeData.fire(undefined)` vs bare
+  // `_onDidChangeTreeData.fire()`). This test is stricter: it pins the
+  // argument to the exact `undefined` literal. A regression that
+  // accidentally switches to `null`, `void 0`, or anything else trips
+  // this check. This is the vscode tree protocol idiom for "re-render
+  // the entire tree" — passing anything else (e.g. `null`) is a
+  // semantic break (it means "the root element changed", not
+  // "everything changed").
+  //
+  // Pin the count to 3: 3 tree providers (Topics / Agents / Memory),
+  // each with one refresh() path that fires the event. This matches
+  // the count checked by the first test (>= 3).
+  const fireLines = lines
+    .map((ln) => ln.match(/_onDidChangeTreeData\.fire\s*\(([^)]*)\)/))
+    .filter((m) => m !== null);
+  assert.strictEqual(
+    fireLines.length,
+    3,
+    `expected exactly 3 .fire() sites (Topics/Agents/Memory providers), found ${fireLines.length}`,
+  );
+  for (const m of fireLines) {
+    const arg = m[1].trim();
+    assert.strictEqual(
+      arg,
+      'undefined',
+      `regression: 03768ae — .fire() argument must be the literal \`undefined\`, got "${arg}". Passing \`null\` or \`void 0\` is a semantic break (vscode tree-data-provider re-render-the-whole-tree contract).`,
+    );
+  }
+});
