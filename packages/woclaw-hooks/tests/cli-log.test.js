@@ -11,7 +11,7 @@
  *   - 3 module shape tests
  *   - 3 canonical signature tests
  *   - 3 runtime wire-format parity tests
- *   - 3 closure / import + 49-site migration parity tests
+ *   - 3 closure / import + 55-site migration parity tests
  *
  * Run with: node --test packages/woclaw-hooks/tests/cli-log.test.js
  */
@@ -144,7 +144,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
 
-  // ── closure / 49-site migration parity (3) ───────────────────────────
+  // ── closure / 55-site migration parity (3) ───────────────────────────
   await t.test('all 6 modified files import cli_log via require', () => {
     const installSrc = readFileSync(INSTALL_PATH, 'utf-8');
     const claudeSrc = readFileSync(CLAUDE_PATH, 'utf-8');
@@ -195,7 +195,49 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
       'codex-woclaw-cli': countCalls(CODEX_CLI_PATH),
     };
     assert.deepEqual(counts,
-      { install: 21, claude: 6, 'codex-migrate': 5, gemini: 6, openclaw: 7, 'codex-woclaw-cli': 4 },
+      { install: 21, claude: 6, 'codex-migrate': 5, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
       'migration site counts shifted: got ' + JSON.stringify(counts));
+  });
+  // ── chain #11 closure: gemini-migrate 漏更 closure (3 new tests) ───────
+  await t.test('gemini-migrate.js: 0 inline status console.log sites remain (excl printHelp template + 2 blank-line spacers)', () => {
+    const src = readFileSync(GEMINI_PATH, 'utf-8');
+    // Strip the printHelp template (multi-line template starting with `\nWoClaw Gemini CLI`)
+    // and the 2 blank-line spacers (console.log('') calls). The remaining inline
+    // console.log must be 0 (chain #11 closes the 5 status sites + 1 console.error).
+    // Strip the printHelp multi-line template literal call (1 site) and the 2 blank-line spacers.
+    // Remaining inline console.log must be 0 after chain #11 (5 status sites + 1 console.error closed).
+    const stripped = src
+      .replace(/console\.log\(\s*`[\s\S]*?`\s*\);/g, '')                       // 1 multi-line template literal (printHelp)
+      .replace(/console\.log\(\s*''\s*\);/g, '');                                    // 2 blank-line spacers (L203/L210)
+    // Count any inline console.log(...) that is NOT a destructured import line and NOT inside the helper file
+    const INLINE_RE = /console\.log\(/g;
+    const matches = stripped.match(INLINE_RE) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline status console.log sites after chain #11 migration, found ' + matches.length);
+  });
+
+  await t.test('gemini-migrate.js: 0 inline console.error sites remain (catch handler migrated to hooksErr)', () => {
+    const src = readFileSync(GEMINI_PATH, 'utf-8');
+    const matches = src.match(/console\.error\(/g) || [];
+    assert.equal(matches.length, 0,
+      'expected 0 inline console.error sites after chain #11 migration, found ' + matches.length);
+  });
+
+  await t.test('gemini-migrate.js: imports hooksNote + hooksErr from cli_log (chain #11 additions)', () => {
+    const src = readFileSync(GEMINI_PATH, 'utf-8');
+    assert.match(src, /hooksNote/, 'should destructure hooksNote');
+    assert.match(src, /hooksErr/, 'should destructure hooksErr');
+    // Verify each of the 6 new call sites is present
+    const EXPECTED = [
+      /hooksList\('No Gemini sessions found\.'\)/,                                  // was L202
+      /hooksList\(`- \$\{session\.sessionId\}  /,                                   // was L208 (session list item)
+      /hooksWarn\(`Session not found: \$\{targetValue\}`\)/,                        // was L224
+      /hooksNote\(summary\)/,                                                       // was L228
+      /hooksStep\(`→ \$\{session\.sessionId\} /,                                    // was L238 (migration progress)
+      /hooksErr\(err\)/,                                                            // was L247 (catch handler)
+    ];
+    for (const re of EXPECTED) {
+      assert.match(src, re, 'expected chain #11 call site: ' + re);
+    }
   });
 });

@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 // chain #10: emoji-decoration helpers (9th subpackage consolidation).
 const cliLog = require('./lib/cli_log');
-const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
+const { hooksOk, hooksWarn, hooksStep, hooksList, hooksNote, hooksErr } = cliLog;
 
 const HOME = process.env.HOME || process.env.USERPROFILE || '/root';
 const GEMINI_HOME = process.env.GEMINI_HOME || path.join(HOME, '.gemini');
@@ -199,13 +199,13 @@ async function listSessions(limit = 20) {
   const sessions = loadAllSessions();
   hooksList(`\nAvailable Gemini CLI Sessions (${GEMINI_HOME})\n`);
   if (sessions.length === 0) {
-    console.log('  No Gemini sessions found.');
+    hooksList('No Gemini sessions found.');
     console.log('');
     return;
   }
 
   for (const session of sessions.slice(0, limit)) {
-    console.log(`  - ${session.sessionId}  (${session.messages.length} messages)  ${session.startTime || 'unknown'}`);
+    hooksList(`- ${session.sessionId}  (${session.messages.length} messages)  ${session.startTime || 'unknown'}`);
   }
   console.log('');
 }
@@ -221,11 +221,11 @@ async function main() {
   if (mode === 'session-id') {
     const session = sessions.find((s) => s.sessionId.includes(targetValue) || targetValue.includes(s.sessionId));
     if (!session) {
-      console.log(`Session not found: ${targetValue}`);
+      hooksWarn(`Session not found: ${targetValue}`);
       return;
     }
     const summary = buildSummary(session);
-    console.log(summary);
+    hooksNote(summary);
     await writeToHub(session.sessionId, summary);
     return;
   }
@@ -235,7 +235,7 @@ async function main() {
     let migrated = 0;
     for (const session of sessions.slice(0, limitCount)) {
       const summary = buildSummary(session);
-      console.log(`  → ${session.sessionId} (${session.messages.length} messages)`);
+      hooksStep(`→ ${session.sessionId} (${session.messages.length} messages)`);
       await writeToHub(session.sessionId, summary);
       migrated++;
     }
@@ -244,6 +244,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  hooksErr(err);
   process.exit(1);
 });
