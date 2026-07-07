@@ -2,7 +2,7 @@
  * packages/woclaw-hooks/tests/cli-log.test.js
  *
  * Regression tests for cli_log.js — helper-extraction per-prefix pattern
- * chain #10 closure + chain #11 gemini 漏更 closure + chain #12 claude 漏更 closure + chain #13 codex-migrate 漏更 closure. 07-07 02:43 cron.
+ * chain #10 closure + chain #11 gemini 漏更 closure + chain #12 claude 漏更 closure + chain #13 codex + chain #14 openclaw 漏更 closure + chain #15 install 漏更 closure. 07-07 22:43 cron.
  *
  * Mirrors packages/opencode-woclaw-plugin/tests/opencode-plugin-log.test.js
  * structure (12 tests total): all CJS (matches woclaw-hooks subpackage
@@ -11,7 +11,7 @@
  *   - 3 module shape tests
  *   - 3 canonical signature tests
  *   - 3 runtime wire-format parity tests
- *   - 3 closure / import + 61-site migration parity tests
+ *   - 3 closure / import + 82-site migration parity (extended to 96 with chain #14 + #15) tests
  *
  * Run with: node --test packages/woclaw-hooks/tests/cli-log.test.js
  */
@@ -176,7 +176,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
 
-  await t.test('total hook call sites across 6 files = 61 (install 21 + claude 12 + codex-migrate 5 + gemini 12 + openclaw 7 + codex-woclaw-cli 4)', () => {
+  await t.test('total hook call sites across 6 files = 96 (install 28 + claude 12 + codex-migrate 19 + gemini 12 + openclaw 19 + codex-woclaw-cli 4)', () => {
     const RE = /\bhooks(?:Ok|Warn|Step|List|Hint|Note|Config|Status|Remove|Err)\s*\(/g;
     const countCalls = (p) => {
       const src = readFileSync(p, 'utf-8');
@@ -195,7 +195,7 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
       'codex-woclaw-cli': countCalls(CODEX_CLI_PATH),
     };
     assert.deepEqual(counts,
-      { install: 21, claude: 12, 'codex-migrate': 19, gemini: 12, openclaw: 7, 'codex-woclaw-cli': 4 },
+      { install: 28, claude: 12, 'codex-migrate': 19, gemini: 12, openclaw: 19, 'codex-woclaw-cli': 4 },
       'migration site counts shifted: got ' + JSON.stringify(counts));
   });
   // ── chain #11 closure: gemini-migrate 漏更 closure (3 new tests) ───────
@@ -325,6 +325,42 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     ];
     for (const re of EXPECTED) {
       assert.match(src, re, 'expected chain #13 call site: ' + re);
+    }
+  });
+  // ── chain #15 closure: install 漏更 closure (3 new tests) ─────────
+  await t.test('install.js: 0 inline status console.log sites after chain #15 (showStatus 3 + spacer)', () => {
+    const src = readFileSync(INSTALL_PATH, 'utf-8');
+    // Remaining console.log should be in printHelp template (L413-430), settingsHint display (L211), codex config display (L295), blank spacer (L387)
+    const matches = src.match(/console\.log\(/g) || [];
+    const preserved = (src.match(/console\.log\('=/) || []).length
+      + (src.match(/console\.log\('\\n/) || []).length
+      + (src.match(/console\.log\('  /) || []).length;
+    // Simpler check: count lines with console.log and ensure all are in preserve set
+    const lines = src.split('\n').filter(l => /\bconsole\.log\(/.test(l));
+    const preserveRe = /printHelp|WoClaw Hooks Installer|Usage:|Options:|Examples:|Supported frameworks|npm woclaw|settingsHint|config.toml|codex_hooks|^[ \t]*console\.log\(['"`\\\(]['"`\\\)]?\);?$/;
+    const stray = lines.filter(l => !preserveRe.test(l.trim()) && !/cli_log|hooksOk|hooksErr|hooksList|hooksNote|hooksStep|hooksWarn|hooksStatus|hooksHint|hooksRemove/.test(l));
+    assert.equal(stray.length, 0, 'expected no stray console.log in install.js, found: ' + JSON.stringify(stray));
+  });
+
+  await t.test('install.js: 0 inline console.error sites after chain #15 (catch handler migrated to hooksErr)', () => {
+    const src = readFileSync(INSTALL_PATH, 'utf-8');
+    const matches = src.match(/console\.error\(/g) || [];
+    assert.equal(matches.length, 0, 'expected 0 inline console.error sites after chain #15 migration, found ' + matches.length);
+  });
+
+  await t.test('install.js: 7 inline console.log/error sites migrated to cli_log helpers (chain #15 call sites)', () => {
+    const src = readFileSync(INSTALL_PATH, 'utf-8');
+    const sites = [
+      /hooksNote\(`   Hub URL:     \$\{config\.WOCLAW_HUB_URL\}`\)/,
+      /hooksNote\(`   Token:       \$\{config\.WOCLAW_TOKEN \? '\*\*\*'/,
+      /hooksNote\(`   Project Key: \$\{config\.WOCLAW_PROJECT_KEY\}`\)/,
+      /hooksStep\(`\\n   \$\{status\} \$\{fw\}: \$\{installed\.length\}\/\$\{cfg\.hookNames\.length\} hooks installed`\)/,
+      /hooksList\(`      - \$\{name\}`\)/,
+      /hooksOk\('\\n🎉 Done!'\)/,
+      /hooksErr\(err\?\.message \|\| String\(err\)\)/,
+    ];
+    for (const pat of sites) {
+      assert.match(src, pat, 'expected chain #15 call site: ' + pat.toString().slice(0, 60) + '...');
     }
   });
 });

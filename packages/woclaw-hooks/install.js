@@ -360,9 +360,9 @@ function uninstallHooks(framework) {
 function showStatus() {
   const config = loadExistingConfig();
   hooksStatus('\nWoClaw Hooks Status\n');
-  console.log(`   Hub URL:     ${config.WOCLAW_HUB_URL}`);
-  console.log(`   Token:       ${config.WOCLAW_TOKEN ? '***' + config.WOCLAW_TOKEN.slice(-4) : '(not set)'}`);
-  console.log(`   Project Key: ${config.WOCLAW_PROJECT_KEY}`);
+  hooksNote(`   Hub URL:     ${config.WOCLAW_HUB_URL}`);
+  hooksNote(`   Token:       ${config.WOCLAW_TOKEN ? '***' + config.WOCLAW_TOKEN.slice(-4) : '(not set)'}`);
+  hooksNote(`   Project Key: ${config.WOCLAW_PROJECT_KEY}`);
 
   for (const [fw, cfg] of Object.entries(FRAMEWORK_CONFIG)) {
     let installed;
@@ -376,11 +376,11 @@ function showStatus() {
       );
     }
     const status = installed.length === cfg.hookNames.length ? '✅' : installed.length ? '⚠️' : '❌';
-    console.log(`\n   ${status} ${fw}: ${installed.length}/${cfg.hookNames.length} hooks installed`);
+    hooksStep(`\n   ${status} ${fw}: ${installed.length}/${cfg.hookNames.length} hooks installed`);
     if (installed.length > 0) {
       for (const h of installed) {
         const name = fw === 'codex' ? `${h}.sh` : `${cfg.hookPrefix}${h}.sh`;
-        console.log(`      - ${name}`);
+        hooksList(`      - ${name}`);
       }
     }
   }
@@ -447,7 +447,7 @@ async function main() {
     : await interactiveConfig(loadExistingConfig());
 
   installHooks(framework, config);
-  console.log('\n🎉 Done!');
+  hooksOk('\n🎉 Done!');
 }
 
-main().catch(console.error);
+main().catch(err => hooksErr(err?.message || String(err)));
