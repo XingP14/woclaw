@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 // chain #10: emoji-decoration helpers (9th subpackage consolidation).
+// chain #14: migrate 12 inline console.log/error sites to cli_log helper (cli_log.js already imported).
 const cliLog = require('./lib/cli_log');
 const { hooksOk, hooksWarn, hooksStep, hooksList } = cliLog;
 
@@ -416,11 +417,11 @@ async function writeToHub(entry) {
 function printList(workspaceRoot, files) {
   hooksList(`\nOpenClaw Workspace (${workspaceRoot})\n`);
   if (files.length === 0) {
-    console.log('  No workspace memory files found.');
+    hooksList('  No workspace memory files found.');
   } else {
-    console.log('  Workspace memory files:');
+    hooksList('  Workspace memory files:');
     for (const file of files) {
-      console.log(`    - ${path.relative(workspaceRoot, file)}`);
+      hooksList(`    - ${path.relative(workspaceRoot, file)}`);
     }
   }
 }
@@ -446,19 +447,19 @@ async function main() {
       printList(workspace.root, workspaceFiles);
     }
     if (sessionStores.length > 0) {
-      console.log('\n  Session stores:');
+      hooksList('\n  Session stores:');
       for (const store of sessionStores) {
         const data = loadJson(store.path) || {};
         const count = Object.keys(data).length;
-        console.log(`    - ${store.agentId} (${count} session key(s))`);
+        hooksList(`    - ${store.agentId} (${count} session key(s))`);
       }
     } else {
-      console.log('\n  No session stores found.');
+      hooksList('\n  No session stores found.');
     }
     if (transcriptFiles.length > 0) {
-      console.log('\n  Session transcripts:');
+      hooksList('\n  Session transcripts:');
       for (const transcript of transcriptFiles) {
-        console.log(`    - ${path.relative(STATE_DIR, transcript)}`);
+        hooksList(`    - ${path.relative(STATE_DIR, transcript)}`);
       }
     }
     console.log('');
@@ -492,15 +493,15 @@ async function main() {
   }
 
   if (entries.length === 0) {
-    console.log('  No OpenClaw workspace memory or session data found.');
+    hooksList('  No OpenClaw workspace memory or session data found.');
     return;
   }
 
   let migrated = 0;
   for (const entry of entries) {
     const shortValue = entry.value.length > 140 ? `${entry.value.slice(0, 140)}...` : entry.value;
-    console.log(`  → ${entry.key}`);
-    console.log(`    ${shortValue.split('\n')[0] || ''}`);
+    hooksList(`  → ${entry.key}`);
+    hooksList(`    ${shortValue.split('\n')[0] || ''}`);
     await writeToHub(entry);
     migrated++;
   }
@@ -512,7 +513,7 @@ const SHOULD_AUTO_RUN = process.env.WOCLAW_OPENCLAW_MIGRATE_SKIP_MAIN !== '1';
 
 if (SHOULD_AUTO_RUN && require.main === module) {
   main().catch((err) => {
-    console.error(err);
+    hooksErr(err);
     process.exit(1);
   });
 }
