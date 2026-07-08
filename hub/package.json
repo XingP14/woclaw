@@ -48,7 +48,8 @@
     "tests/**/*",
     "SKILL.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "test/**/*"
   ],
   "license": "MIT",
   "publishConfig": {

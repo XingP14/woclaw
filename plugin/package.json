@@ -50,7 +50,8 @@
     "openclaw.plugin.json",
     "SKILL.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "test/**/*"
   ],
   "publishConfig": {
     "access": "public"
