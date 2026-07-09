@@ -60,3 +60,6 @@
 
 ## Tick note 2026-07-01 23:23
 - cron (5h rotation): 06-11 09:11 条目补加 - status: ✅ FIXED 行, 与 06-19 条目格式对齐 + 与底部 status snapshot 一致; 解该条目“已回滚 + 需许成拍板”文本与底部 FIXED 标记不一致的残留.
+
+## Tick note 2026-07-10 05:23
+- cron 03:23 tick (V3 27 tick/d): 9d no tick note → incremental closure. 7-01→7-10 woclaw closed chains #15/#18/#19/#20/#21/#22 (#15 require→import 8e8a6de + #18 formatHubStatusBar helper 4-test + #19 EventEmitter parity 5-gate f9df8e5 + #20 .fire/registerCommand arg 0841eb1+b57f64a+892f20d + #21 audit closure fcfa235 + #22 step-w-22 active d203ba4/e4ec429); plus 7-10 SKILL.md 8-subpackage parity 0db5131 + sync-skill-frontmatter.mjs 5-gate ce8de0d + 7-subpackage LICENSE trailing-newline 8d9fddd + subpackage-pack-files 6608706 + scripts/README.md 1e08c65. Evidence: ROADMAP.md active next: section + 6 integration-test/ regression suites + 4 packages/woclaw-vscode/test/*.test.js node:test suites. This tick patches docs/ci-failures.md: 7-01 tick note lacked trailing newline (POSIX shape drift, parallels 8d9fddd 7-subpackage LICENSE trailing-newline parity). fix(docs) non-pseudo any-time ALLOW per V3 watchdog rule 1.
