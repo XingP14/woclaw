@@ -47,7 +47,7 @@ claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab
 claude skill eval woclaw-hub --tests hub/tests/test_hub_skill.json --ab --auto-optimize
 ```
 
-The three new frontmatter flags — `claude-skill-creator-v2` / `skill-creator-ab-compatible` / `skill-auto-optimize-trigger` — let the Skill Creator 2.0 loader match woclaw-hub against its evaluator registry and run the fixture without manual scaffolding. Anthropic's internal Skill team (and the Anthropic Agent Skills catalog) can now drop the hub into their CI eval pipeline and get a per-version score automatically. Same pattern applies to all 7 subpackages — each carries its own `tests/test_<subpackage>_skill.json` fixture.
+The three new frontmatter flags — `claude-skill-creator-v2` / `skill-creator-ab-compatible` / `skill-auto-optimize-trigger` — let the Skill Creator 2.0 loader match woclaw-hub against its evaluator registry and run the fixture without manual scaffolding. Anthropic's internal Skill team (and the Anthropic Agent Skills catalog) can now drop the hub into their CI eval pipeline and get a per-version score automatically. Same pattern applies to all 8 subpackages — each carries its own `tests/test_<subpackage>_skill.json` fixture.
 
 ## When to use this skill
 
