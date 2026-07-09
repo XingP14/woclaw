@@ -688,3 +688,121 @@ describe('sync-skill-frontmatter.mjs --diff (07-06 06:43 cron)', () => {
     expect(aHeaders).toBe(0);
   });
 });
+
+
+// 07-10 01:06 cron addition: doc-comment block-shape parity gate.
+//
+// Before 07-10 01:06, `scripts/sync-skill-frontmatter.mjs` had 4 Usage lines
+// (`--all`, `--include`, `--diff`, `--exclude`) that were accidentally nested
+// INSIDE the `Exit codes (--check only):` block (lines 18-21 of the script).
+// The visible artifact was 4 `node ... sync-skill-frontmatter.mjs --xxx`
+// invocation lines appearing after the `//   3 = both (1 + 2) ...` exit-code
+// row, which broke the doc-comment block structure. A grep-based reader would
+// see the Exit codes block balloon to 8 lines and not realize lines 18-21
+// belong to a different block.
+//
+// The 5 gates below pin the correct block-shape so future cron edits cannot
+// re-introduce the drift. Block shape is determined by:
+//   (a) The `Usage:` header must appear BEFORE the `Exit codes (--check only):` header
+//   (b) The Usage block must contain all 5+ invocation lines (--write / --check /
+//       --source / --all / --include / --exclude / --diff / --verbose)
+//   (c) The Exit codes block must contain ONLY 4 invocation rows (0 / 1 / 2 / 3)
+//       and NO node invocation lines
+//   (d) No `node scripts/sync-skill-frontmatter.mjs --XXX` invocation line may
+//       appear after a line whose first non-comment chars are `// Exit codes`
+//   (e) The Usage block contains at least 8 invocation rows (sanity count)
+// Plus 1 cross-check on `--verbose` (chain #23 audit-add: documented in README
+// but was missing from script Usage block at 1e08c65 — parity closure here).
+//
+// Watchdog check string: `fix(scripts): ...` — rule 1 (real code, any time ALLOW).
+describe('sync-skill-frontmatter.mjs doc-comment block-shape parity (07-10 01:06 cron)', () => {
+  // Load the script source once at module-load time so each gate below
+  // can introspect block-shape without re-reading the file. (The earlier
+  // doc-comment parity block at line 433 uses the same `_scriptSrc` pattern.)
+  const _scriptSrc = readFileSync(scriptPath, 'utf8');
+
+  it('script header order: Usage: appears BEFORE Exit codes (--check only):', () => {
+    const usageIdx = _scriptSrc.indexOf('// Usage:');
+    const exitIdx = _scriptSrc.indexOf('// Exit codes (--check only):');
+    expect(usageIdx).toBeGreaterThan(0);
+    expect(exitIdx).toBeGreaterThan(0);
+    expect(usageIdx, '// Usage: must appear before // Exit codes').toBeLessThan(exitIdx);
+  });
+
+  it('Usage block (between // Usage: and // Exit codes) contains all 8 invocation flags', () => {
+    const usageIdx = _scriptSrc.indexOf('// Usage:');
+    const exitIdx = _scriptSrc.indexOf('// Exit codes (--check only):');
+    const usageBlock = _scriptSrc.slice(usageIdx, exitIdx);
+    // The 8 flags that must appear in the Usage block (any-time ALLOW flag list).
+    const FLAGS = ['--write', '--check', '--source', '--all', '--include', '--exclude', '--diff', '--verbose'];
+    for (const flag of FLAGS) {
+      expect(usageBlock, `Usage block must mention ${flag}`).toMatch(
+        new RegExp(`${flag.replace(/[-]/g, '\\-')}\\b`)
+      );
+      // Each flag must be preceded by a `node ...` invocation form
+      // (otherwise the doc-comment is just a bare mention without an example).
+      const lines = usageBlock.split('\n');
+      const flagLines = lines.filter((l) => l.includes(flag));
+      expect(flagLines.length, `${flag} must have a node invocation example`).toBeGreaterThanOrEqual(1);
+      expect(flagLines[0], `${flag} example must start with '//   node '`).toMatch(/^\/\/   node /);
+    }
+  });
+
+  it('Exit codes block contains ONLY the 4 numeric exit code rows + no node invocation', () => {
+    const exitIdx = _scriptSrc.indexOf('// Exit codes (--check only):');
+    // The Exit codes block runs from its header to the next blank `//` comment
+    // line (which separates it from the Strategy block below).
+    const afterExit = _scriptSrc.slice(exitIdx);
+    // Find the next `//` line that is followed by an empty comment line
+    // (the visual separator before Strategy).
+    const sepMatch = afterExit.match(/\n\/\/\n/);
+    expect(sepMatch, 'Exit codes block must end with a // separator').toBeTruthy();
+    const exitBlock = afterExit.slice(0, sepMatch!.index!);
+    // The block header is the first line; the remaining 4-6 lines are the
+    // exit code rows (0/1/2/3 + a continuation row for code 2 that wraps onto
+    // the next line via `       (run with --write ...)`).
+    const bodyLines = exitBlock.split('\n').slice(1); // drop header
+    // None of the body lines may contain `node scripts/sync-skill-frontmatter.mjs`
+    // — that would mean a Usage row leaked into the Exit codes block.
+    const nodeLines = bodyLines.filter((l) => /^\/\/   node scripts\/sync-skill-frontmatter\.mjs/.test(l));
+    expect(nodeLines, 'Exit codes block must not contain any node invocation lines').toEqual([]);
+    // The 4 numeric exit code rows (0/1/2/3) must each be present.
+    for (const code of ['0 =', '1 =', '2 =', '3 =']) {
+      expect(exitBlock, `Exit codes block must list code ${code}`).toContain(code);
+    }
+    // Total body line count must be in [4, 6] — 4 numeric rows + up to 1
+    // continuation line for code 2 + 1 closing line. Anything more means a row
+    // leaked from a sibling block.
+    expect(bodyLines.length, `Exit codes body has ${bodyLines.length} lines, expected 4-6`).toBeLessThanOrEqual(6);
+    expect(bodyLines.length, `Exit codes body has ${bodyLines.length} lines, expected >=4`).toBeGreaterThanOrEqual(4);
+  });
+
+  it('Usage block contains >= 8 invocation rows (regression gate)', () => {
+    const usageIdx = _scriptSrc.indexOf('// Usage:');
+    const exitIdx = _scriptSrc.indexOf('// Exit codes (--check only):');
+    const usageBlock = _scriptSrc.slice(usageIdx, exitIdx);
+    const invocationRows = usageBlock
+      .split('\n')
+      .filter((l) => /^\/\/   node scripts\/sync-skill-frontmatter\.mjs/.test(l));
+    expect(invocationRows.length, `Usage block has ${invocationRows.length} invocation rows, expected >=8`).toBeGreaterThanOrEqual(8);
+  });
+
+  it('no `node scripts/...` invocation line may appear AFTER the Exit codes header', () => {
+    const exitIdx = _scriptSrc.indexOf('// Exit codes (--check only):');
+    const afterExit = _scriptSrc.slice(exitIdx);
+    // Find the end of the Exit codes block (next `//` separator line).
+    const sepMatch = afterExit.match(/\n\/\/\n/);
+    expect(sepMatch, 'Exit codes block must end with a // separator').toBeTruthy();
+    const exitBlockEnd = exitIdx + sepMatch!.index! + sepMatch![0].length;
+    // Walk forward through the rest of the file until the first `import` line
+    // (anything past `import { readFileSync ...` is executable code, not doc).
+    const importIdx = _scriptSrc.indexOf('\nimport ', exitBlockEnd);
+    expect(importIdx, 'No import statement found after Exit codes block').toBeGreaterThan(0);
+    const docTail = _scriptSrc.slice(exitBlockEnd, importIdx);
+    // No `node scripts/...` invocation may appear in the doc-comment tail.
+    const leakedRows = docTail
+      .split('\n')
+      .filter((l) => /^\/\/   node scripts\/sync-skill-frontmatter\.mjs/.test(l));
+    expect(leakedRows, 'No Usage invocation row may appear in the doc-comment tail after Exit codes').toEqual([]);
+  });
+});

@@ -8,6 +8,11 @@
 //   node scripts/sync-skill-frontmatter.mjs --write               # write back
 //   node scripts/sync-skill-frontmatter.mjs --check               # CI mode: exit 0/1/2/3 (see Exit codes), no writes
 //   node scripts/sync-skill-frontmatter.mjs --source <pkg>        # treat <pkg> as canonical list
+//   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
+//   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
+//   node scripts/sync-skill-frontmatter.mjs --exclude <tags>      # comma-sep pkg tags to skip (07-01 03:03 cron: for skill spec docs that are intentionally not compatible_with lists)
+//   node scripts/sync-skill-frontmatter.mjs --diff                # dry-run + per-file unified-diff (07-06 06:43 cron) — shows the byte-level change before --write
+//   node scripts/sync-skill-frontmatter.mjs --verbose             # verbose logging (drift details, included shim files)
 //
 // Exit codes (--check only):
 //   0 = all SKILL.md compatible_with lists in sync
@@ -15,10 +20,6 @@
 //   2 = manual-fix required: at least one file has NO frontmatter block
 //       (run with --write --exclude '<pkg-tag>' or add a --- block manually)
 //   3 = both (1 + 2) — some files drift and some are missing frontmatter
-//   node scripts/sync-skill-frontmatter.mjs --all                 # also include hub/ mcp-bridge/ plugin/ SKILL.md
-//   node scripts/sync-skill-frontmatter.mjs --include <dirs>      # comma-sep extra dirs (one-level deep); each child subdir's SKILL.md scanned (07-01 cron fix: covers plugin/skills/* + skills/* drift)
-//   node scripts/sync-skill-frontmatter.mjs --diff                # dry-run + per-file unified-diff (07-06 06:43 cron) — shows the byte-level change before --write
-//   node scripts/sync-skill-frontmatter.mjs --exclude <tags>      # comma-sep pkg tags to skip (07-01 03:03 cron: for skill spec docs that are intentionally not compatible_with lists)
 //
 // Strategy:
 //   1. Read every packages/*/SKILL.md frontmatter block (YAML-like, parsed with a
