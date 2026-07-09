@@ -203,3 +203,109 @@ test('woclaw-vscode: every _onDidChangeTreeData.fire() call uses literal `undefi
     );
   }
 });
+
+test('woclaw-vscode: 3-class EventEmitter declaration parity gate (chain #19 helper-extraction pre-flight)', () => {
+  // Pre-flight regression for chain #19 helper-extraction. Three tree-data
+  // provider classes (TopicsTreeDataProvider / AgentsTreeDataProvider /
+  // MemoryTreeDataProvider) each carry the exact same two-line boilerplate:
+  //
+  //   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
+  //   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  //
+  // This is the same drift-risk pattern that 8e8a6de closed for hub
+  // (10 require() -> top-level import — chain #15) and the inline-format
+  // extraction in formatHubStatusBar() (chain #18). The 6 existing tests
+  // in this file cover fire()-args + registerCommand-handlers + httpGet
+  // generic + require()-disallowed + fire(`undefined`)-hardening but NOT
+  // the declaration-parity contract.
+  //
+  // This gate pins:
+  //   (1) exactly 3 EventEmitter constructor lines (one per provider)
+  //   (2) exactly 3 `readonly onDidChangeTreeData =` exposures
+  //   (3) the EventEmitter generic arg is `vscode.TreeItem | undefined`
+  //       (not a wider type, which would break the tree-update contract)
+  //   (4) every EventEmitter constructor is paired with an
+  //       `onDidChangeTreeData` assignment on the immediately following
+  //       line (<= 2 lines apart)
+  //   (5) NO bare `new vscode.EventEmitter<...>()` outside the 3
+  //       provider classes — i.e. helper extraction is not yet done;
+  //       if a future refactor introduces `createTreeEvents<T>()` or
+  //       similar, the bare-constructor count check fails loudly so
+  //       the test owner knows to update the expected count and
+  //       document the helper.
+  //
+  // Pre-fix verified-failing (sandbox-replay, not in this commit): drop
+  // a 4th EventEmitter class into a sandbox copy of extension.ts ->
+  // gates (1)+(2)+(5) trip (count off by one); swap
+  // `<vscode.TreeItem | undefined>` -> `<vscode.TreeItem>` -> gate (3)
+  // trips. Post-fix on the live file: all 5 gates PASS.
+
+  // Use the same code-only strip pipeline as the require-test above so
+  // we don't accidentally match the word `EventEmitter` inside a
+  // drift-narrative comment.
+  const codeOnly = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+    .replace(/\/\/.*$/gm, '');           // line comments
+  const codeLines = codeOnly.split(/\r?\n/);
+
+  // Gate (1): exactly 3 EventEmitter constructor lines, generic pinned
+  // to vscode.TreeItem | undefined.
+  const eeCtorRe = /new\s+vscode\.EventEmitter\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>\s*\(\s*\)\s*;/;
+  const eeCtorLines = codeLines
+    .map((ln, idx) => ({ ln, idx }))
+    .filter(({ ln }) => eeCtorRe.test(ln));
+  assert.strictEqual(
+    eeCtorLines.length,
+    3,
+    `expected exactly 3 'new vscode.EventEmitter<vscode.TreeItem | undefined>()' sites (Topics/Agents/Memory providers), found ${eeCtorLines.length}. Regression: chain #19 helper-extraction gate - if you added/removed a class or extracted a helper, update the expected count + leave a comment.`,
+  );
+
+  // Gate (2): exactly 3 readonly onDidChangeTreeData = .event exposures.
+  const onDidAssignRe = /readonly\s+onDidChangeTreeData\s*=\s*this\._onDidChangeTreeData\.event\s*;/;
+  const onDidAssignLines = codeLines.filter((ln) => onDidAssignRe.test(ln));
+  assert.strictEqual(
+    onDidAssignLines.length,
+    3,
+    `expected exactly 3 'readonly onDidChangeTreeData = this._onDidChangeTreeData.event;' exposures, found ${onDidAssignLines.length}. Regression: chain #19 helper-extraction gate - one exposure per provider class.`,
+  );
+
+  // Gate (3): generic-arg pinned to vscode.TreeItem | undefined (already
+  // implied by gate 1's strict regex, but assert the EXACT string again
+  // to catch a regression that drops the `| undefined` union, which
+  // would break `onDidChangeTreeData.fire(undefined)` under strict null
+  // checks).
+  const exactGenericRe = /new\s+vscode\.EventEmitter\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>/;
+  const exactHits = codeLines.filter((ln) => exactGenericRe.test(ln));
+  assert.strictEqual(
+    exactHits.length,
+    3,
+    `expected 3 EventEmitter constructors with the EXACT generic '<vscode.TreeItem | undefined>', found ${exactHits.length}. Regression: dropping the '| undefined' union breaks the fire(undefined) protocol under strict null checks.`,
+  );
+
+  // Gate (4): every EventEmitter constructor is followed (within 2
+  // lines) by the matching onDidChangeTreeData assignment, in
+  // declaration order. Catches an asymmetric regression where one
+  // provider class accidentally separates the two lines with a method
+  // body in between.
+  for (const { idx } of eeCtorLines) {
+    const window = codeLines.slice(idx + 1, idx + 3).join(' ');
+    assert.ok(
+      /readonly\s+onDidChangeTreeData\s*=\s*this\._onDidChangeTreeData\.event/.test(window),
+      `regression: chain #19 - EventEmitter constructor at src/extension.ts:${idx + 1} is not immediately followed (within 2 lines) by 'readonly onDidChangeTreeData = this._onDidChangeTreeData.event'. Current window: "${window.slice(0, 120)}"`,
+    );
+  }
+
+  // Gate (5): no bare `new vscode.EventEmitter<...>()` outside the 3
+  // classes. Pins the pre-helper-extraction state: if a future
+  // refactor introduces `createTreeEvents<T>()` or similar, the count
+  // drops from 3 -> 0 (or some intermediate number) and this gate
+  // trips, signaling the test owner to update the expected count +
+  // add a positive helper-presence gate.
+  const anyBareCtorRe = /new\s+vscode\.EventEmitter\s*<\s*[A-Za-z_][\w.\s|]*?\s*>\s*\(\s*\)\s*;/;
+  const anyBareCtorCount = codeLines.filter((ln) => anyBareCtorRe.test(ln)).length;
+  assert.strictEqual(
+    anyBareCtorCount,
+    3,
+    `chain #19 helper-extraction pre-flight: expected exactly 3 bare 'new vscode.EventEmitter<...>()' sites. Found ${anyBareCtorCount}. If you extracted a helper (e.g. createTreeEvents<T>()), update this gate + add a positive helper-presence assertion.`,
+  );
+});
