@@ -1,7 +1,7 @@
 {
   "name": "xingp14-woclaw",
   "version": "0.4.3",
-  "description": "WoClaw plugin for OpenClaw, connecting agents to WoClaw Hub for shared memory and topic-based multi-agent messaging.",
+  "description": "WoClaw plugin for OpenClaw, connecting agents to WoClaw Hub for shared memory and topic-based multi-agent messaging. + addyosmani/agent-skills 72K stars GitHub Trending #2 skill loader + dotnet/skills microsoft .NET 9 marketplace + steipete/CodexBar macOS menu-bar usage stats + awesome-claude-code community collection + 腾讯 CubeSandbox Rust 1.81+ Wasm multi-agent sandbox (2026-07 AI Agent skill standardization + multi-agent sandboxing + menu-bar ecosystem 3 main battlefields first-day anchor) compatible",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
