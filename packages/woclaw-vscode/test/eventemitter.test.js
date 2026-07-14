@@ -25,20 +25,14 @@ const src = fs.readFileSync(SRC, 'utf8');
 const lines = src.split(/\r?\n/);
 
 function lineMatchesFireCall(line) {
-  // Match a line containing `_onDidChangeTreeData.fire(`. We want to
-  // assert that on that line, `fire(` is followed by ≥1 non-`)` char
-  // before the matching `)`. A simpler proxy: `fire(...)` where ... is
-  // not empty.
-  if (!_onDidChangeTreeDataDotFireDotOpenParenRe.test(line)) return null;
-  const m = line.match(/_onDidChangeTreeData\.fire\s*\(([^)]*)\)/);
+  // Match a line containing the tree event emitter's fire call and capture
+  // its arguments. The emitter lives behind treeEvents after helper extraction.
+  const m = line.match(/treeEvents\.emitter\.fire\s*\(([^)]*)\)/);
   if (!m) return null;
   return m[1].trim();
 }
 
-const _onDidChangeTreeDataDotFireDotOpenParenRe =
-  /_onDidChangeTreeData\.fire\s*\(/;
-
-test('woclaw-vscode: every _onDidChangeTreeData.fire() call passes ≥1 arg (regression 03768ae)', () => {
+test('woclaw-vscode: every treeEvents.emitter.fire() call passes at least 1 arg (regression 03768ae)', () => {
   const argLists = lines
     .map((ln) => lineMatchesFireCall(ln))
     .filter((x) => x !== null);
@@ -172,10 +166,10 @@ test('woclaw-vscode: no inline require(...) calls + path is imported at top of f
   );
 });
 
-test('woclaw-vscode: every _onDidChangeTreeData.fire() call uses literal `undefined` (regression 03768ae hardening)', () => {
+test('woclaw-vscode: every treeEvents.emitter.fire() call uses literal `undefined` (regression 03768ae hardening)', () => {
   // The first test in this file only asserts that the argument list is
-  // non-empty (e.g. `_onDidChangeTreeData.fire(undefined)` vs bare
-  // `_onDidChangeTreeData.fire()`). This test is stricter: it pins the
+  // non-empty (e.g. `treeEvents.emitter.fire(undefined)` vs bare
+  // `treeEvents.emitter.fire()`). This test is stricter: it pins the
   // argument to the exact `undefined` literal. A regression that
   // accidentally switches to `null`, `void 0`, or anything else trips
   // this check. This is the vscode tree protocol idiom for "re-render
@@ -187,7 +181,7 @@ test('woclaw-vscode: every _onDidChangeTreeData.fire() call uses literal `undefi
   // each with one refresh() path that fires the event. This matches
   // the count checked by the first test (>= 3).
   const fireLines = lines
-    .map((ln) => ln.match(/_onDidChangeTreeData\.fire\s*\(([^)]*)\)/))
+    .map((ln) => ln.match(/treeEvents\.emitter\.fire\s*\(([^)]*)\)/))
     .filter((m) => m !== null);
   assert.strictEqual(
     fireLines.length,
@@ -204,108 +198,71 @@ test('woclaw-vscode: every _onDidChangeTreeData.fire() call uses literal `undefi
   }
 });
 
-test('woclaw-vscode: 3-class EventEmitter declaration parity gate (chain #19 helper-extraction pre-flight)', () => {
-  // Pre-flight regression for chain #19 helper-extraction. Three tree-data
-  // provider classes (TopicsTreeDataProvider / AgentsTreeDataProvider /
-  // MemoryTreeDataProvider) each carry the exact same two-line boilerplate:
-  //
-  //   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
-  //   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  //
-  // This is the same drift-risk pattern that 8e8a6de closed for hub
-  // (10 require() -> top-level import — chain #15) and the inline-format
-  // extraction in formatHubStatusBar() (chain #18). The 6 existing tests
-  // in this file cover fire()-args + registerCommand-handlers + httpGet
-  // generic + require()-disallowed + fire(`undefined`)-hardening but NOT
-  // the declaration-parity contract.
-  //
-  // This gate pins:
-  //   (1) exactly 3 EventEmitter constructor lines (one per provider)
-  //   (2) exactly 3 `readonly onDidChangeTreeData =` exposures
-  //   (3) the EventEmitter generic arg is `vscode.TreeItem | undefined`
-  //       (not a wider type, which would break the tree-update contract)
-  //   (4) every EventEmitter constructor is paired with an
-  //       `onDidChangeTreeData` assignment on the immediately following
-  //       line (<= 2 lines apart)
-  //   (5) NO bare `new vscode.EventEmitter<...>()` outside the 3
-  //       provider classes — i.e. helper extraction is not yet done;
-  //       if a future refactor introduces `createTreeEvents<T>()` or
-  //       similar, the bare-constructor count check fails loudly so
-  //       the test owner knows to update the expected count and
-  //       document the helper.
-  //
-  // Pre-fix verified-failing (sandbox-replay, not in this commit): drop
-  // a 4th EventEmitter class into a sandbox copy of extension.ts ->
-  // gates (1)+(2)+(5) trip (count off by one); swap
-  // `<vscode.TreeItem | undefined>` -> `<vscode.TreeItem>` -> gate (3)
-  // trips. Post-fix on the live file: all 5 gates PASS.
-
-  // Use the same code-only strip pipeline as the require-test above so
-  // we don't accidentally match the word `EventEmitter` inside a
-  // drift-narrative comment.
+test('woclaw-vscode: createTreeEvents<T>() centralizes EventEmitter creation + event exposure', () => {
   const codeOnly = src
-    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
-    .replace(/\/\/.*$/gm, '');           // line comments
-  const codeLines = codeOnly.split(/\r?\n/);
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
 
-  // Gate (1): exactly 3 EventEmitter constructor lines, generic pinned
-  // to vscode.TreeItem | undefined.
-  const eeCtorRe = /new\s+vscode\.EventEmitter\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>\s*\(\s*\)\s*;/;
-  const eeCtorLines = codeLines
-    .map((ln, idx) => ({ ln, idx }))
-    .filter(({ ln }) => eeCtorRe.test(ln));
-  assert.strictEqual(
-    eeCtorLines.length,
-    3,
-    `expected exactly 3 'new vscode.EventEmitter<vscode.TreeItem | undefined>()' sites (Topics/Agents/Memory providers), found ${eeCtorLines.length}. Regression: chain #19 helper-extraction gate - if you added/removed a class or extracted a helper, update the expected count + leave a comment.`,
+  assert.match(
+    codeOnly,
+    /function\s+createTreeEvents\s*<\s*T\s*>\s*\(\s*\)\s*:\s*\{\s*emitter\s*:\s*vscode\.EventEmitter\s*<\s*T\s*>\s*;\s*event\s*:\s*vscode\.Event\s*<\s*T\s*>\s*\}/,
+    'createTreeEvents<T>() must expose a typed emitter and its matching event',
   );
-
-  // Gate (2): exactly 3 readonly onDidChangeTreeData = .event exposures.
-  const onDidAssignRe = /readonly\s+onDidChangeTreeData\s*=\s*this\._onDidChangeTreeData\.event\s*;/;
-  const onDidAssignLines = codeLines.filter((ln) => onDidAssignRe.test(ln));
-  assert.strictEqual(
-    onDidAssignLines.length,
-    3,
-    `expected exactly 3 'readonly onDidChangeTreeData = this._onDidChangeTreeData.event;' exposures, found ${onDidAssignLines.length}. Regression: chain #19 helper-extraction gate - one exposure per provider class.`,
+  assert.match(
+    codeOnly,
+    /const\s+emitter\s*=\s*new\s+vscode\.EventEmitter\s*<\s*T\s*>\s*\(\s*\)\s*;/,
+    'createTreeEvents<T>() must construct the EventEmitter exactly once',
   );
-
-  // Gate (3): generic-arg pinned to vscode.TreeItem | undefined (already
-  // implied by gate 1's strict regex, but assert the EXACT string again
-  // to catch a regression that drops the `| undefined` union, which
-  // would break `onDidChangeTreeData.fire(undefined)` under strict null
-  // checks).
-  const exactGenericRe = /new\s+vscode\.EventEmitter\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>/;
-  const exactHits = codeLines.filter((ln) => exactGenericRe.test(ln));
-  assert.strictEqual(
-    exactHits.length,
-    3,
-    `expected 3 EventEmitter constructors with the EXACT generic '<vscode.TreeItem | undefined>', found ${exactHits.length}. Regression: dropping the '| undefined' union breaks the fire(undefined) protocol under strict null checks.`,
+  assert.match(
+    codeOnly,
+    /return\s*\{\s*emitter\s*,\s*event\s*:\s*emitter\.event\s*\}\s*;/,
+    'createTreeEvents<T>() must return the event owned by the same emitter',
   );
+});
 
-  // Gate (4): every EventEmitter constructor is followed (within 2
-  // lines) by the matching onDidChangeTreeData assignment, in
-  // declaration order. Catches an asymmetric regression where one
-  // provider class accidentally separates the two lines with a method
-  // body in between.
-  for (const { idx } of eeCtorLines) {
-    const window = codeLines.slice(idx + 1, idx + 3).join(' ');
-    assert.ok(
-      /readonly\s+onDidChangeTreeData\s*=\s*this\._onDidChangeTreeData\.event/.test(window),
-      `regression: chain #19 - EventEmitter constructor at src/extension.ts:${idx + 1} is not immediately followed (within 2 lines) by 'readonly onDidChangeTreeData = this._onDidChangeTreeData.event'. Current window: "${window.slice(0, 120)}"`,
+test('woclaw-vscode: all 3 providers use createTreeEvents<vscode.TreeItem | undefined>()', () => {
+  const codeOnly = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+  const providerClasses = [
+    'TopicsTreeDataProvider',
+    'AgentsTreeDataProvider',
+    'MemoryTreeDataProvider',
+  ];
+
+  for (const [index, className] of providerClasses.entries()) {
+    const nextClass = providerClasses[index + 1];
+    const start = codeOnly.indexOf(`class ${className}`);
+    assert.ok(start >= 0, `${className} declaration not found`);
+    const end = nextClass
+      ? codeOnly.indexOf(`class ${nextClass}`, start)
+      : codeOnly.indexOf('export function activate', start);
+    const block = codeOnly.slice(start, end > start ? end : undefined);
+    assert.match(
+      block,
+      /private\s+readonly\s+treeEvents\s*=\s*createTreeEvents\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>\s*\(\s*\)\s*;/,
+      `${className} must create one typed treeEvents pair`,
+    );
+    assert.match(
+      block,
+      /readonly\s+onDidChangeTreeData\s*=\s*this\.treeEvents\.event\s*;/,
+      `${className} must expose the helper-owned event`,
+    );
+    assert.match(
+      block,
+      /this\.treeEvents\.emitter\.fire\s*\(\s*undefined\s*\)/,
+      `${className} refresh path must fire undefined through the helper-owned emitter`,
     );
   }
 
-  // Gate (5): no bare `new vscode.EventEmitter<...>()` outside the 3
-  // classes. Pins the pre-helper-extraction state: if a future
-  // refactor introduces `createTreeEvents<T>()` or similar, the count
-  // drops from 3 -> 0 (or some intermediate number) and this gate
-  // trips, signaling the test owner to update the expected count +
-  // add a positive helper-presence gate.
-  const anyBareCtorRe = /new\s+vscode\.EventEmitter\s*<\s*[A-Za-z_][\w.\s|]*?\s*>\s*\(\s*\)\s*;/;
-  const anyBareCtorCount = codeLines.filter((ln) => anyBareCtorRe.test(ln)).length;
   assert.strictEqual(
-    anyBareCtorCount,
+    (codeOnly.match(/createTreeEvents\s*<\s*vscode\.TreeItem\s*\|\s*undefined\s*>\s*\(\s*\)/g) || []).length,
     3,
-    `chain #19 helper-extraction pre-flight: expected exactly 3 bare 'new vscode.EventEmitter<...>()' sites. Found ${anyBareCtorCount}. If you extracted a helper (e.g. createTreeEvents<T>()), update this gate + add a positive helper-presence assertion.`,
+    'expected one createTreeEvents call per Topics/Agents/Memory provider',
+  );
+  assert.strictEqual(
+    (codeOnly.match(/new\s+vscode\.EventEmitter/g) || []).length,
+    1,
+    'only createTreeEvents<T>() may construct a vscode.EventEmitter',
   );
 });

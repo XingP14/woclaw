@@ -7,6 +7,11 @@ interface Topic { name: string; agents: string[]; messageCount: number; type: st
 interface Agent { id: string; connectedAt: string; topics: string[]; lastSeen: string; }
 interface MemoryEntry { key: string; value: string; tags: string[]; updatedAt: string; }
 
+function createTreeEvents<T>(): { emitter: vscode.EventEmitter<T>; event: vscode.Event<T> } {
+  const emitter = new vscode.EventEmitter<T>();
+  return { emitter, event: emitter.event };
+}
+
 let statusBarItem: vscode.StatusBarItem;
 let pollTimer: NodeJS.Timeout | null = null;
 let treeRefresh: (() => void) | null = null;
@@ -81,8 +86,8 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   private static readonly TOPIC_ICON_URI = vscode.Uri.file(
     path.join(__dirname, '..', '..', 'media', 'topic.svg')
   );
-  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private readonly treeEvents = createTreeEvents<vscode.TreeItem | undefined>();
+  readonly onDidChangeTreeData = this.treeEvents.event;
   topics: Topic[] = [];
 
   getTreeItem(el: vscode.TreeItem): vscode.TreeItem { return el; }
@@ -110,13 +115,13 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   }
   async refresh(): Promise<void> {
     this.topics = await httpGet<Topic[]>('/topics') || [];
-    this._onDidChangeTreeData.fire(undefined);
+    this.treeEvents.emitter.fire(undefined);
   }
 }
 
 class AgentsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private readonly treeEvents = createTreeEvents<vscode.TreeItem | undefined>();
+  readonly onDidChangeTreeData = this.treeEvents.event;
   agents: Agent[] = [];
 
   getTreeItem(el: vscode.TreeItem): vscode.TreeItem { return el; }
@@ -130,7 +135,7 @@ class AgentsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   }
   async refresh(): Promise<void> {
     this.agents = await httpGet<Agent[]>('/agents') || [];
-    this._onDidChangeTreeData.fire(undefined);
+    this.treeEvents.emitter.fire(undefined);
   }
 }
 
@@ -145,11 +150,11 @@ class MemoryTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
           m.key.toLowerCase().includes(q.toLowerCase()) ||
           m.value.toLowerCase().includes(q.toLowerCase()))
       : ((await httpGet<MemoryEntry[]>('/memory?limit=50')) || []);
-    this._onDidChangeTreeData.fire(undefined);
+    this.treeEvents.emitter.fire(undefined);
   }
 
-  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private readonly treeEvents = createTreeEvents<vscode.TreeItem | undefined>();
+  readonly onDidChangeTreeData = this.treeEvents.event;
 
   getTreeItem(el: vscode.TreeItem): vscode.TreeItem { return el; }
   async getChildren(): Promise<vscode.TreeItem[]> {

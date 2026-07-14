@@ -38,6 +38,10 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const http = __importStar(require("http"));
 const path = __importStar(require("path"));
+function createTreeEvents() {
+    const emitter = new vscode.EventEmitter();
+    return { emitter, event: emitter.event };
+}
 let statusBarItem;
 let pollTimer = null;
 let treeRefresh = null;
@@ -99,8 +103,8 @@ async function updateStatusBar() {
 // ─── Tree Data Providers ─────────────────────────────────────────────────────
 class TopicsTreeDataProvider {
     constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.treeEvents = createTreeEvents();
+        this.onDidChangeTreeData = this.treeEvents.event;
         this.topics = [];
     }
     getTreeItem(el) { return el; }
@@ -128,7 +132,7 @@ class TopicsTreeDataProvider {
     }
     async refresh() {
         this.topics = await httpGet('/topics') || [];
-        this._onDidChangeTreeData.fire(undefined);
+        this.treeEvents.emitter.fire(undefined);
     }
 }
 // Resolved at module load (out/extension.js → ../../media/topic.svg).
@@ -139,8 +143,8 @@ class TopicsTreeDataProvider {
 TopicsTreeDataProvider.TOPIC_ICON_URI = vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'topic.svg'));
 class AgentsTreeDataProvider {
     constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.treeEvents = createTreeEvents();
+        this.onDidChangeTreeData = this.treeEvents.event;
         this.agents = [];
     }
     getTreeItem(el) { return el; }
@@ -154,15 +158,15 @@ class AgentsTreeDataProvider {
     }
     async refresh() {
         this.agents = await httpGet('/agents') || [];
-        this._onDidChangeTreeData.fire(undefined);
+        this.treeEvents.emitter.fire(undefined);
     }
 }
 class MemoryTreeDataProvider {
     constructor() {
         this.query = '';
         this.entries = [];
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.treeEvents = createTreeEvents();
+        this.onDidChangeTreeData = this.treeEvents.event;
     }
     async search(q) {
         this.query = q;
@@ -170,7 +174,7 @@ class MemoryTreeDataProvider {
             ? ((await httpGet('/memory?limit=50')) || []).filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
                 m.value.toLowerCase().includes(q.toLowerCase()))
             : ((await httpGet('/memory?limit=50')) || []);
-        this._onDidChangeTreeData.fire(undefined);
+        this.treeEvents.emitter.fire(undefined);
     }
     getTreeItem(el) { return el; }
     async getChildren() {

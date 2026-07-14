@@ -139,20 +139,18 @@ test('woclaw-vscode: all 3 httpGet failure paths resolve(null) (regression #24)'
   );
 });
 
-test('woclaw-vscode: 3 tree providers each call _onDidChangeTreeData.fire(undefined) (regression #24 + 03768ae parity)', () => {
+test('woclaw-vscode: 3 tree providers each call treeEvents.emitter.fire(undefined) (regression #24 + 03768ae parity)', () => {
   // Pins the 03768ae EventEmitter.fire() arg-signature parity across
   // the 3 tree providers (Topics / Agents / Memory) — complements
-  // test/eventemitter.test.js which is a structural floor check; this
-  // test additionally pins the EXACT provider→refresh→fire ordering.
-  // Count `fire(undefined)` occurrences inside the 3 provider classes.
-  // Each provider's `refresh()` / `search()` method must end with
-  // `this._onDidChangeTreeData.fire(undefined);` to signal VS Code
-  // to re-render the tree view.
-  const fireUndefinedRe = /this\._onDidChangeTreeData\.fire\(\s*undefined\s*\)\s*;/g;
+  // test/eventemitter.test.js which also pins the createTreeEvents helper.
+  // Each provider's refresh() / search() path must fire the helper-owned
+  // emitter with literal undefined to request a whole-tree re-render.
+  const fireUndefinedRe = /this\.treeEvents\.emitter\.fire\(\s*undefined\s*\)\s*;/g;
   const matches = codeOnly.match(fireUndefinedRe) || [];
-  assert.ok(
-    matches.length >= 3,
-    `expected ≥3 \`this._onDidChangeTreeData.fire(undefined);\` call sites (Topics/Agents/Memory), found ${matches.length} (chain #24 + 03768ae parity)`,
+  assert.strictEqual(
+    matches.length,
+    3,
+    `expected exactly 3 \`this.treeEvents.emitter.fire(undefined);\` call sites (Topics/Agents/Memory), found ${matches.length} (chain #24 + 03768ae parity)`,
   );
 });
 
