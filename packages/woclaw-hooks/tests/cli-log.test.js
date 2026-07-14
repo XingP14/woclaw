@@ -328,18 +328,25 @@ test('cli_log.js helper extraction (07-04 06:34 cron chain #10 — woclaw-hooks)
     }
   });
   // ── chain #15 closure: install 漏更 closure (3 new tests) ─────────
-  await t.test('install.js: 0 inline status console.log sites after chain #15 (showStatus 3 + spacer)', () => {
+  await t.test('install.js: only intentional raw console.log displays remain after chain #15', () => {
     const src = readFileSync(INSTALL_PATH, 'utf-8');
-    // Remaining console.log should be in printHelp template (L413-430), settingsHint display (L211), codex config display (L295), blank spacer (L387)
-    const matches = src.match(/console\.log\(/g) || [];
-    const preserved = (src.match(/console\.log\('=/) || []).length
-      + (src.match(/console\.log\('\\n/) || []).length
-      + (src.match(/console\.log\('  /) || []).length;
-    // Simpler check: count lines with console.log and ensure all are in preserve set
-    const lines = src.split('\n').filter(l => /\bconsole\.log\(/.test(l));
-    const preserveRe = /printHelp|WoClaw Hooks Installer|Usage:|Options:|Examples:|Supported frameworks|npm woclaw|settingsHint|config.toml|codex_hooks|^[ \t]*console\.log\(['"`\\\(]['"`\\\)]?\);?$/;
-    const stray = lines.filter(l => !preserveRe.test(l.trim()) && !/cli_log|hooksOk|hooksErr|hooksList|hooksNote|hooksStep|hooksWarn|hooksStatus|hooksHint|hooksRemove/.test(l));
-    assert.equal(stray.length, 0, 'expected no stray console.log in install.js, found: ' + JSON.stringify(stray));
+    const helpStart = src.indexOf('  if (!framework) {');
+    const helpEnd = src.indexOf('\n  }\n\n  if (!SUPPORTED_FRAMEWORKS.includes(framework))', helpStart);
+    assert.ok(helpStart >= 0 && helpEnd > helpStart, 'expected installer help block');
+
+    // The no-framework help block intentionally owns its raw layout. Outside it,
+    // only three raw displays remain: the framework config snippet, the Codex
+    // TOML snippet, and showStatus()'s trailing blank line.
+    const withoutHelp = src.slice(0, helpStart) + src.slice(helpEnd);
+    const rawLogs = withoutHelp
+      .split('\n')
+      .filter(line => /\bconsole\.log\(/.test(line))
+      .map(line => line.trim());
+    assert.deepEqual(rawLogs, [
+      "console.log('   ' + fw.settingsHint.replace(/\\n/g, '\\n   '));",
+      'console.log(`',
+      'console.log();',
+    ]);
   });
 
   await t.test('install.js: 0 inline console.error sites after chain #15 (catch handler migrated to hooksErr)', () => {
