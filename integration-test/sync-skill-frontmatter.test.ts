@@ -806,3 +806,34 @@ describe('sync-skill-frontmatter.mjs doc-comment block-shape parity (07-10 01:06
     expect(leakedRows, 'No Usage invocation row may appear in the doc-comment tail after Exit codes').toEqual([]);
   });
 });
+
+// 07-15 cron: value-taking flags should fail with a concise usage error when
+// their value is omitted. Previously --include/--exclude crashed while calling
+// `.split()` on undefined, while --source silently fell back to union mode.
+describe('sync-skill-frontmatter.mjs missing option values', () => {
+  let tmpRoot: string;
+
+  beforeAll(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'sync-skill-options-'));
+    writeSkill(join(tmpRoot, 'packages', 'pkg-a'), 'pkg-a', ['claude-code']);
+  });
+
+  afterAll(() => {
+    if (tmpRoot && existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it.each(['--source', '--include', '--exclude'])(
+    '%s without a value exits 2 with a stable usage error',
+    (flag) => {
+      const r = spawnSync('node', [scriptPath, flag], {
+        cwd: tmpRoot,
+        env: { ...process.env, WOCLAW_ROOT: tmpRoot },
+        encoding: 'utf8',
+      });
+
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain(`Missing value for ${flag}.`);
+      expect(r.stderr).not.toMatch(/TypeError|Cannot read properties/);
+    },
+  );
+});

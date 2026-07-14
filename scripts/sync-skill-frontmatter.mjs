@@ -49,8 +49,19 @@ const repoRoot = process.env.WOCLAW_ROOT || process.cwd();
 const args = new Set(process.argv.slice(2));
 const writeMode = args.has('--write') || args.has('-w');
 const checkMode = args.has('--check');
-const sourceIdx = process.argv.indexOf('--source');
-const sourcePkg = sourceIdx > -1 ? process.argv[sourceIdx + 1] : null;
+
+function optionValue(flag) {
+  const idx = process.argv.indexOf(flag);
+  if (idx < 0) return null;
+  const value = process.argv[idx + 1];
+  if (!value || value.startsWith('-')) {
+    console.error(`Missing value for ${flag}.`);
+    process.exit(2);
+  }
+  return value;
+}
+
+const sourcePkg = optionValue('--source');
 const verbose = args.has('--verbose') || args.has('-v');
 const allMode = args.has('--all') || args.has('-a');
 // --diff: in dry-run mode, also print a per-file unified-diff so operators can see
@@ -62,18 +73,18 @@ const diffMode = args.has('--diff') || args.has('-d');
 // scan 1-level deep for SKILL.md. Each child subdir's SKILL.md is added to the
 // discovery list. Used to cover per-skill workspace shims like plugin/skills/*
 // and skills/* that the standard packages/+hub/+mcp-bridge/+plugin/ scan misses.
-const includeIdx = process.argv.indexOf('--include');
-const includeDirs = includeIdx > -1
-  ? process.argv[includeIdx + 1].split(',').map(s => s.trim()).filter(Boolean)
+const includeValue = optionValue('--include');
+const includeDirs = includeValue
+  ? includeValue.split(',').map(s => s.trim()).filter(Boolean)
   : [];
 // --exclude <csv>: comma-separated list of pkg tags to skip during sync.
 // Useful for skill spec docs (e.g. plugin/skills/woclaw-hub-test/SKILL.md) that
 // are intentionally not compatible_with lists. Tag format matches whatever
 // findSkillFiles emits: basename for packages/*, `<dir>:<child>` for
 // --include directories, or `hub` / `mcp-bridge` / `plugin` for top-level.
-const excludeIdx = process.argv.indexOf('--exclude');
-const excludeTags = new Set(excludeIdx > -1
-  ? process.argv[excludeIdx + 1].split(',').map(s => s.trim()).filter(Boolean)
+const excludeValue = optionValue('--exclude');
+const excludeTags = new Set(excludeValue
+  ? excludeValue.split(',').map(s => s.trim()).filter(Boolean)
   : []);
 
 function log(...a) { if (verbose) console.error('[sync]', ...a); }
