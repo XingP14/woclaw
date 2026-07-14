@@ -168,3 +168,9 @@
 - Rotation: `llm-benchmark` had the latest project commit, so L->W selected `woclaw`; with no safe narrow real-code change justified inside this dual-LOCKED tick budget, V3 rule 4 chose the lowest-cost `fix(docs)` operational closure.
 - Verification: append is deduplicated; content line/byte delta, trailing newline, and `git diff --check` are checked before commit. Tests not run (docs-only operational note).
 - Next rotation: W->L favors `llm-benchmark` at 01:23; preferred real-code candidate is runtime coverage for `fetchProcessAwareScoringScore` or `fetchLongContextClusterScore`.
+
+## Tick note 2026-07-15 03:03 CST
+- Pre-state (03:04 CST): `woclaw` `49bd469` +50m and `llm-benchmark` `a603e17` +12m were both LOCKED<1h; both worktrees were clean and synchronized, block counts were 0/0, and watchdog CI gates were GREEN/GREEN.
+- Rotation: `llm-benchmark` had the latest project commit, so L->W selected `woclaw`; with no new release/CI blocker and a focused VS Code refactor already landed in the preceding woclaw round, V3 rule 4 chose the lowest-cost `fix(docs)` operational closure.
+- Verification: append is deduplicated; exact line/byte delta, trailing newline, `git diff --check`, watchdog gate, push, and SHA read-back are checked before completion. Tests not run (docs-only operational note).
+- Next rotation: W->L favors `llm-benchmark` at 03:23; preferred real-code candidate is narrowing and testing the remaining v0.5.0 evaluator `type` fallback stubs.
