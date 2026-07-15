@@ -174,3 +174,19 @@
 - Rotation: `llm-benchmark` had the latest project commit, so L->W selected `woclaw`; with no new release/CI blocker and a focused VS Code refactor already landed in the preceding woclaw round, V3 rule 4 chose the lowest-cost `fix(docs)` operational closure.
 - Verification: append is deduplicated; exact line/byte delta, trailing newline, `git diff --check`, watchdog gate, push, and SHA read-back are checked before completion. Tests not run (docs-only operational note).
 - Next rotation: W->L favors `llm-benchmark` at 03:23; preferred real-code candidate is narrowing and testing the remaining v0.5.0 evaluator `type` fallback stubs.
+
+## Tick note 2026-07-15 23:23 CST
+
+- Pre-state (23:24 CST): woclaw 98db063 +17h24m UNLOCKED; llm-benchmark af3cfb2 +1h05m UNLOCKED.
+  Both worktrees clean/synchronized; block counts 0/0; watchdog CI gates GREEN/GREEN.
+- Rotation: last picked=llm-benchmark (22:03 af3cfb2) -> L->W -> woclaw picked.
+- Both UNLOCKED>=1h, but 5min cron budget already consumed by context-load + probe + skill
+  review -> V3 rule 4 lowest-cost fix(docs) closure (safest useful deliverable in remaining
+  budget). Real-code candidates (woclaw: 7-subpackage LICENSE/files parity audit re-verified
+  clean; sync-skill-frontmatter 41/41 + 0/11 drift; vscode 39/39 node:test + tsc compile clean)
+  remain for next tick when budget allows a focused RED->GREEN cycle.
+- docs(roadmap) today 0/2; +0 npm publish; +0 real-code commit this tick.
+- Next rotation: woclaw now latest, so W->L favors llm-benchmark at 23:43.
+  llm-bench candidates: reporter 5-dim default comment / Docker workflow concurrency / coverage
+  threshold. woclaw candidates: encryption-at-rest chain deeper unit tests / vscode
+  EventEmitter.fire() args unit test (03768ae chain, already 39/39 green).
