@@ -31,6 +31,11 @@
  *   (6) db_log.ts has exactly 3 helper exports
  *   (7) runtime: dbError('foo', 'bar') emits exactly
  *       `console.error('[ClawDB] foo', 'bar')` (wire-format identity gate)
+ * Extension (07-17 02:03 cron, chain #30 db_log parity):
+ *   (8) runtime: dbWarn emits `[ClawDB] ${msg}` exactly via console.warn
+ *   (9) runtime: dbError/dbWarn spread ...args verbatim to console.*
+ *   (10) source: db_log.ts declares exactly 3 export function helpers and
+ *        exactly 3 console.* call sites inside helper bodies (one per level)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -122,5 +127,65 @@ describe('hub/src/db_log.ts runtime wire-format (parity with pre-refactor inline
     mod.dbLog('started');
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).toHaveBeenCalledWith('[ClawDB] started');
+  });
+});
+
+describe('hub/src/db_log.ts runtime parity (extension — closes dbWarn + ...args spread gaps)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Gap closed: parity with hub_log/hubWarn (covered at hub_log.test.ts), but
+  // db_log.test.ts previously only had runtime cases for dbError + dbLog.
+  // dbWarn body must route to console.warn with the same `[ClawDB] ${msg}`
+  // template prefix the dbError body uses.
+  it('dbWarn(`idempotency miss for key ${k}`) emits exactly `console.warn(`[ClawDB] idempotency miss for key ${k}`)`', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('../src/db_log.js');
+    mod.dbWarn('idempotency miss for key abc-123');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith('[ClawDB] idempotency miss for key abc-123');
+  });
+
+  // Gap closed: db_log.ts helpers all declare `...args: unknown[]` so callers
+  // can pass trailing context (e.g. dbError('Failed:', e)). The inline sites
+  // in db.ts used the same trailing-arg shape (dbError('Failed to import legacy
+  // JSON store:', errorMessage(e))), so the spread must route through verbatim.
+  it('dbError(`Failed:`, errObj) spreads ...args and emits `console.error(`[ClawDB] Failed:`, errObj)`', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mod = await import('../src/db_log.js');
+    const errObj = new Error('ENOENT: no such file');
+    mod.dbError('Failed:', errObj);
+    expect(errSpy).toHaveBeenCalledTimes(1);
+    expect(errSpy).toHaveBeenCalledWith('[ClawDB] Failed:', errObj);
+  });
+
+  // Gap closed: confirm ...args spread works for warn-level too (parity gate
+  // across all 3 helpers — the helper bodies are byte-identical except for the
+  // console.* method, so each helper must accept and forward variadic args).
+  it('dbWarn(`migration drift detected`, count) spreads ...args to console.warn', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('../src/db_log.js');
+    mod.dbWarn('migration drift detected', 42);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith('[ClawDB] migration drift detected', 42);
+  });
+
+  // Gap closed: source-level sanity gate — db_log.ts should declare exactly 3
+  // `export function` helper bodies (dbLog/dbWarn/dbError) and contain exactly
+  // 3 console.* call sites, all of them inside the helper bodies. This catches
+  // accidental duplication of the prefix literal or introduction of an
+  // additional inline call site.
+  it('source sanity: db_log.ts declares exactly 3 helpers and exactly 3 console.* calls inside helper bodies', () => {
+    const src = readSrc(DB_LOG_PATH);
+    const codeOnly = src.split('\n').filter(l => !l.trimStart().startsWith('//')).join('\n');
+    const helperCount = (codeOnly.match(/export function db(Log|Warn|Error)\(/g) || []).length;
+    expect(helperCount).toBe(3);
+    const logCount = (codeOnly.match(/console\.log\(/g) || []).length;
+    const warnCount = (codeOnly.match(/console\.warn\(/g) || []).length;
+    const errorCount = (codeOnly.match(/console\.error\(/g) || []).length;
+    expect(logCount).toBe(1);
+    expect(warnCount).toBe(1);
+    expect(errorCount).toBe(1);
   });
 });
