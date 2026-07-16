@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the federation_log helper extraction (07-04 01:23 cron).
@@ -53,9 +54,10 @@ import { join } from 'path';
  *       inline form produced
  */
 
-const FED_LOG_PATH = join(process.cwd(), 'src', 'federation_log.ts');
-const FED_PATH = join(process.cwd(), 'src', 'federation.ts');
-const WS_PATH = join(process.cwd(), 'src', 'ws_server.ts');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const FED_LOG_PATH = join(__dirname, '..', 'src', 'federation_log.ts');
+const FED_PATH = join(__dirname, '..', 'src', 'federation.ts');
+const WS_PATH = join(__dirname, '..', 'src', 'ws_server.ts');
 
 function readSrc(p: string): string {
   return readFileSync(p, 'utf8');
