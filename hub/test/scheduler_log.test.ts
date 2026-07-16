@@ -29,10 +29,12 @@
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const SCHED_LOG_PATH = join(process.cwd(), 'src', 'scheduler_log.ts');
-const SCHEDULER_PATH = join(process.cwd(), 'src', 'scheduler.ts');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SCHED_LOG_PATH = join(__dirname, '..', 'src', 'scheduler_log.ts');
+const SCHEDULER_PATH = join(__dirname, '..', 'src', 'scheduler.ts');
 
 function readSrc(p: string): string {
   return readFileSync(p, 'utf8');

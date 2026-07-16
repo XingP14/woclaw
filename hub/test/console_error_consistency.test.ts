@@ -1,28 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-/**
- * Regression test for the logging-consistency 漏更模式续集 —
- * every `console.error(...)` line in hub/src/*.ts that has a captured
- * error variable in scope must propagate it via the `errorMessage(e|err)` helper.
- *
- * Two recurring mistakes this catches:
- *   (1) `console.error('label for', agentId)` — drops the error object entirely
- *   (2) `console.error('label', err.message)` — reads .message unsafely when
- *       the variable is typed `unknown`; should be `errorMessage(err)`.
- *
- * Two specific sites were hardened in this round (06-29 03:03 cron):
- *   - ws_server.ts L180: ws.on('error') handler — `(err: Error)` callback was
- *     reading `err.message`; converted to `errorMessage(err)` + `(err: unknown)`
- *     for consistency with the other 16 sites in hub/src.
- *   - ws_server.ts L539: pingAll() catch block — `console.error('[WoClaw] Ping
- *     failed for ${agentId}')` dropped the captured `e`; now passes
- *     `errorMessage(e)` as a second argument so the underlying failure is
- *     observable in logs.
- */
-
-const HUB_SRC = join(process.cwd(), 'src');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const HUB_SRC = join(__dirname, '..', 'src');
 const FILES = readdirSync(HUB_SRC).filter(f => f.endsWith('.ts') && !f.startsWith('errors.') && !f.startsWith('hub_log.'));
 
 interface ConsoleErrorSite { file: string; line: number; text: string; }

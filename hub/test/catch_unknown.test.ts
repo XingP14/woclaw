@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the 漏更模式续集 — `.catch((e) =>` and `.catch(err =>`
@@ -16,7 +17,7 @@ import { join } from 'path';
  *      the call site is typed `Promise<Error>`)
  */
 
-const HUB_SRC = join(process.cwd(), 'src');
+const HUB_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const FILES = readdirSync(HUB_SRC).filter(f => f.endsWith('.ts') && !f.startsWith('errors.'));
 
 interface CatchSite { file: string; line: number; match: string; }

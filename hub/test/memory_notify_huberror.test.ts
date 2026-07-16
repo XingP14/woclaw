@@ -40,11 +40,13 @@
  *       console.error and asserting the [WoClaw] prefix is present.
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const MEMORY_PATH = join(process.cwd(), 'src', 'memory.ts');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const MEMORY_PATH = join(__dirname, '..', 'src', 'memory.ts');
 
 function readSrc(p: string): string {
   return readFileSync(p, 'utf8');

@@ -33,12 +33,14 @@
  *       `console.error('[ClawDB] foo', 'bar')` (wire-format identity gate)
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const DB_LOG_PATH = join(process.cwd(), 'src', 'db_log.ts');
-const DB_PATH = join(process.cwd(), 'src', 'db.ts');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DB_LOG_PATH = join(__dirname, '..', 'src', 'db_log.ts');
+const DB_PATH = join(__dirname, '..', 'src', 'db.ts');
 
 function readSrc(p: string): string {
   return readFileSync(p, 'utf8');
