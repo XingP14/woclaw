@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the db.ts decryptValue inline migration (07-03 02:23 cron).
@@ -40,8 +41,8 @@ import { join } from 'path';
  *       re-implemented in db.ts)
  */
 
-const DB_PATH = join(process.cwd(), 'src', 'db.ts'); // process.cwd() resolves to hub/ when test is invoked via `npx vitest run`
-const CRYPTO_PATH = join(process.cwd(), 'src', 'crypto.ts');
+const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'db.ts');
+const CRYPTO_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'crypto.ts');
 
 describe('db.ts decryptValue wrapper inline migration (07-03 02:23 cron)', () => {
   const dbSrc = readFileSync(DB_PATH, 'utf8');

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the untyped `req.on('data', chunk => ...)` callback
@@ -29,7 +30,7 @@ import { join } from 'path';
  * readJsonObject helper definition + 13-site migration floor.
  */
 
-const HUB_SRC = join(process.cwd(), 'src');
+const HUB_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const FILES = readdirSync(HUB_SRC).filter((f) => f.endsWith('.ts') && f !== 'errors.ts');
 
 function findReqOnDataSites(source: string): { line: number; raw: string }[] {

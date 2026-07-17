@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the SqliteStorage SELECT .get(key) MemoryRowSqlite cast
@@ -39,7 +40,7 @@ import { join } from 'path';
  *   the trivial-wrapper-elimination pattern on the source itself.
  */
 
-const DB_PATH = join(process.cwd(), 'src', 'db.ts'); // cwd is hub/ when invoked via `npx vitest run` from hub/
+const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'db.ts');
 
 describe('SqliteStorage SELECT .get(key) MemoryRowSqlite cast migration (07-03 03:03 cron)', () => {
   const dbSrc = readFileSync(DB_PATH, 'utf8');

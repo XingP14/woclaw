@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Regression test for the 48c3524 encryption-at-rest chain — MySqlStorage parity.
@@ -49,8 +50,8 @@ import { join } from 'path';
  *       helper that produces storedValue is still in scope).
  */
 
-const DB_PATH = join(process.cwd(), 'src', 'db.ts');
-const CRYPTO_PATH = join(process.cwd(), 'src', 'crypto.ts');
+const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'db.ts');
+const CRYPTO_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'crypto.ts');
 
 describe('db.ts MySqlStorage encryption-at-rest storedValue parity (48c3524 regression)', () => {
   const dbSrc = readFileSync(DB_PATH, 'utf8');
