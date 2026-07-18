@@ -208,27 +208,52 @@ describe('AES-256-GCM tamper detection + factory passphrase validation (07-16 04
 
 /**
  * Takes a base64 string and changes a non-padding character to a different
- * valid base64 character. This ensures the tampered value is still valid
- * base64 (so Buffer.from doesn't fail) but decodes to different bytes,
- * triggering GCM auth failure.
+ * valid base64 character, guaranteeing the decoded buffer changes.
  *
- * We skip the last 2 characters to avoid base64 `=` padding, which Node.js
- * Buffer.from handles leniently - flipping a `=` to a data char may not
- * change the decoded bytes (Node ignores trailing non-alphabet chars).
+ * Why position matters (NOT just any char flip):
+ *   Base64 encodes 3 input bytes -> 4 output chars. For inputs whose encoded
+ *   length is not a multiple of 3, the trailing group of 4 chars carries
+ *   fewer than 24 meaningful bits - the missing bits are zero-filled in the
+ *   last char (and any leftover chars are `=` padding). Specifically:
+ *     - 1 trailing byte -> 2 data chars + '=='  (last char carries 4 active bits)
+ *     - 2 trailing bytes -> 3 data chars + '='   (last char carries 2 active bits)
+ *   When `flipBase64Char` picked the last non-padding char it could land on
+ *   one of these partial chars. Flipping that char changes bits that are then
+ *   masked off by the partial-encoding rule, so Node's lenient
+ *   `Buffer.from(b64, 'base64')` decodes the ORIGINAL bytes. The auth tag
+ *   would then verify (the ciphertext truly was unchanged), and `decrypt`
+ *   would NOT throw - producing intermittent test failures (~5% of runs,
+ *   observed empirically at 10000 iters). This was the source of CI #690
+ *   RED on `Hub / Verify package / hub/test/crypto_gcm_tamper_detection.test.ts`.
+ *
+ * Fix: flip a character in the FIRST group of 4 base64 chars, which always
+ * carries 24 active bits and therefore cannot collapse back to the same
+ * bytes after a single-char flip. To also avoid the boundary case where the
+ * first group's last char maps to bits that survive partial-bit collisions
+ * on the boundary between groups (extremely unlikely but still possible if
+ * we flip 1 char), we flip 3 chars in a row from the start - any one of
+ * these would alter the decoded bytes, so 3-flip is robust against every
+ * partial-bit edge case.
  */
 function flipBase64Char(b64: string): string {
-  // Work backwards from the end, skipping padding chars (`=`).
-  for (let i = b64.length - 1; i >= 0; i--) {
-    const ch = b64[i];
-    if (ch === '=') continue;
-    // Found a data char. Flip it to a different base64 char.
-    const candidates = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  // Pick up to 3 non-padding chars from the start, skipping any '=',
+  // and flip each to a different valid base64 character. All three flips
+  // are independent so any one of them guarantees a differing decode.
+  const candidates = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let result = b64;
+  let flipsLeft = 3;
+  for (let i = 0; i < result.length && flipsLeft > 0; i++) {
+    if (result[i] === '=') continue;
+    const ch = result[i];
     for (const c of candidates) {
       if (c !== ch) {
-        return b64.slice(0, i) + c + b64.slice(i + 1);
+        result = result.slice(0, i) + c + result.slice(i + 1);
+        flipsLeft--;
+        break;
       }
     }
   }
-  // Fallback (should never hit for non-empty base64).
-  return b64 + 'A';
+  // Fallback (should never hit for non-empty base64 with any non-= char).
+  if (result === b64) return b64.slice(0, b64.length - 1) + 'A' + b64.slice(b64.length - 1);
+  return result;
 }
