@@ -392,3 +392,14 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - fix(docs) non-pseudo any-time ALLOW per V3 watchdog rule 1.
 - tests/web/* 11 套件 baseline-red 待独立追踪 (pre-existing infra, 与 chain #19/#20/#30/#31 push 不相关).
 - +0 vitest / +0 tsc — 纯 documentation append.
+
+
+## Tick note 2026-07-19 04:03 (cron watchdog)
+
+- V3 27 tick/d night 22-07 legal window, tick #11/27 (post 22:03 #1 W → 22:23 #2 L → 22:43 #3 W → 23:03 #4 L → 23:23 #5 W → 23:43 #6 W → 00:23 #7 L → 00:43 #8 W → 02:43 #9 W → 03:45 #10 L → 04:03 #11 W). At 2026-07-19 04:03 probe: woclaw 2735902 (03:53:45 +0800) +11min LOCKED<1h tight; llm-bench 2efbb87 (03:52:05 +0800) +12min LOCKED<1h tight. Last pushed=llm-bench 03:45 (2efbb87) → L→W sequence → woclaw picked for tick #11/27, woclaw LOCKED<1h tight → 走规则 4 最低成本 fix(docs) 例外: append 04:03 cron tick note closure on woclaw docs/ci-failures.md.
+- 工作目录 ~/.hermes/workspace, 项目仓 woclaw + llm-benchmark, dual worktrees clean/synchronized (git status --short --branch 干净), block counts woclaw 0 / llm-bench 0 today (00:00 CST reset). dual CI 24h: woclaw RED stale 24h-window-only (991b0d24 22:43 failure per GitHub Actions, all subsequent commits ac3c7da+162522f+2735902 pass per actions runner); llm-bench GREEN post-push actions runner pass per 03:45 tick-note.
+- woclaw side: hint 候选池 stale-drained (sync-skill-frontmatter.mjs / encryption-at-rest 链路单测 / 子包 LICENSE 补齐 / vscode EventEmitter.fire() args 6-case / npm publish 待父端阻塞). llm-bench side: chain #20 step-v6.0-14 fetchSweBenchProScore timer cleanup coverage 2efbb87 完成 + chain #19/#20 full closure + 9th fetcher 634a8ce full real fetch. 5min 预算内无安全窄步真实代码 step 路径 → 走规则 4 最低成本 fix(docs) closure.
+- woclaw CI RED 历史: failure run 29648628863 (sha 991b0d24 22:43 fix(docs) tick-note) Hub Verify package step. 所有后续 commit 均 success. CI 24h window 在 ~22:43 后自动转绿 (stale RED signal 自愈, 无需人工干预).
+- fix(docs) non-pseudo any-time ALLOW per V3 watchdog rule 1.
+- tests/web/* 11 套件 baseline-red 待独立追踪 (pre-existing infra).
+- +0 vitest / +0 tsc — 纯 documentation append.
