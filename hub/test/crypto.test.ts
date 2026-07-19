@@ -32,6 +32,21 @@ describe('EncryptionProvider', () => {
     expect(provider.decrypt(p2)).toBe(plaintext);
   });
 
+  it('should encode exact AES-256-GCM payload dimensions', () => {
+    const provider = createEncryption({ passphrase, enabled: true });
+    const plaintext = 'payload-dimensions-🔐';
+    const payload = provider.encrypt(plaintext);
+
+    expect(Buffer.from(payload.salt, 'base64')).toHaveLength(16);
+    expect(Buffer.from(payload.iv, 'base64')).toHaveLength(12);
+    expect(Buffer.from(payload.tag, 'base64')).toHaveLength(16);
+    expect(Buffer.from(payload.ciphertext, 'base64')).toHaveLength(
+      Buffer.byteLength(plaintext, 'utf8')
+    );
+    expect(payload.version).toBe(1);
+    expect(provider.decrypt(payload)).toBe(plaintext);
+  });
+
   it('should fail to decrypt with wrong passphrase', () => {
     const provider = createEncryption({ passphrase, enabled: true });
     const payload = provider.encrypt('secret data');
