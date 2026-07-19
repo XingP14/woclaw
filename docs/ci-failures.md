@@ -483,4 +483,12 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - llm-benchmark was LOCKED<1h (51min) so no rotation candidate, just probe.
 - CI gate: woclaw 24h historical RED (stale Actions drift); llm-benchmark 24h GREEN via local gate post-`e2d5814` push.
 - V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than rushing real-code work outside the 09:00 window.
-- `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc. Verification: unique heading, trailing newline, `git diff --check`, exact-message watchdog check (PASS at 06:24:43), push, and SHA equality readback.
+- `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc. Verification: unique heading, trailing newline, `git diff --check`, exact-message watchdog check (PASS at 06:24:43), push, and local/remote SHA equality readback.
+
+## Tick note 2026-07-20 06:51 (cron watchdog)
+
+- New 04-07 cycle tick #5/27. Last actual push was woclaw `8fb94c8` at 06:25, so W→L rotation picks **woclaw** first, then **llm-benchmark**. Probe at 06:51 CST found woclaw `8fb94c8` age 26min LOCKED<1h and llm-benchmark `28578dc` age 26min LOCKED<1h: both worktrees clean and synchronized, block counts 0/0.
+- The 06:23 dual-project tick was a `fix(docs)` lock-window closure (`8fb94c8` then `28578dc`), so the current slot inherits both locked with no fresh narrow candidate. Hint pool remains stale-drained per the preceding 01:23/02:23/03:14/03:43/04:23/04:43/05:32/06:03/06:23 cross-checks; no TODO/FIXME residue or uncommitted/untracked real-code candidate surfaced.
+- CI gate: woclaw 24h aggregate RED from stale GitHub Actions signal (`8fb94c8` pushed but runner behind); SHA-precise Actions readback at 06:51 CST confirmed current HEAD `8fb94c8` exact check-runs all completed-success. Llm-benchmark 24h GREEN via local gate post-`28578dc` push.
+- V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than rushing real-code work inside either <1h lock window or pursuing a pseudo-prefix fabrication.
+- `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc for this documentation-only append. Verification: unique heading, single trailing newline, `git diff --check`, exact-message watchdog check (PASS at 06:52:18), push, and SHA equality readback.
