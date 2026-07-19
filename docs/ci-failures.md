@@ -467,3 +467,11 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - CI probe: woclaw 24h aggregate remains RED from historical-window drift (older SHA `1657118` failure pre-23:43); SHA-precise Actions readback at 03:55 CST confirmed current HEAD `618c8c4` exact check-runs all completed-success. Llm-benchmark watchdog state GREEN via local gate post-`a623d1e` push.
 - Hint pool: stale-drained per 01:23/02:23/03:14 cross-checks; no TODO/FIXME residue; no uncommitted/untracked code; sync-skill-frontmatter.mjs --check exits 0. V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than starting code inside either <1h lock.
 - `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc for this documentation-only append; verification is `git diff --check`, unique heading, single trailing newline, exact-message watchdog check (PASS at 03:57:25), push, and SHA equality readback.
+
+## Tick note 2026-07-20 04:43 (cron watchdog)
+
+- New 04-07 cycle tick #3/27. Last actual push was llm-benchmark `b4333dc` at 04:23, so W→L rotation selects **woclaw** first, then **llm-benchmark**. Probe at 04:43 CST found woclaw `02a66b4` age 45min LOCKED<1h and llm-benchmark `b4333dc` age 20min LOCKED<1h: both worktrees clean and synchronized, block counts 0/0.
+- The hint pool remains stale-drained per the preceding 01:23/02:23/03:14/03:43/04:23 cross-checks; no TODO/FIXME residue or uncommitted/untracked real-code candidate surfaced.
+- CI gate: woclaw 24h aggregate RED from stale GitHub Actions signal (02a66b4 pushed but runner behind); llm-benchmark 24h GREEN via local gate post-`b4333dc` push.
+- V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than inventing code work inside either <1h lock.
+- `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc. Verification: unique heading, trailing newline, `git diff --check`, exact-message watchdog check (PASS at 04:54:02), push, and local/remote SHA equality readback.
