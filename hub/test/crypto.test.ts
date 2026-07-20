@@ -135,16 +135,16 @@ describe('safeDecryptValue', () => {
   //   4. otherwise → return plaintext
   const passphrase = 'test-passphrase-safe-decrypt-2026';
 
-  it('returns the raw value when encryption is disabled (enabled=false)', () => {
-    const provider = createEncryption({ passphrase, enabled: false });
-    const raw = 'this would not be ciphertext';
-    // The value is not in ENC:v1: format, but even if it were, the disabled
-    // short-circuit must win.
-    expect(provider.isEncrypted(raw)).toBe(false);
-    // Indirect check: importing the helper via the same module path used by db.ts
-    // — but vitest imports use relative paths. Re-assert behavior via the
-    // provider's own isEncrypted() instead.
-    expect(provider.enabled).toBe(false);
+  it('returns the raw value when encryption is disabled (enabled=false)', async () => {
+    const { safeDecryptValue, createEncryption: ce } = await import('../src/crypto.js');
+    const provider = ce({ passphrase, enabled: false });
+    const encryptedLookingValue = 'ENC:v1:not-a-real-envelope';
+
+    // The disabled-provider guard must run before the ENC:v1: format check.
+    // Otherwise an old encrypted row would enter deserialize/decrypt even
+    // though encryption has been disabled.
+    expect(provider.isEncrypted(encryptedLookingValue)).toBe(true);
+    expect(safeDecryptValue(encryptedLookingValue, provider)).toBe(encryptedLookingValue);
   });
 
   it('returns the raw value when value is not in encrypted format (legacy plaintext)', () => {
