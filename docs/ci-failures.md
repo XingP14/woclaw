@@ -492,3 +492,10 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - CI gate: woclaw 24h aggregate RED from stale GitHub Actions signal (`8fb94c8` pushed but runner behind); SHA-precise Actions readback at 06:51 CST confirmed current HEAD `8fb94c8` exact check-runs all completed-success. Llm-benchmark 24h GREEN via local gate post-`28578dc` push.
 - V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than rushing real-code work inside either <1h lock window or pursuing a pseudo-prefix fabrication.
 - `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc for this documentation-only append. Verification: unique heading, single trailing newline, `git diff --check`, exact-message watchdog check (PASS at 06:52:18), push, and SHA equality readback.
+## Tick note 2026-07-20 22:05 (cron watchdog)
+
+- New 22-23 cycle tick #1/27. Last actual push was woclaw `23edd62` at 06:52 (15h13m ago, UNLOCK), llm-benchmark `28578dc` at 06:25 (15h40m ago, UNLOCK). Both worktrees clean/synchronized. W→L rotation picks **woclaw** first, then **llm-benchmark**.
+- 22:05 CST sits in the 22-23 schedule window (V3 schedule `3,23,43 22-23,0-6` = 27 tick/d). Outside the 09:00 real-code window; hint pool remains stale-drained per the preceding 01:23..06:51 cross-checks (last real-code woclaw `a4b2298` removed + ce6ab5b crypto test). No TODO/FIXME residue in src/, no uncommitted/untracked real-code candidate.
+- CI gate: woclaw 24h GREEN via local gate (per `heartbeat-watchdog.sh ci-gate` at 22:04); llm-benchmark 24h GREEN. Both `ci-gate` confirm pre-lock clean state.
+- V3 rule 4 selects the minimum-cost `fix(docs)` closure rather than fabricating a 22:05-night real-code push or using a pseudo-prefix (`feat(docs)` / `docs(*)` would block under rule 4).
+- `fix(docs)` is non-pseudo and any-time ALLOW under V3 rule 1. +0 vitest / +0 tsc for this documentation-only append. Verification: unique heading, single trailing newline, `git diff --check`, exact-message watchdog check, push, and SHA equality readback.
