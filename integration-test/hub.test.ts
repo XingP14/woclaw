@@ -21,35 +21,20 @@ let hubProcess: ChildProcess;
 
 function startHub(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const build = spawn('/bin/bash', ['-lc', `node "${TSC_BIN}" -p tsconfig.json`], {
+    hubProcess = spawn(process.execPath, ['dist/index.js'], {
       cwd: HUB_DIR,
-      env: process.env,
-      stdio: 'inherit',
+      env: {
+        ...process.env,
+        PORT: String(HUB_PORT),
+        REST_PORT: String(REST_PORT),
+        AUTH_TOKEN,
+        HOST: '0.0.0.0',
+        DATA_DIR,
+      },
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
-
-    build.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Build failed: ${code}`));
-        return;
-      }
-      hubProcess = spawn('/bin/bash', ['-lc', 'node dist/index.js'], {
-        cwd: HUB_DIR,
-        env: {
-          ...process.env,
-          PORT: String(HUB_PORT),
-          REST_PORT: String(REST_PORT),
-          AUTH_TOKEN,
-          HOST: '0.0.0.0',
-          DATA_DIR,
-        },
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      resolve();
-    });
-
-    build.on('error', (error) => {
-      reject(error);
-    });
+    hubProcess.once('spawn', resolve);
+    hubProcess.once('error', reject);
   });
 }
 
