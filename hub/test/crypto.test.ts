@@ -94,6 +94,11 @@ describe('serializeEncrypted / deserializeEncrypted', () => {
     expect(deserialized!.version).toBe(payload.version);
   });
 
+  it('should return undefined for structurally invalid encrypted payloads', () => {
+    const markerOnlyPayload = Buffer.from(JSON.stringify({ version: 1 }), 'utf8').toString('base64');
+    expect(deserializeEncrypted(`ENC:v1:${markerOnlyPayload}`)).toBeUndefined();
+  });
+
   it('should return undefined for non-encrypted strings', () => {
     expect(deserializeEncrypted('hello')).toBeUndefined();
     expect(deserializeEncrypted('ENC:v2:garbage')).toBeUndefined();

@@ -161,7 +161,19 @@ export function deserializeEncrypted(value: string): EncryptedPayload | undefine
   const base64 = value.slice(ENCRYPTION_MARKER.length);
   try {
     const combined = Buffer.from(base64, 'base64');
-    return JSON.parse(combined.toString('utf8'));
+    const parsed: unknown = JSON.parse(combined.toString('utf8'));
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof (parsed as EncryptedPayload).ciphertext !== 'string' ||
+      typeof (parsed as EncryptedPayload).iv !== 'string' ||
+      typeof (parsed as EncryptedPayload).salt !== 'string' ||
+      typeof (parsed as EncryptedPayload).tag !== 'string' ||
+      typeof (parsed as EncryptedPayload).version !== 'number'
+    ) {
+      return undefined;
+    }
+    return parsed as EncryptedPayload;
   } catch {
     return undefined;
   }
