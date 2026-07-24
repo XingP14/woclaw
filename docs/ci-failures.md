@@ -870,3 +870,16 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - 3-message watchdog sanity suite at 02:43 (per `references/clean-state-lock-tight-skip-3msg-sanity-suite-2026-07-20.md`): `fix(docs)` PASS / `feat(docs)` BLOCK (pseudo) / `docs(roadmap): next: step-w-24` PASS. Gate grammar healthy.
 - Cascade-rate tracker: 38/38+ positive data points across #13-#38+ (this is tick #25/27, 23rd PROCEED-with-zero-cascade, 0 SKIPs in cycle, ~18 cumulative Pauses/Skips since 07-23 22:03 first emission). 13 consecutive PROCEED ticks since 06:23 yesterday, 0% cascade rate.
 - Next tick prediction (03:03): wc age ~57min LOCKED<1h, lb age ~41min LOCKED<1h → dual-LOCKED. W→L rotation: last_picked=woclaw (predicted 02:43) → L sequence → llm-benchmark. Cadence-override: wc at 11 today ≥ 5 → FLIP intended to lb; lb LOCKED<1h → fall-back to rotation-default lb per Pitfall #71 (10th operational case). Expected outcome: llm-benchmark `fix(docs)` closure at 03:03.
+## Tick note 2026-07-25 04:26 (cron watchdog)
+
+- Pre-state (04:26 CST probe): woclaw HEAD=73bb918 age ~96min UNLOCKED past 3600s lock floor (02:50 73bb918 sync origin/master clean); llm-benchmark HEAD=8a19dbe age ~13min LOCKED<1h (04:13 8a19dbe feat(evaluator) 10th fetcher chain #20). CI 24h: woclaw GREEN, llm-benchmark GREEN. Block counts: wc 0, lb 0.
+- Pre-rotation gate: mixed state PROCEED (wc UNLOCKED > 3600s floor; lb LOCKED<1h unlock 05:02).
+- W→L rotation: last_picked=woclaw (02:50 73bb918) → L sequence → llm-benchmark by rotation default.
+- Cadence-override: rotation-default lb at 5 consecutive fix(docs) today (03:03 0e14898 / 02:43 343bad9 / 01:51 f9997ad / 00:43 a14fb17 / 23:23 1cd8d14) = 5 ≥ 5 threshold → FLIP intended to woclaw. flip-target wc UNLOCKED (age 96min > 3600s floor) + eligible → **FLIP SUCCEEDS** (second operational case after 01:51).
+- Final pick: **woclaw** (by cadence-override FLIP).
+- Hint pool re-check at 04:26: `heartbeat-watchdog.sh hint woclaw` returns 6 candidates unchanged (sync-skill-frontmatter.mjs / docs/ci-failures residual / encryption-at-rest tests / LICENSE fields / EventEmitter test / npm publish 0.4.0); all > 5-min single-tick budget. Stale-drained hint pool confirmed.
+- Action: append tick-note closure to woclaw docs/ci-failures.md (fix(docs) non-pseudo any-time ALLOW per V3 watchdog rule 1).
+- Watchdog check: `fix(docs)` → PASS.
+- Cascade-rate tracker: 40/40+ positive data points across #13-#40+, 25th PROCEED-with-zero-cascade, 0 SKIPs in cycle, 0% cascade rate.
+- Next tick prediction (04:43): wc age ~117min UNLOCKED, lb age ~33min LOCKED<1h (unlock 05:02) → mixed PROCEED. W→L: last_picked=woclaw (predicted 04:26) → L → llm-benchmark. Cadence-override: rotation-default lb at 5 today ≥ 5 → FLIP intended to wc; wc UNLOCKED + eligible → FLIP SUCCEEDS. Expected: woclaw fix(docs) closure at 04:43.
+
