@@ -883,3 +883,20 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - Cascade-rate tracker: 40/40+ positive data points across #13-#40+, 25th PROCEED-with-zero-cascade, 0 SKIPs in cycle, 0% cascade rate.
 - Next tick prediction (04:43): wc age ~117min UNLOCKED, lb age ~33min LOCKED<1h (unlock 05:02) → mixed PROCEED. W→L: last_picked=woclaw (predicted 04:26) → L → llm-benchmark. Cadence-override: rotation-default lb at 5 today ≥ 5 → FLIP intended to wc; wc UNLOCKED + eligible → FLIP SUCCEEDS. Expected: woclaw fix(docs) closure at 04:43.
 
+## Tick note 2026-07-25 06:03 (cron watchdog)
+
+- Pre-state (06:03 CST probe): woclaw HEAD=09f184c age ~77min UNLOCKED past 3600s lock floor (04:47 09f184c fix(docs) sync origin/master clean); llm-benchmark HEAD=7c4225b age ~19min LOCKED<1h (05:45 7c4225b fix(docs) sync origin/master clean). CI 24h: woclaw GREEN, llm-benchmark GREEN. Block counts: wc 0, lb 0.
+- Pre-rotation gate: mixed state PROCEED (wc UNLOCKED > 3600s floor; lb LOCKED<1h unlock 06:29; lb worktree-dirty with `?? _tmp/tick-note-2026-07-25-0503.md` and `?? _tmp/tick-note-2026-07-25-0543.md` from prior cron-mode append ticks).
+- Pre-rotation gate script `[skip-gate] woclaw age=4653 s, llm-benchmark age=1167 s → PROCEED` (script exit 1, mixed state).
+- W→L rotation: last_picked=llm_benchmark (05:43 7c4225b) → W sequence → **woclaw** by rotation default.
+- Cadence-override §1: rotation-default woclaw at 4 consecutive fix(docs) today (04:26 09f184c / 02:43 73bb918 / 02:23 ee7ffcd / 00:23 9d54cba) = 4 < 5 threshold → NO FLIP fires.
+- Final pick: **woclaw** (rotation-default; no cadence-override this tick). wc UNLOCKED → eligible.
+- Action: append tick-note closure to woclaw docs/ci-failures.md (fix(docs) non-pseudo any-time ALLOW per V3 watchdog rule 1).
+- Pre-append hygiene: wc docs/ci-failures.md ends with `\n\n` (double newline, OK per Pitfall #78b — no trailing-newline repair needed).
+- Watchdog check PASS at 06:05:46: `fix(docs): close docs/ci-failures.md 06:03 cron tick-note` → PASS, NO HINT line.
+- 6-step cron-mode append pattern (recurrence #29): (1) write_file tick note to `_tmp/tick-note-2026-07-25-0603.md`; (2) `cat _tmp/tick-note-2026-07-25-0603.md >> docs/ci-failures.md`; (3) trailing-newline repair (Pitfall #78) — not needed (file ends with `\n`); (4) `git diff --check` clean; (5) `git add + commit + push`; (6) post-push `_tmp/` cleanup per recurrence #26 both-repo rule.
+- ROADMAP drift check at 06:03: wc ROADMAP top still stale pending (no `next: step-w-23` line visible — 22:43 phantom docs(roadmap) commit `a58b1d8` failed to actually append per Pitfall #79, blob hash identical at parent and child). Per recurrence #31, docs(roadmap) override NOT applicable today (wc docs(roadmap) quota 0/2 today; phantom 22:43 was on prior day); recovery deferred to future docs(roadmap) tick with fresh quota OR Father approval window.
+- Hint pool re-check at 06:03: `heartbeat-watchdog.sh hint woclaw` returns 6 candidates unchanged (sync-skill-frontmatter.mjs / docs/ci-failures residual / encryption-at-rest tests / LICENSE fields / EventEmitter test / npm publish 0.4.0); all 6 > 5-min single-tick budget. Stale-drained hint pool re-confirmed (~28 windows since 07-23 22:03 first emission).
+- 3-message watchdog sanity suite at 06:03 (per `references/clean-state-lock-tight-skip-3msg-sanity-suite-2026-07-20.md`): `fix(docs)` PASS / `feat(docs)` BLOCK (pseudo) / `docs(roadmap): next: step-w-24` PASS. Gate grammar healthy.
+- Cascade-rate tracker: 41/41+ positive data points across #13-#41+, 26th PROCEED-with-zero-cascade, 0 SKIPs in cycle, 0% cascade rate.
+- Next tick prediction (06:23): wc age ~100min UNLOCKED, lb age ~40min LOCKED<1h (unlock 06:29) → mixed PROCEED. W→L: last_picked=woclaw (predicted 06:03) → L → llm-benchmark. Cadence-override: rotation-default lb at 8 today ≥ 5 → FLIP intended to wc; wc UNLOCKED + eligible → FLIP could SUCCEED. Expected: either wc fix(docs) (FLIP success, 3rd operational case after 01:51 / 04:26) OR lb fix(docs) (FLIP fall-back, 13th operational case). Body will report actual outcome at 06:23.
