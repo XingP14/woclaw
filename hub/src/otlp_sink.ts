@@ -1,8 +1,15 @@
 // hub/src/otlp_sink.ts
 //
-// Round 91.6-A PoC entry — first shipped piece of the OTLP exporter that
-// exports hubEvent envelopes to an OTLP/HTTP receiver (Loki / Langfuse /
-// otel-collector all accept the same OTLP/logs JSON shape).
+// Round 91.6-B PoC ship — wire shape (Round 91.6-A) + the live HTTP layer.
+// R91.6-A shipped the OTLP/logs request body shape + dual-timestamp model
+// + partial_success counter (ea2a0ad, 2026-07-25). R91.6-B adds the actual
+// HTTP POST against the env-configured `WOCLAW_OTLP_ENDPOINT` so a hub
+// process can now push log batches to an OTLP/HTTP receiver (Loki /
+// Langfuse / otel-collector all accept the same shape). The transport is
+// Node 22 native `fetch` + `Content-Type: application/json` per OTLP/HTTP
+// §3.2 (Round 59 deep-read, fetcher of 2026-07-25). No retry on
+// partial_success — spec MUST NOT (Round 59 §2.1). Batching, exponential
+// backoff, RetryInfo honour, and per-receiver auth land in 91.7+.
 //
 // Why a sink separate from hub_log.ts:
 //   hub_log.ts owns the *local* console path. otlp_sink.ts owns the *remote*
@@ -12,25 +19,20 @@
 //   any plain object with the same fields) and returns an OTLP/logs request
 //   body ready to POST.
 //
-// Round 91.6-A is the *skeleton* ship — only the wire shape + dual-timestamp
-// model + partial_success counter are committed today. Subsequent rounds
-// (91.7+ when unblocked after 91.6 PoC entry ships) will add: batching,
-// exponential backoff + jitter, RetryInfo honour, OTLP/HTTP `x-otlp-*`
-// headers, and per-receiver auth. Round 59 deep-read established MUST NOT
-// retry semantics on partial_success (the spec forbids it).
-//
 // Operating modes (mirroring hub_log.ts): opt-in via env
 // `WOCLAW_OTLP_ENDPOINT`. Unset → exporter is a no-op (zero network traffic,
 // zero behavior change). Set to e.g. `http://localhost:4318/v1/logs` to
-// enable the export path.
+// enable the export path. Optional `WOCLAW_OTLP_HEADERS` env (JSON object)
+// adds extra headers — use it for auth tokens (e.g. Loki basic auth).
 //
 // Section index:
-//   §1 Types (OtlpLogRecord, OtlpExportRequest, OtlpExportResponse)
+//   §1 Types (OtlpLogRecord, OtlpExportRequest, OtlpExportResponse,
+//     OtlpSendResult)
 //   §2 buildOtlpLogRecord — map HubEventInput → OTLP LogRecord with dual
 //     Timestamp + ObservedTimestamp (per OTel logs data-model section)
 //   §3 buildOtlpExportRequest — wrap LogRecords into resource_logs scope
-//   §4 OTLP sink state + sendOnce stub — no-op when env unset, otherwise
-//     returns the wire body (network call deferred to a later round)
+//   §4 sendOtlpLogsOnce — env-gated HTTP POST (R91.6-B addition) with
+//     partial_success MUST NOT retry semantics
 //   §5 dropped_records_total — partial_success counter surfaced as
 //     getDroppedRecordsTotal() for in-process telemetry consumers
 
@@ -216,4 +218,84 @@ export function otlpEnabled(): boolean {
 export function otlpEndpoint(): string | null {
   const ep = process.env.WOCLAW_OTLP_ENDPOINT;
   return ep && ep.length > 0 ? ep : null;
+}
+
+// --- §4 sendOtlpLogsOnce (R91.6-B live HTTP layer) ------------------------
+
+/** Result envelope from `sendOtlpLogsOnce`. Pure data — no exceptions on
+ *  partial_success (spec MUST NOT retry). Network errors return
+ *  `{sent:0, rejected:0, error: <Error>}`. Caller decides retry policy. */
+export interface OtlpSendResult {
+  /** Number of LogRecords POSTed in this batch. */
+  sent: number;
+  /** Number of records the receiver rejected via partial_success. */
+  rejected: number;
+  /** Network / parse failure, if any. Null on success. */
+  error: Error | null;
+}
+
+/** Read `WOCLAW_OTLP_HEADERS` env (JSON object) and return as plain header
+ *  map, or `{}` when unset / unparseable. Used to attach per-receiver
+ *  auth (e.g. Loki basic auth, Datadog API key) without coupling the
+ *  sink to any specific provider. Empty strings are dropped. */
+function readOtlpExtraHeaders(): Record<string, string> {
+  const raw = process.env.WOCLAW_OTLP_HEADERS;
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string') out[String(k)] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Send one batch of LogRecords to the configured OTLP/HTTP endpoint.
+ *  Behavior contract:
+ *    - `WOCLAW_OTLP_ENDPOINT` unset → return `{sent:0, rejected:0, error:null}`
+ *      without network I/O. No-op for the dormant-mode case.
+ *    - Endpoint set → POST `application/json` body (per OTLP/HTTP §3.2),
+ *      wait for response, parse body, apply partial_success via
+ *      `applyOtlpPartialSuccess`. Never throws on partial_success
+ *      (Round 59 §2.1: spec MUST NOT retry).
+ *    - Non-2xx HTTP status → return `{sent:0, rejected:0, error: new Error(status + text)}`.
+ *      Caller may choose to retry; the sink itself does NOT retry.
+ *    - Network failure (fetch throws) → return `{sent:0, rejected:0, error}`
+ *      where error is the original error.
+ *  Always returns; never throws. */
+export async function sendOtlpLogsOnce(
+  records: OtlpLogRecord[],
+  service: { name: string; version?: string }
+): Promise<OtlpSendResult> {
+  const ep = otlpEndpoint();
+  if (!ep) return { sent: 0, rejected: 0, error: null };
+  const body = buildOtlpExportRequest(records, service);
+  const extraHeaders = readOtlpExtraHeaders();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...extraHeaders,
+  };
+  let resp: Response;
+  try {
+    resp = await fetch(ep, { method: 'POST', headers, body: JSON.stringify(body) });
+  } catch (e) {
+    return { sent: records.length, rejected: 0, error: e instanceof Error ? e : new Error(String(e)) };
+  }
+  if (resp.status < 200 || resp.status >= 300) {
+    const text = await resp.text().catch(() => '');
+    return { sent: 0, rejected: 0, error: new Error(`OTLP HTTP ${resp.status}: ${text.slice(0, 200)}`) };
+  }
+  let parsed: OtlpExportResponse | null = null;
+  try {
+    parsed = (await resp.json()) as OtlpExportResponse;
+  } catch {
+    // 2xx with non-JSON body is treated as full success (no partial_success field).
+    parsed = {};
+  }
+  const rejected = applyOtlpPartialSuccess(parsed ?? {});
+  return { sent: records.length, rejected, error: null };
 }

@@ -32,7 +32,7 @@
  *       counter and returns the rejected count without retry
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -45,6 +45,7 @@ import {
   resetDroppedRecordsTotal,
   otlpEnabled,
   otlpEndpoint,
+  sendOtlpLogsOnce,
 } from '../src/otlp_sink.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -201,5 +202,90 @@ describe('hub/src/otlp_sink.ts runtime gates (round 91.6-A PoC)', () => {
       if (orig === undefined) delete process.env.WOCLAW_OTLP_ENDPOINT;
       else process.env.WOCLAW_OTLP_ENDPOINT = orig;
     }
+  });
+});
+
+// -- Round 91.6-B live HTTP layer (sendOtlpLogsOnce) --------------------
+
+describe('hub/src/otlp_sink.ts runtime (round 91.6-B live HTTP layer)', () => {
+  const origEndpoint = process.env.WOCLAW_OTLP_ENDPOINT;
+  const origHeaders = process.env.WOCLAW_OTLP_HEADERS;
+
+  afterEach(() => {
+    if (origEndpoint === undefined) delete process.env.WOCLAW_OTLP_ENDPOINT;
+    else process.env.WOCLAW_OTLP_ENDPOINT = origEndpoint;
+    if (origHeaders === undefined) delete process.env.WOCLAW_OTLP_HEADERS;
+    else process.env.WOCLAW_OTLP_HEADERS = origHeaders;
+    vi.restoreAllMocks();
+    resetDroppedRecordsTotal();
+  });
+
+  it('runtime (9): sendOtlpLogsOnce is a no-op when WOCLAW_OTLP_ENDPOINT is unset', async () => {
+    delete process.env.WOCLAW_OTLP_ENDPOINT;
+    const records = [buildOtlpLogRecord({ ts: 0, level: 'info', event: 'a' })];
+    const out = await sendOtlpLogsOnce(records, { name: 'woclaw-hub', version: '0.6.0' });
+    expect(out).toEqual({ sent: 0, rejected: 0, error: null });
+    // No network should have been attempted — global fetch remains untouched.
+    expect(vi.isMockFunction(globalThis.fetch)).toBe(false);
+  });
+
+  it('runtime (10): POSTs application/json with the resource_logs body and parses partial_success', async () => {
+    process.env.WOCLAW_OTLP_ENDPOINT = 'http://localhost:4318/v1/logs';
+    let captured: { url: string; init: RequestInit } | null = null;
+    const stub = vi.fn(async (url: string, init: RequestInit) => {
+      captured = { url, init };
+      // Server reports 2 of the 3 records were rejected.
+      return new Response(JSON.stringify({ partialSuccess: { rejectedLogRecords: 2, errorMessage: 'rate' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', stub);
+
+    const records = [
+      buildOtlpLogRecord({ ts: 1000, level: 'info', event: 'a' }),
+      buildOtlpLogRecord({ ts: 2000, level: 'warn', event: 'b' }),
+      buildOtlpLogRecord({ ts: 3000, level: 'error', event: 'c' }),
+    ];
+    const out = await sendOtlpLogsOnce(records, { name: 'woclaw-hub', version: '0.6.0' });
+
+    expect(out.error).toBeNull();
+    expect(out.sent).toBe(3);
+    expect(out.rejected).toBe(2);
+    expect(getDroppedRecordsTotal()).toBe(2);
+    expect(captured).not.toBeNull();
+    expect(captured!.url).toBe('http://localhost:4318/v1/logs');
+    expect(captured!.init.method).toBe('POST');
+    const headers = captured!.init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+    const sent = JSON.parse(String(captured!.init.body));
+    expect(sent.resourceLogs[0].resource.attributes).toContainEqual({ key: 'service.name', value: { stringValue: 'woclaw-hub' } });
+    expect(sent.resourceLogs[0].scopeLogs[0].logRecords).toHaveLength(3);
+  });
+
+  it('runtime (11): non-2xx response returns {sent:0, rejected:0, error} (no retry per spec)', async () => {
+    process.env.WOCLAW_OTLP_ENDPOINT = 'http://localhost:4318/v1/logs';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response('upstream gone', { status: 502 })
+    ));
+    const records = [buildOtlpLogRecord({ ts: 0, level: 'info', event: 'a' })];
+    const out = await sendOtlpLogsOnce(records, { name: 'woclaw-hub' });
+    expect(out.sent).toBe(0);
+    expect(out.rejected).toBe(0);
+    expect(out.error).toBeInstanceOf(Error);
+    expect(String(out.error!.message)).toMatch(/502/);
+    // No partial_success → no counter change
+    expect(getDroppedRecordsTotal()).toBe(0);
+  });
+
+  it('runtime (12): 2xx with empty body returns full success (no partial_success path)', async () => {
+    process.env.WOCLAW_OTLP_ENDPOINT = 'http://localhost:4318/v1/logs';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 200 })));
+    const records = [buildOtlpLogRecord({ ts: 0, level: 'info', event: 'a' })];
+    const out = await sendOtlpLogsOnce(records, { name: 'woclaw-hub' });
+    expect(out.sent).toBe(1);
+    expect(out.rejected).toBe(0);
+    expect(out.error).toBeNull();
+    expect(getDroppedRecordsTotal()).toBe(0);
   });
 });
