@@ -276,9 +276,114 @@ export class WSServer {
         this.handleDelegateCancel(agentId, msg);
         break;
 
+      case 'publish-stream':
+        await this.handlePublishStream(agentId, msg);
+        break;
+
       default:
         this.sendError(agent.ws, 'unknown_type', `Unknown message type: ${msg.type}`);
     }
+  }
+
+  /**
+   * R92.7 — handle `publish-stream` op (S92 §4.1).
+   *
+   * Validates the envelope against the v1.0 contract, journals it,
+   * and broadcasts to all subscribers on the topic.
+   */
+  private async handlePublishStream(agentId: string, msg: InboundMessage): Promise<void> {
+    const agent = this.agents.get(agentId);
+    if (!agent) return;
+
+    if (!msg.topic) {
+      this.sendError(agent.ws, 'missing_fields', 'topic required for publish-stream');
+      return;
+    }
+
+    const envelope = msg.stream;
+    if (!envelope) {
+      this.sendError(agent.ws, 'missing_fields', 'stream envelope required for publish-stream');
+      return;
+    }
+
+    if (!envelope.events || envelope.events.length === 0) {
+      this.sendError(agent.ws, 'missing_fields', 'stream.events must be non-empty');
+      return;
+    }
+
+    // Auto-generate run_id if missing (S92 §4.1)
+    if (!envelope.run_id) {
+      envelope.run_id = uuidv4();
+    }
+
+    // Schema version check (S92 §4.1): start.schema_version MUST match ^1.
+    const startEv = envelope.events[0];
+    if (startEv.event === 'start' && startEv.schema_version) {
+      if (!/^1\./.test(startEv.schema_version)) {
+        this.sendError(agent.ws, 'schema_version_bad',
+          `start.schema_version "${startEv.schema_version}" does not match ^1.`);
+        return;
+      }
+    }
+
+    // Run full contract validation
+    const { validateAgentStream } = await import('./agent_stream.js');
+    const issues = validateAgentStream(envelope);
+    const hardIssues = issues.filter(i => i.code !== 'event_unknown');
+    if (hardIssues.length > 0) {
+      this.sendError(agent.ws, 'stream_validation_failed',
+        `stream validation failed: ${hardIssues.map(i => `${i.code} at ${i.event_index}: ${i.detail || ''}`).join('; ')}`);
+      return;
+    }
+
+    // Extract exit code from result event (if present)
+    const lastEvent = envelope.events[envelope.events.length - 1];
+    let exitCode: string | null = null;
+    if (lastEvent.event === 'result' && lastEvent.exit) {
+      exitCode = lastEvent.exit;
+    }
+
+    // Journal the stream
+    try {
+      await this.db.saveStream(
+        envelope.run_id,
+        msg.topic,
+        agentId,
+        startEv.schema_version || '1.0',
+        envelope.started_at || Date.now(),
+        JSON.stringify(envelope.events),
+        exitCode
+      );
+    } catch (err) {
+      this.sendError(agent.ws, 'stream_journal_failed', `failed to journal stream: ${errorMessage(err)}`);
+      return;
+    }
+
+    // Broadcast to topic subscribers
+    const outbound: OutboundMessage = {
+      type: 'stream',
+      topic: msg.topic,
+      stream: envelope,
+      from: agentId,
+      timestamp: Date.now(),
+    };
+
+    const recipients = this.topics.broadcast(msg.topic, outbound, agentId);
+    for (const recipientId of recipients) {
+      const recipient = this.agents.get(recipientId);
+      if (recipient && recipient.ws.readyState === 1) {
+        this.send(recipient.ws, outbound);
+      }
+    }
+
+    // Confirm receipt to sender
+    this.send(agent.ws, {
+      type: 'stream_ack',
+      run_id: envelope.run_id,
+      topic: msg.topic,
+      events_received: envelope.events.length,
+      timestamp: Date.now(),
+    });
   }
 
   private async handleChatMessage(fromAgent: string, topic: string, content: string): Promise<void> {

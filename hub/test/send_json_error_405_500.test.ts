@@ -52,10 +52,10 @@ describe('RestServer.sendJsonError 405/500 migration', () => {
     expect(sites2).toEqual([]);
   });
 
-  it('sendJsonError(res, 405, ...) is called for all 13 405 sites (11 generic + 2 path-specific)', () => {
+  it('sendJsonError(res, 405, ...) is called for all 14 405 sites (12 generic + 2 path-specific)', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
     const calls405 = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed'\)/g) || []).length;
-    expect(calls405).toBe(11); // generic-message sites (798a0ba)
+    expect(calls405).toBe(12); // generic-message sites (798a0ba + 1 added by R92.7 streams endpoint)
     const calls405Path = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for this path'\)/g) || []).length;
     expect(calls405Path).toBe(1); // handleRequest catch-all fallback
     const calls405Sessions = (text.match(/RestServer\.sendJsonError\(res, 405, 'Method not allowed for \/sessions'\)/g) || []).length;

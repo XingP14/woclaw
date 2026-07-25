@@ -139,6 +139,11 @@ interface DbStorage {
     memories: Array<{key: string; importance: number; lastAccessedAt: number; accessCount: number}>;
     sessions: Array<{id: string; importance: number; lastAccessedAt: number; accessCount: number}>;
   }>;
+
+  // ─── R92.7: Agent Stream journal ─────────────────────────────────────────
+  saveStream(runId: string, topic: string, agentId: string, schemaVersion: string, startedAt: number, eventsJson: string, exitCode: string | null): Promise<void>;
+  getStream(runId: string): Promise<{ topic: string; agentId: string; schemaVersion: string; startedAt: number; eventsJson: string; exitCode: string | null } | undefined>;
+  getStreamsByTopic(topic: string, limit?: number): Promise<Array<{ runId: string; agentId: string; schemaVersion: string; startedAt: number; exitCode: string | null }>>;
 }
 
 function normalizeTags(tags: unknown): string[] {
@@ -394,6 +399,22 @@ export class ClawDB {
     await this.ensureReady();
     return this.storage.getEvictionCandidates(memoryThreshold, sessionThreshold, limit);
   }
+
+  // ─── R92.7: Agent Stream journal ──────────────────────────────────────
+  async saveStream(runId: string, topic: string, agentId: string, schemaVersion: string, startedAt: number, eventsJson: string, exitCode: string | null): Promise<void> {
+    await this.ensureReady();
+    return this.storage.saveStream(runId, topic, agentId, schemaVersion, startedAt, eventsJson, exitCode);
+  }
+
+  async getStream(runId: string): Promise<{ topic: string; agentId: string; schemaVersion: string; startedAt: number; eventsJson: string; exitCode: string | null } | undefined> {
+    await this.ensureReady();
+    return this.storage.getStream(runId);
+  }
+
+  async getStreamsByTopic(topic: string, limit = 20): Promise<Array<{ runId: string; agentId: string; schemaVersion: string; startedAt: number; exitCode: string | null }>> {
+    await this.ensureReady();
+    return this.storage.getStreamsByTopic(topic, limit);
+  }
 }
 
 class SqliteStorage implements DbStorage {
@@ -499,7 +520,27 @@ class SqliteStorage implements DbStorage {
         reason TEXT,
         created_at INTEGER NOT NULL
       );
+
+      -- R92.7 — agent-stream journal table (S92 §4.1)
+      CREATE TABLE IF NOT EXISTS streams (
+        run_id TEXT PRIMARY KEY,
+        topic TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        schema_version TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        events_json TEXT NOT NULL,
+        exit_code TEXT,
+        created_at INTEGER NOT NULL
+      );
     `);
+    // Index created in a separate exec so the table reference resolves
+    // before CREATE INDEX parses it (SQLite fails with `near "/": syntax
+    // error` when CREATE INDEX appears in the same multi-statement string
+    // before its target table is parsed).
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_streams_topic_run
+        ON streams(topic, started_at DESC);`
+    );
 
     // v1.0 migration: add importance/access_count/last_accessed_at to memory table
     this.addColumnIfNotExists('memory', 'importance_score', 'REAL NOT NULL DEFAULT 5.0');
@@ -925,6 +966,34 @@ class SqliteStorage implements DbStorage {
       sessions: sessRows.map(r => ({ id: r.id, importance: r.importance, lastAccessedAt: r.last_accessed_at, accessCount: r.access_count })),
     };
   }
+
+  // ─── R92.7: Agent Stream journal ──────────────────────────────────────
+  async saveStream(runId: string, topic: string, agentId: string, schemaVersion: string, startedAt: number, eventsJson: string, exitCode: string | null): Promise<void> {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO streams (run_id, topic, agent_id, schema_version, started_at, events_json, exit_code, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(runId, topic, agentId, schemaVersion, startedAt, eventsJson, exitCode, Date.now());
+  }
+
+  async getStream(runId: string): Promise<{ topic: string; agentId: string; schemaVersion: string; startedAt: number; eventsJson: string; exitCode: string | null } | undefined> {
+    const row = this.db.prepare('SELECT * FROM streams WHERE run_id = ?').get(runId) as {
+      run_id: string; topic: string; agent_id: string; schema_version: string;
+      started_at: number; events_json: string; exit_code: string | null; created_at: number;
+    } | undefined;
+    if (!row) return undefined;
+    return { topic: row.topic, agentId: row.agent_id, schemaVersion: row.schema_version, startedAt: row.started_at, eventsJson: row.events_json, exitCode: row.exit_code };
+  }
+
+  async getStreamsByTopic(topic: string, limit = 20): Promise<Array<{ runId: string; agentId: string; schemaVersion: string; startedAt: number; exitCode: string | null }>> {
+    const rows = this.db.prepare(`
+      SELECT run_id, agent_id, schema_version, started_at, exit_code
+      FROM streams WHERE topic = ?
+      ORDER BY started_at DESC LIMIT ?
+    `).all(topic, limit) as Array<{
+      run_id: string; agent_id: string; schema_version: string; started_at: number; exit_code: string | null;
+    }>;
+    return rows.map(r => ({ runId: r.run_id, agentId: r.agent_id, schemaVersion: r.schema_version, startedAt: r.started_at, exitCode: r.exit_code }));
+  }
 }
 
 class MySqlStorage implements DbStorage {
@@ -1045,6 +1114,21 @@ class MySqlStorage implements DbStorage {
         adjustment DOUBLE NOT NULL,
         reason LONGTEXT,
         created_at BIGINT NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // R92.7 — agent-stream journal table (S92 §4.1)
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS streams (
+        run_id VARCHAR(191) PRIMARY KEY,
+        topic VARCHAR(191) NOT NULL,
+        agent_id VARCHAR(191) NOT NULL,
+        schema_version VARCHAR(20) NOT NULL,
+        started_at BIGINT NOT NULL,
+        events_json LONGTEXT NOT NULL,
+        exit_code VARCHAR(20),
+        created_at BIGINT NOT NULL,
+        INDEX idx_streams_topic_run (topic, started_at DESC)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
@@ -1506,5 +1590,31 @@ class MySqlStorage implements DbStorage {
       memories: (memRows as EvictionMemoryRow[]).map(r => ({ key: r.key, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
       sessions: (sessRows as EvictionSessionRow[]).map(r => ({ id: r.id, importance: r.importance, lastAccessedAt: Number(r.last_accessed_at), accessCount: Number(r.access_count) })),
     };
+  }
+
+  // ─── R92.7: Agent Stream journal ──────────────────────────────────────
+  async saveStream(runId: string, topic: string, agentId: string, schemaVersion: string, startedAt: number, eventsJson: string, exitCode: string | null): Promise<void> {
+    await this.pool.execute(
+      `INSERT INTO streams (run_id, topic, agent_id, schema_version, started_at, events_json, exit_code, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE events_json = VALUES(events_json), exit_code = VALUES(exit_code)`,
+      [runId, topic, agentId, schemaVersion, startedAt, eventsJson, exitCode, Date.now()]
+    );
+  }
+
+  async getStream(runId: string): Promise<{ topic: string; agentId: string; schemaVersion: string; startedAt: number; eventsJson: string; exitCode: string | null } | undefined> {
+    const [rows] = await this.pool.query(`SELECT * FROM streams WHERE run_id = ?`, [runId]);
+    const row = (rows as Array<{ run_id: string; topic: string; agent_id: string; schema_version: string; started_at: number; events_json: string; exit_code: string | null }>)[0];
+    if (!row) return undefined;
+    return { topic: row.topic, agentId: row.agent_id, schemaVersion: row.schema_version, startedAt: Number(row.started_at), eventsJson: row.events_json, exitCode: row.exit_code };
+  }
+
+  async getStreamsByTopic(topic: string, limit = 20): Promise<Array<{ runId: string; agentId: string; schemaVersion: string; startedAt: number; exitCode: string | null }>> {
+    const [rows] = await this.pool.query(
+      `SELECT run_id, agent_id, schema_version, started_at, exit_code FROM streams WHERE topic = ? ORDER BY started_at DESC LIMIT ?`,
+      [topic, limit]
+    );
+    return (rows as Array<{ run_id: string; agent_id: string; schema_version: string; started_at: number; exit_code: string | null }>)
+      .map(r => ({ runId: r.run_id, agentId: r.agent_id, schemaVersion: r.schema_version, startedAt: Number(r.started_at), exitCode: r.exit_code }));
   }
 }

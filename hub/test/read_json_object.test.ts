@@ -72,24 +72,24 @@ describe('RestServer.readJsonObject helper migration (07-03 03:43 cron)', () => 
     expect(m![0]).toMatch(/return null/);
   });
 
-  it('RestServer.readJsonObject<T>(req, res) is called at exactly 13 sites in rest_server.ts', () => {
+  it('RestServer.readJsonObject<T>(req, res) is called at 13 sites in rest_server.ts (12 original + 1 streams POST added R92.7)', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
     // Count call sites by splitting on newlines and matching lines that have RestServer.readJsonObject
     // AND are NOT a JSDoc comment (`//` prefix). This excludes the 2 doc-comment mentions.
     const lines = text.split('\n');
     const calls = lines.filter(l => /RestServer\.readJsonObject</.test(l) && !l.trim().startsWith('//')).length;
-    expect(calls).toBe(12);
+    expect(calls).toBe(13);
   });
 
   it('each migrated call site uses the canonical `if (!data) return;` short-circuit guard', () => {
     const text = readFileSync(REST_SERVER, 'utf8');
     const lines = text.split('\n');
     const callCount = lines.filter(l => /RestServer\.readJsonObject</.test(l) && !l.trim().startsWith('//')).length;
-    // 12 guards total: 11 use `if (!data) return;` + 1 uses `if (!updates) return;` at handleSessionUpdate (L998)
+    // 13 guards total: 12 use `if (!data) return;` + 1 uses `if (!updates) return;` at handleSessionUpdate
     const guards = lines.filter(l => /if \(!data\) return;/.test(l) && !l.trim().startsWith('//')).length;
     const updatesGuards = lines.filter(l => /if \(!updates\) return;/.test(l) && !l.trim().startsWith('//')).length;
     expect(guards + updatesGuards).toBe(callCount);
-    expect(callCount).toBe(12);
+    expect(callCount).toBe(13);
   });
 
   it('zero inline `JSON.parse(body)` sites remain at the 12 migrated POST handlers (handleTopicCreate L1209 carve-out retains its body ? JSON.parse(body) : {} shape)', () => {

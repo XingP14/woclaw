@@ -66,7 +66,8 @@ export interface Message {
 // Inbound messages from clients
 export interface InboundMessage {
   type: 'message' | 'join' | 'leave' | 'memory_write' | 'memory_read' | 'topics_list' | 'topic_members' | 'ping' | 'pong'
-       | 'delegate_request' | 'delegate_response' | 'delegate_progress' | 'delegate_result' | 'delegate_cancel';
+       | 'delegate_request' | 'delegate_response' | 'delegate_progress' | 'delegate_result' | 'delegate_cancel'
+       | 'publish-stream';
   topic?: string;
   content?: string;
   key?: string;
@@ -85,12 +86,32 @@ export interface InboundMessage {
   error?: string;
   summary?: string;
   reason?: string;
+  // R92.7 — agent-stream envelope (publish-stream op)
+  stream?: StreamEnvelope;
 }
 
 // Outbound messages to clients
 export interface OutboundMessage {
   type: string;
   [key: string]: unknown;
+}
+
+// R92.7 — agent-stream envelope for `publish-stream` op (S92 §3.1)
+export interface StreamEvent {
+  event: string;
+  ts: number;
+  schema_version?: string;
+  role?: string;
+  exit?: 'ok' | 'error' | 'budget' | 'timeout' | 'config' | 'rate_limited' | 'interrupted';
+  [k: string]: unknown;
+}
+
+export interface StreamEnvelope {
+  schema_version?: string;
+  run_id?: string;
+  agent_id?: string;
+  started_at?: number;
+  events: StreamEvent[];
 }
 
 export interface Topic {

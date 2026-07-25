@@ -315,6 +315,92 @@ export class RestServer {
       // v0.4: Delegation REST endpoints
       } else if (path === '/delegations' || path.startsWith('/delegations')) {
         this.handleDelegations(req, res, url, path, method);
+      // R92.7 — agent-stream endpoints (S92 §4)
+      } else if (path.startsWith('/streams/')) {
+        // GET /streams/:topic/:runId — fetch a specific stream (cursor-based)
+        const streamMatch = path.match(/^\/streams\/([^/]+)\/(.+)$/);
+        if (streamMatch && method === 'GET') {
+          const topic = decodeURIComponent(streamMatch[1]);
+          const runId = decodeURIComponent(streamMatch[2]);
+          const sinceCursor = parseIntParam(url, 'since_cursor', 0);
+          try {
+            const record = await this.db.getStream(runId);
+            if (!record || record.topic !== topic) {
+              RestServer.sendJsonError(res, 404, 'Stream not found');
+              return;
+            }
+            const allEvents = JSON.parse(record.eventsJson) as import('./types.js').StreamEvent[];
+            const events = allEvents.slice(sinceCursor);
+            RestServer.sendJsonSuccess(res, 200, {
+              run_id: runId,
+              topic,
+              schema_version: record.schemaVersion,
+              started_at: record.startedAt,
+              events,
+              next_cursor: sinceCursor + events.length,
+              exit: record.exitCode,
+            });
+          } catch (e) {
+            RestServer.sendJsonError(res, 500, errorMessage(e));
+          }
+          return;
+        }
+        // GET /streams/:topic — list recent runs
+        const topic = decodeURIComponent(path.slice(8));
+        if (method === 'GET') {
+          const limit = Math.min(parseIntParam(url, 'limit', 20), 100);
+          try {
+            const runs = await this.db.getStreamsByTopic(topic, limit);
+            RestServer.sendJsonSuccess(res, 200, { runs, count: runs.length, topic });
+          } catch (e) {
+            RestServer.sendJsonError(res, 500, errorMessage(e));
+          }
+          return;
+        }
+        // POST /streams/:topic — publish a stream envelope
+        if (method === 'POST') {
+          await RestServer.readJsonObject<{ stream: import('./types.js').StreamEnvelope }>(req, res).then(async (data) => {
+            if (!data) return;
+            try {
+              const envelope = data.stream;
+              if (!envelope || !envelope.events || envelope.events.length === 0) {
+                RestServer.sendJsonError(res, 400, 'stream.events must be non-empty');
+                return;
+              }
+              const { validateAgentStream } = await import('./agent_stream.js');
+              const issues = validateAgentStream(envelope);
+              const hardIssues = issues.filter(i => i.code !== 'event_unknown');
+              if (hardIssues.length > 0) {
+                RestServer.sendJsonError(res, 400, `stream validation failed: ${hardIssues.map(i => i.code).join(', ')}`);
+                return;
+              }
+              const runId = envelope.run_id || uuidv4();
+              const lastEvent = envelope.events[envelope.events.length - 1];
+              const exitCode = (lastEvent.event === 'result' && lastEvent.exit) ? lastEvent.exit : null;
+              const startEv = envelope.events[0];
+              await this.db.saveStream(
+                runId,
+                topic,
+                'rest-api',
+                startEv.schema_version || '1.0',
+                envelope.started_at || Date.now(),
+                JSON.stringify(envelope.events),
+                exitCode
+              );
+              RestServer.sendJsonSuccess(res, 201, {
+                run_id: runId,
+                topic,
+                events_received: envelope.events.length,
+                exit_code: exitCode,
+              });
+            } catch (e: unknown) {
+              RestServer.sendJsonError(res, 500, errorMessage(e));
+            }
+          });
+          return;
+        }
+        RestServer.sendJsonError(res, 405, 'Method not allowed');
+        return;
       // v1.0: Graph Memory — Node CRUD
       } else if (path === '/graph/nodes') {
         if (method === 'GET') {
