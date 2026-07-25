@@ -63,12 +63,37 @@ describe('hub/src/hub_log.ts helpers (07-03 02:03 cron regression gate)', () => 
     expect(body).toContain('[WoClaw]');
   });
 
-  it('only 3 console.* calls remain in hub_log.ts — all inside helper bodies', () => {
+  it('legacy 3 console.* calls remain in hub_log.ts — all inside legacy helper bodies (round-03 regression)', () => {
     const src = readSrc(HUB_LOG_PATH);
     const codeOnly = src.split('\n').filter(l => !l.trimStart().startsWith('//')).join('\n');
-    expect(countMatches(codeOnly, /console\.log\(/g)).toBe(1);
-    expect(countMatches(codeOnly, /console\.warn\(/g)).toBe(1);
-    expect(countMatches(codeOnly, /console\.error\(/g)).toBe(1);
+    // Round-57 extension: hubEvent adds a small switch with one
+    // console.[log|warn|error] per level for the env-gated JSON envelope
+    // path. The legacy round-03 contract — exactly one console.* call per
+    // level INSIDE the legacy hubLog/hubWarn/hubError helper bodies —
+    // remains intact. So we expect >= 1 (legacy) and <= 2 per level
+    // (legacy + envelope switch).
+    expect(countMatches(codeOnly, /console\.log\(/g)).toBeGreaterThanOrEqual(1);
+    expect(countMatches(codeOnly, /console\.log\(/g)).toBeLessThanOrEqual(2);
+    expect(countMatches(codeOnly, /console\.warn\(/g)).toBeGreaterThanOrEqual(1);
+    expect(countMatches(codeOnly, /console\.warn\(/g)).toBeLessThanOrEqual(2);
+    expect(countMatches(codeOnly, /console\.error\(/g)).toBeGreaterThanOrEqual(1);
+    expect(countMatches(codeOnly, /console\.error\(/g)).toBeLessThanOrEqual(2);
+  });
+
+  it('legacy hubLog/hubWarn/hubError each contain exactly one console.* call in body (round-03 byte-identity gate preserved)', () => {
+    const src = readSrc(HUB_LOG_PATH);
+    const block = (name: string): string => {
+      const re = new RegExp(`export function ${name}\\(msg: string[^)]*\\): void \\{([\\s\\S]*?)\\n\\}`);
+      const m = src.match(re);
+      expect(m).not.toBeNull();
+      return m![1];
+    };
+    const logBody = block('hubLog');
+    const warnBody = block('hubWarn');
+    const errBody = block('hubError');
+    expect((logBody.match(/console\.log\(/g) || []).length).toBe(1);
+    expect((warnBody.match(/console\.warn\(/g) || []).length).toBe(1);
+    expect((errBody.match(/console\.error\(/g) || []).length).toBe(1);
   });
 
   it('preserves console.log wire format via ...args spread', () => {
@@ -80,9 +105,13 @@ describe('hub/src/hub_log.ts helpers (07-03 02:03 cron regression gate)', () => 
 });
 
 describe('rest_server.ts migrated to hub_log helpers', () => {
-  it('imports hubLog/hubWarn/hubError from ./hub_log.js', () => {
+  it('imports hubLog/hubWarn/hubError[/hubEvent] from ./hub_log.js', () => {
     const src = readSrc(REST_PATH);
-    expect(src).toMatch(/import \{ hubLog, hubWarn, hubError \} from ['"]\.\/hub_log\.js['"]/);
+    // Round 57 extended the import set to include hubEvent (observability-
+    // envelope PoC). Allow either the round-03 three-name shape or the
+    // round-57 four-name shape — any subset containing the three legacy
+    // helpers is acceptable.
+    expect(src).toMatch(/import\s+\{[^}]*\bhubLog\b[^}]*\bhubWarn\b[^}]*\bhubError\b[^}]*\}\s+from\s+['"]\.\/hub_log\.js['"]/);
   });
 
   it('contains 7 hub[Log|Warn|Error] call sites (parity with pre-refactor 7 inline console.* sites)', () => {
@@ -110,7 +139,7 @@ describe('rest_server.ts migrated to hub_log helpers', () => {
 describe('ws_server.ts migrated to hub_log helpers', () => {
   it('imports hubLog/hubWarn/hubError from ./hub_log.js', () => {
     const src = readSrc(WS_PATH);
-    expect(src).toMatch(/import \{ hubLog, hubWarn, hubError \} from ['"]\.\/hub_log\.js['"]/);
+    expect(src).toMatch(/import\s+\{[^}]*\bhubLog\b[^}]*\bhubWarn\b[^}]*\bhubError\b[^}]*\}\s+from\s+['"]\.\/hub_log\.js['"]/);
   });
 
   it('contains >= 13 hub[Log|Warn|Error] call sites (parity with pre-refactor 13 inline sites)', () => {
@@ -138,7 +167,7 @@ describe('ws_server.ts migrated to hub_log helpers', () => {
 describe('index.ts migrated to hub_log helpers', () => {
   it('imports hubLog/hubWarn/hubError from ./hub_log.js', () => {
     const src = readSrc(INDEX_PATH);
-    expect(src).toMatch(/import \{ hubLog, hubWarn, hubError \} from ['"]\.\/hub_log\.js['"]/);
+    expect(src).toMatch(/import\s+\{[^}]*\bhubLog\b[^}]*\bhubWarn\b[^}]*\bhubError\b[^}]*\}\s+from\s+['"]\.\/hub_log\.js['"]/);
   });
 
   it('contains 8 hub[Log|Warn|Error] call sites (parity with pre-refactor 8 inline sites)', () => {
@@ -173,5 +202,39 @@ describe('aggregate migration gate (parallels federation_logger 16-site sanity f
       + (all.match(/hubWarn\(/g) || []).length
       + (all.match(/hubError\(/g) || []).length);
     expect(total).toBeGreaterThanOrEqual(28);
+  });
+});
+
+describe('round 57 — hub.rest.started event wired into rest_server.ts (observability-envelope PoC ship gate)', () => {
+  // The new hubEvent helper must be wired into at least one production call
+  // site (REST boot) so the envelope PoC is a real shipped code path, not
+  // dead helper code. The pre-refactor hubLog site at L156 / L170 (TLS / no-TLS
+  // branches) gets paired with hubEvent — exactly one hubEvent call site per
+  // branch, named `hub.rest.started`.
+  it('rest_server.ts imports hubEvent from ./hub_log.js', () => {
+    const src = readSrc(REST_PATH);
+    expect(src).toMatch(
+      /import\s+\{\s*hubLog,\s*hubWarn,\s*hubError,\s*hubEvent\s*\}\s+from\s+['"]\.\/hub_log\.js['"]/,
+    );
+  });
+
+  it('rest_server.ts contains exactly 2 `hubEvent(` call sites (TLS + no-TLS branches)', () => {
+    const src = readSrc(REST_PATH);
+    const matches = src.match(/(?<![A-Za-z0-9_])hubEvent\s*\(/g) || [];
+    expect(matches.length).toBe(2);
+  });
+
+  it('rest_server.ts emits `hubEvent({ event: "hub.rest.started", ... })` in both branches', () => {
+    const src = readSrc(REST_PATH);
+    const startedMatches = src.match(/event:\s*['"]hub\.rest\.started['"]/g) || [];
+    expect(startedMatches.length).toBe(2);
+  });
+
+  it('rest_server.ts hubEvent call site pairs the legacy hubLog site (preserved byte-identity)', () => {
+    // The pre-existing hubLog('REST API running on ...') line must still be
+    // present immediately before the new hubEvent block in both branches.
+    const src = readSrc(REST_PATH);
+    expect(src).toMatch(/hubLog\(`REST API running on https:.*\(TLS\)`\);[\s\S]*?hubEvent\(\{[\s\S]*?event:\s*['"]hub\.rest\.started['"]/);
+    expect(src).toMatch(/hubLog\(`REST API running on http:.*`\);[\s\S]*?hubEvent\(\{[\s\S]*?event:\s*['"]hub\.rest\.started['"]/);
   });
 });

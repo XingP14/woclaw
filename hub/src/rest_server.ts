@@ -16,7 +16,7 @@ import { TopicsManager } from './topics.js';
 import { MemoryPool } from './memory.js';
 import { Config } from './types.js';
 import { errorMessage } from './errors.js';
-import { hubLog, hubWarn, hubError } from './hub_log.js';
+import { hubLog, hubWarn, hubError, hubEvent } from './hub_log.js';
 import { WSServer } from './ws_server.js';
 import { GraphStore } from './graph/store.js';
 import type { EdgeType, GraphNodeType } from './graph/types.js';
@@ -154,6 +154,12 @@ export class RestServer {
           });
         });
         hubLog(`REST API running on https://${this.config.host}:${this.config.restPort} (TLS)`);
+        hubEvent({
+          level: 'info',
+          event: 'hub.rest.started',
+          context: { trace_id: 'rest' },
+          attrs: { host: this.config.host, port: this.config.restPort, tls: true },
+        });
       } catch (e: unknown) {
         hubError(`Failed to load TLS certificate for REST: ${errorMessage(e)}`);
         throw e;
@@ -168,6 +174,12 @@ export class RestServer {
         });
       });
       hubLog(`REST API running on http://${this.config.host}:${this.config.restPort}`);
+      hubEvent({
+        level: 'info',
+        event: 'hub.rest.started',
+        context: { trace_id: 'rest' },
+        attrs: { host: this.config.host, port: this.config.restPort, tls: false },
+      });
     }
 
     this.server.listen(this.config.restPort, this.config.host);
