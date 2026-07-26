@@ -967,3 +967,16 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - Pre-commit verification: woclaw hub `npm run build` (tsc) clean exit 0 (verified 01:06); `git status --short --branch` clean (master...origin/master synced, only untracked _tmp/tick-note files per recurrence #22); `git diff --check` clean; woclaw docs(ci-failures).md ends with `\n`; `node scripts/sync-skill-frontmatter.mjs --check` PASS (`0/5 files drifted ✓ all SKILL.md compatible_with lists in sync`).
 - Next tick prediction (01:43): wc age ~2h31min UNLOCKED past floor; lb age ~1h31min UNLOCKED. W→L: last_picked=woclaw (this tick 01:23) → L → llm-benchmark. Cadence-override: rotation-default lb at 0 today (00:03 was fix(docs) chain reset) < 5 → NO FLIP fires. Expected: lb `fix(docs)` closure at 01:43 IF dual-UNLOCKED holds; else wc `fix(docs)` fallback if dual-LOCKED<1h arises from any side-push. Real-code chain #23 (13th fetcher extension candidate) on lb OR L257.1 RFC 8693 PoC on wc remain queued for sustained multi-tick budget windows.
 - LLM errors: 0.
+## Tick note 2026-07-27 03:03 (cron watchdog)
+
+- Pre-state (03:07 CST probe): woclaw HEAD=d75ef84 age ~2h00m UNLOCKED; llm-benchmark HEAD=adc266a age ~1h01m UNLOCKED. Both local HEADs equal origin/master; only known untracked `_tmp/tick-note-*.md` artifacts remain.
+- CI gate: woclaw GREEN. llm-benchmark watchdog remains stale-RED from a legacy run in the rolling 24h window; current code was verified healthy at the preceding tick. Real-code and `fix(docs)` remain allowed under V3.
+- W→L rotation: last_picked=llm-benchmark (02:03 tick, adc266a) → **woclaw** by rotation default.
+- Cadence override: woclaw has one consecutive `fix(docs)` emission today, below threshold 5; NO FLIP.
+- Hint freshness: sync-skill-frontmatter and VS Code EventEmitter coverage are already complete; publish is governance-blocked; encryption-at-rest tests, package metadata, and residual-doc cleanup exceed this bounded tick. Newly researched L257/L258/L259 PoCs are cross-cutting and require design approval plus a sustained implementation window.
+- Decision: minimum-cost `fix(docs)` closure on woclaw. No pseudo-prefix and no `docs(roadmap)` quota consumed.
+- Watchdog pre-commit check: `fix(docs): close docs/ci-failures.md 03:03 cron tick-note` → PASS.
+- Verification: `node scripts/sync-skill-frontmatter.mjs --check` reports 0/5 drifted; `npm --prefix hub run build` completed with clean TypeScript exit; `git diff --check` clean before append.
+- Boundary hygiene: the previous woclaw tick note ended without a trailing newline despite its recorded hygiene claim; this append deliberately starts with one newline and ends with one newline, repairing the Markdown section boundary without rewriting history.
+- ROADMAP state: the R92.5/R92.6/R92.7 stream path is substantially realized. Larger credential, output-attestation, and drift-detection candidates remain queued rather than being disguised as pseudo-code maintenance.
+- Single-emission rule: this tick changes woclaw only. Next scheduled slot is 03:23; rotation-default returns to llm-benchmark, subject to lock, CI, cadence, and candidate-feasibility gates.
