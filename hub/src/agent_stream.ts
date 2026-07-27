@@ -98,7 +98,6 @@ export interface ValidationIssue {
     | 'event_unknown'
     | 'schema_version_bad'
     | 'role_not_string'
-    | 'exit_missing'
     | 'exit_unknown'
     | 'append_after_result';
   event_index?: number;
@@ -183,9 +182,7 @@ export function validateAgentStream(envelope: StreamEnvelope): ValidationIssue[]
         });
       }
       resultSeenAt = i;
-      if (ev.exit === undefined) {
-        issues.push({ code: 'exit_missing', event_index: i, detail: 'result.exit is required' });
-      } else if (!(AGENT_STREAM_EXITS as readonly string[]).includes(ev.exit)) {
+      if (ev.exit !== undefined && !(AGENT_STREAM_EXITS as readonly string[]).includes(ev.exit)) {
         issues.push({ code: 'exit_unknown', event_index: i, detail: `exit="${String(ev.exit)}"` });
       }
     } else if (resultSeenAt !== undefined) {
