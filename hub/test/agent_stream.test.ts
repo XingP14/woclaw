@@ -309,6 +309,15 @@ describe('R92.6 runtime — validateAgentStream honors §3.4 invariants', () => 
     expect(issues.some((i) => i.code === 'role_not_string')).toBe(true);
   });
 
+  it('gate: result.exit is required by the v1.0 result contract', () => {
+    const envelope = buildEnvelope([
+      startEvent(),
+      { event: 'result', ts: 1737000002000 },
+    ]);
+    const issues = validateAgentStream(envelope);
+    expect(issues.some((i) => i.code === 'exit_missing')).toBe(true);
+  });
+
   it('gate: result.exit MUST be from v1.0 taxonomy — bad exit emits exit_unknown', () => {
     const envelope = buildEnvelope([
       startEvent(),
