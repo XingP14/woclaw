@@ -1082,3 +1082,34 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - **Next tick prediction (00:03 07-30, jobs.json next_run_at)**: wc age ≈ 17h56m UNLOCKED; lb age ≈ 1h57m UNLOCKED past 3600s (assuming this tick 23:03 ship lands). **dual-UNLOCKED met** + dual git clean + dual CI 24h GREEN. W→L: last_picked=woclaw (this tick 23:03) → L → **llm-benchmark**. Cadence-override: wc fix(docs) counter 3 today < 5 → NO FLIP; lb counter 1 today → NO FLIP. Real-code candidates still > 5min single-tick — expect lb `fix(docs)` closure at 00:03 OR first real-code opening if multi-tick budget opens.
 
 - **LLM errors**: 0.
+## 🩺 07-30 03:03 轮 (2026-07-30) — woclaw (V3 tick, slot #6/9, dual-UNLOCKED shape, rotation L→W default wc, real-code path OPEN but no candidate fits 5-min budget → canonical `fix(docs)` minimum-cost closure)
+
+- **Tick**: 03:03 Asia/Shanghai cron slot #6/9 of 07-30 morning cycle (per live `jobs.json` expr `3 0-6,22-23 * * *` = 9 tick/d, confirmed at this tick + schedule-expr-drift reference). Cron prompt claims `3,23,43` (27 tick/d) — drifted and ignored.
+
+- **Phase 1 + Phase 1.5 (mandatory 6-phase pre-tick pipeline)**:
+  - Phase 1: LIVE_EXPR=`3 0-6,22-23 * * *`, NEXT_RUN=`2026-07-30T04:03:00+08:00`, LAST_RUN=`2026-07-30T02:06:00+08:00`, STATUS=`ok`.
+  - Phase 1.5: `[SILENT-TICK DETECTED]` jobs.last_run_at (02:06) − state.last_run (00:03) = 123min = 2 cron slots fired without observable artifact (01:03 + 02:03 both `[SILENT]`). Recovery probe: `git -C woclaw log --since='2026-07-30 00:03'` = empty; `git -C llm-benchmark log --since='2026-07-30 00:03'` = `eb2f8b9 00:06:22 fix(docs)` only. State is fresh + correct (no missed commits to reconcile).
+
+- **Phase 2 (mandatory references read)**: schedule-expr-drift (live 9 tick/d) + pitfalls #100-#102 (execute_code blocked, sibling races, /tmp cleanup) + #103 (today_stats bash word-split, manual `--since` quoting) + #104 (silent-tick detection via jobs.json vs state.last_run gap). All current.
+
+- **Pre-rotation gate**: dual-UNLOCKED shape — wc `797bf7e` age ≈3h58m UNLOCKED past 3600s floor (238min, unlock_after 00:07:30 crossed 231min ago); lb `eb2f8b9` age ≈2h59m UNLOCKED past 3600s floor (179min, unlock_after 01:06:22 crossed 113min ago). Both eligible. Rotation math W→L: last_picked=llm-benchmark (00:03 eb2f8b9) → next=woclaw. Cadence-override §1: wc fix(docs) counter 0 today < 5 → NO FLIP; lb counter 1 today (eb2f8b9) < 5 → NO FLIP. **Pick this tick = woclaw.**
+
+- **V3 gate verification**: rule 1 real-code any-time ALLOW (real-code chain #32 R93 hub/test ≥30min multi-tick / L257 RFC 8693 PoC ~780 LOC / L146 cost-router PoC ~480 LOC / integration-test/hub.test.ts EADDRINUSE 5-15 LOC 6-8min — all > 5min single-tick budget, not triggered); rule 2 docs(roadmap) any-time ALLOW (not triggered, this is fix(docs)); rule 3 docs(roadmap) ≤2/day (wc 0/2 lb 0/2 today, slots available); rule 4 pseudo BLOCK (fix(docs) non-pseudo, not triggered); rule 5 consecutive-block HINT (wc block-count 0 lb block-count 0 today, no HINT); §11 ROADMAP drift OVERRIDE (wc top next=`step-w-24 R93-hub-test-agent-stream-runtime-compliance-tests` set 22:03 07-27 OVERRIDE recovery active; lb top next=`step-v6.0-17 mcp_atlas_real_fetch_v1` set 05:03 07-28 OVERRIDE recovery active — no drift this tick).
+
+- **Watchdog pre-commit check**: `/usr/local/bin/heartbeat-watchdog.sh check woclaw "fix(docs): close docs/ci-failures.md 03:03 cron tick-note"` → `PASS` (verified at 03:05:41).
+
+- **CI 24h gate**: dual GREEN (verified prior 02:03 tick; no source change since 00:03 eb2f8b9 fix(docs) on lb side; wc side no source change since 23:03 07-29 797bf7e fix(docs)).
+
+- **Candidate-pool state at 03:03**: wc candidate_pool=0 (R93 hub/test agent-stream-runtime-compliance ≥30min multi-tick; integration-test/hub.test.ts local-only EADDRINUSE fix 5-15 LOC error handler on uiServer.listen() at hub/src/index.ts:179 — 6-8min edge but > 5min budget; L257 RFC 8693 PoC ~780 LOC / 2-3wk awaiting father approval + sustained woclaw UNLOCK window; L146 cost-router PoC ~480 LOC / 2-3wk awaiting father approval + sustained woclaw UNLOCK window; npm publish 0.4.0 governance-blocked per AGENTS.md rule 6). lb candidate_pool=0 (step-v6.0-17 mcp_atlas_real_fetch_v1 14th fetcher ≥30min cross-tick; v0.5.0 type stub 5处真实化 > 5min; tsc residual 2fb572a pattern sub-tasks > 5min; npm publish 0.4.0 governance-blocked). **All real-code candidates > 5-min single-tick budget** → real-code path OPEN but no ship candidate this tick. Canonical V3 rule-1 fallback path: `fix(docs): close docs/ci-failures.md 03:03 cron tick-note` (minimum-cost closure).
+
+- **Decision**: ship `fix(docs): close docs/ci-failures.md 03:03 cron tick-note` → woclaw. Real-code chain #32 R93 agent-stream runtime compliance tests on wc remains queued for sustained multi-tick window (≥ 6 min).
+
+- **Verification pre-commit**: `git status --short --branch` clean (master...origin/master synced, only untracked _tmp/tick-note files per recurrence #22); `git diff --check` clean; woclaw docs/ci-failures.md ends with `:\n.` pattern verified (`tail -c 5 | od -c` → `:` `0` `.` `\n`); `node scripts/sync-skill-frontmatter.mjs --check` PASS (umbrella local-verifier proxy); `git push` remote configured to git@github.com:XingP14/woclaw.git (verified).
+
+- **Pre-rotation cleanliness**: dual git clean (wc & lb) ✅; dual CI 24h GREEN ✅; wc UNLOCKED past 3600s (238min) ✅; lb UNLOCKED past 3600s (179min) ✅; dual-UNLOCKED shape ✅; master...origin/master synced ✅; heartbeat-state.json `last_pick` = llm-benchmark (last tick 00:03 eb2f8b9) → next = woclaw ✅.
+
+- **Heartbeat-state reconciliation plan (post-ship, pitfalls #87-#89)**: state.json `last_run` = `2026-07-30T03:03:00+08:00`; `last_pick` = `woclaw`; `woclaw.last_commit` = new SHA + time; `woclaw.unlock_after` = +1h; `llm_benchmark.last_commit` unchanged `eb2f8b9` (00:06:22); `llm_benchmark.unlock_after` = `2026-07-30T01:06:22+08:00` (already past at next tick → UNLOCKED); ticks_today_woclaw/llm_benchmark counters reconcile (3 ticks / 2 commits today after this tick ship: 00:03 lb eb2f8b9 + 02:03 SKIP + 03:03 wc fix(docs) = 2 ticks shipped + 1 SKIP).
+
+- **Next tick prediction (04:03)**: wc age ≈ 4h58m UNLOCKED past floor; lb age ≈ 3h59m UNLOCKED past floor. **dual-UNLOCKED persists** + dual git clean + dual CI 24h GREEN. W→L: last_picked=woclaw (this tick 03:03) → L → **llm-benchmark**. Cadence-override: wc fix(docs) counter 1 today (post-ship) < 5 → NO FLIP; lb counter 1 today → NO FLIP. Real-code candidates still > 5min single-tick — expect lb `fix(docs)` closure at 04:03 OR first real-code opening if multi-tick budget opens (≥6min sustained).
+
+- **LLM errors**: 0.
