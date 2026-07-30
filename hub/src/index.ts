@@ -176,6 +176,14 @@ async function main() {
       res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
       res.end(readFileSync(filePath));
     });
+    // Chain #32 follow-up: attach an 'error' listener to uiServer BEFORE listen()
+    // so a port-conflict on 8084 (EADDRINUSE when an orphaned hub process still
+    // holds the port) becomes a logged warning instead of an unhandled 'error'
+    // event that crashes the hub within ~2s. The REST/WS servers stay up; the
+    // Web UI dashboard simply becomes unavailable on this port.
+    uiServer.on('error', (err: NodeJS.ErrnoException) => {
+      hubWarn(`Web UI server failed to bind port ${uiPort}: ${err.code ?? 'UNKNOWN'} ${err.message}. The REST API and WebSocket hub continue running; the /public dashboard is unavailable.`);
+    });
     uiServer.listen(uiPort);
     process.on('SIGINT', () => { uiServer.close(); });
     process.on('SIGTERM', () => { uiServer.close(); });

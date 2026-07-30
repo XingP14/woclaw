@@ -170,12 +170,12 @@ describe('index.ts migrated to hub_log helpers', () => {
     expect(src).toMatch(/import\s+\{[^}]*\bhubLog\b[^}]*\bhubWarn\b[^}]*\bhubError\b[^}]*\}\s+from\s+['"]\.\/hub_log\.js['"]/);
   });
 
-  it('contains 8 hub[Log|Warn|Error] call sites (parity with pre-refactor 8 inline sites)', () => {
+  it('contains 9 hub[Log|Warn|Error] call sites (parity with pre-refactor 8 inline sites + 1 new hubWarn site for the 06:03 cron-tick EADDRINUSE handler at hub/src/index.ts:179)', () => {
     const src = readSrc(INDEX_PATH);
     const logCalls = (src.match(/hubLog\(/g) || []).length;
     const warnCalls = (src.match(/hubWarn\(/g) || []).length;
     const errorCalls = (src.match(/hubError\(/g) || []).length;
-    expect(logCalls + warnCalls + errorCalls).toBe(8);
+    expect(logCalls + warnCalls + errorCalls).toBe(9);
   });
 
   it('no inline `console.*(`...`[WoClaw]`...)` site remains', () => {
