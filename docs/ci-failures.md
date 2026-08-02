@@ -1163,3 +1163,27 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - **Decision**: ship `fix(docs): close docs/ci-failures.md 05:03 cron tick-note` to woclaw — minimum-cost path. Real-code chain #32 R93 agent-stream runtime compliance tests on wc remains queued for sustained multi-tick window (≥6 min). Real-code chain #23 step-v6.0-17 mcp_atlas_real_fetch_v1 ≥30min cross-tick ladder on lb remains queued for sustained UNLOCK window (≥6 min sustained).
 
 - **LLM errors**: 0.
+
+## Tick note 2026-08-03 05:03 — woclaw
+
+- **Trigger**: watchdog-heartbeat-cron tick at 05:03 CST (live expr `3 0-6,22-23 * * *` = 9 tick/d). Pre-rotation skip-gate returned PROCEED (woclaw 80e91e5 age ≈46h57m DEEP UNLOCKED past 3600s floor; llm-benchmark d3228ab age ≈28h01m DEEP UNLOCKED past 3600s floor).
+- **Rotation math**: last actual master emission on either repo = `d3228ab` (llm-benchmark fix(docs) at 08-02 01:05, ~28h ago). Per pitfall #88 stale-pointer recovery, last_picked by any emission = llm-benchmark. L→W sequence → **woclaw** is the pick. Cadence-override §1: wc fix(docs) today = 0 < 5 threshold → NO FLIP. lb fix(docs) today = 0.
+- **Watchdog pre-commit check**: `/usr/local/bin/heartbeat-watchdog.sh check woclaw "fix(docs): close docs/ci-failures.md 05:03 cron tick-note"` → PASS (no HINT line). V3 rule 1: non-pseudo fix(docs) any-time ALLOW. Verified: `✅ watchdog PASS`.
+- **V3 gate verification**:
+  - Rule 1 (real-code any-time ALLOW): not triggered, this is fix(docs)
+  - Rule 2 (docs(roadmap) any-time ALLOW): not triggered, this is fix(docs)
+  - Rule 3 (docs(roadmap) ≤ 2/day): wc 0/2 today, lb 0/2 today — slots available but not consumed
+  - Rule 4 (pseudo BLOCK): fix(docs) is non-pseudo, not in BLOCK list
+  - Rule 5 (consecutive-block HINT): wc block-count 0 today, lb block-count 0 today — no HINT fires
+- **ROADMAP tops accurate**: wc `next: step-w-24 R93-hub-test-agent-stream-runtime-compliance-tests` (set 22:03 07-27 `8fd239b`, active forward-looking); lb `next: step-v6.0-17 mcp_atlas_real_fetch_v1` (set 05:03 07-28 `13a538e`, active forward-looking). **No drift requiring correction**.
+- **CI 24h gate**: wc GREEN (no source change since 07-31 06:09 `80e91e5` fix(hub)); lb GREEN (no source change since 07-30 04:06 `bac3c6f` fix(docs)). Both real-code path and docs(roadmap) any-time ALLOW per current GREEN state.
+- **§A worktree clean**: both repos clean for tracked files (only `_tmp/` untracked tick-notes per recurrence #22 leave-in-place).
+- **§B real-code ≤5min**: NO. wc candidate_pool 0 (R93 hub/test agent-stream-runtime-compliance ≥30min multi-tick; L257 RFC 8693 PoC ~780 LOC awaiting father approval; L146 cost-router PoC ~480 LOC awaiting father approval; npm publish 0.4.0 governance-blocked). lb candidate_pool 0 (step-v6.0-17 mcp_atlas_real_fetch_v1 ≥30min cross-tick; npm publish 0.4.0 governance-blocked). **All real-code candidates > 5-min single-tick budget** → real-code path OPEN but no ship candidate this tick.
+- **§C docs(roadmap)**: NO candidate staged in worktree.
+- **§D pseudo**: NO candidate.
+- **Learning context**: R322 (Agent Capability Discovery & Advertisement Substrate) and R323 (Agent Negotiation & Agreement Protocol Substrate) completed earlier today. L322.1+L322.2+L322.6 (~300 LOC capability card+registry+identity-bind) and L323.1+L323.2 (~260 LOC negotiation session+offer schema) identified as same-week ship-able candidates. Not yet started — require sustained multi-tick window.
+- **Heartbeat-state reconciliation**: state.json last_picked=llm-benchmark (matches d3228ab 08-02 01:05). Will reconcile to last_picked=woclaw after this tick ship.
+- **Single-emission rule**: this tick changes woclaw only. W→L next expected pick at 06:03 = llm-benchmark.
+- **Verification pre-commit**: `git diff --check` clean; `git status --short --branch` clean apart from untracked `_tmp/`; docs/ci-failures.md ends with `\n` verified; `git push` remote configured to git@github.com:XingP14/woclaw.git.
+- **Decision**: ship `fix(docs): close docs/ci-failures.md 05:03 cron tick-note` to woclaw — minimum-cost path. Real-code chains R93 (wc) and step-v6.0-17 (lb) remain queued for sustained multi-tick windows.
+- **LLM errors**: 0.
