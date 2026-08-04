@@ -66,6 +66,26 @@ describe('TopicsManager', () => {
     });
   });
 
+  describe('private topic invitations', () => {
+    it('rejects a valid invite token when used by a different agent', () => {
+      tm.createPrivateTopic('private');
+      const inviteToken = tm.inviteToTopic('private', 'agent1');
+
+      expect(() => tm.joinPrivateTopic('agent2', 'private', inviteToken))
+        .toThrow('Not invited to this private topic');
+      expect(tm.getTopicAgents('private')).not.toContain('agent2');
+    });
+
+    it('rejects the invited agent when the invite token does not match', () => {
+      tm.createPrivateTopic('private');
+      tm.inviteToTopic('private', 'agent1');
+
+      expect(() => tm.joinPrivateTopic('agent1', 'private', 'wrong-token'))
+        .toThrow('Not invited to this private topic');
+      expect(tm.getTopicAgents('private')).not.toContain('agent1');
+    });
+  });
+
   describe('getAllTopics', () => {
     it('returns all created topics', () => {
       tm.createTopic('general');

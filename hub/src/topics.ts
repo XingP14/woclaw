@@ -53,16 +53,18 @@ export class TopicsManager {
     if (!topic) throw new Error('Topic not found');
     if (!topic.isPrivate) throw new Error('Topic is not private');
 
-    const isInvited = topic.invitedAgents.has(agentId) &&
+    const inviteIsValid = topic.invitedAgents.has(agentId) &&
+      topic.inviteToken === inviteToken &&
       (!topic.inviteExpiresAt || Date.now() < topic.inviteExpiresAt);
-    const tokenMatch = topic.inviteToken && topic.inviteToken === inviteToken;
 
-    if (!isInvited && !tokenMatch) {
+    if (!inviteIsValid) {
       throw new Error('Not invited to this private topic');
     }
 
     topic.agents.add(agentId);
+    topic.invitedAgents.delete(agentId);
     topic.inviteToken = undefined; // consume the token
+    topic.inviteExpiresAt = undefined;
 
     if (!this.agentTopics.has(agentId)) {
       this.agentTopics.set(agentId, new Set());
