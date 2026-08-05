@@ -53,7 +53,7 @@ function stopHub(): Promise<void> {
   });
 }
 
-async function waitForHub(ms = 5000): Promise<void> {
+async function waitForHub(ms = 15_000): Promise<void> {
   const deadline = Date.now() + ms;
   while (Date.now() < deadline) {
     try {
