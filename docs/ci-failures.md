@@ -1187,3 +1187,22 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - **Verification pre-commit**: `git diff --check` clean; `git status --short --branch` clean apart from untracked `_tmp/`; docs/ci-failures.md ends with `\n` verified; `git push` remote configured to git@github.com:XingP14/woclaw.git.
 - **Decision**: ship `fix(docs): close docs/ci-failures.md 05:03 cron tick-note` to woclaw — minimum-cost path. Real-code chains R93 (wc) and step-v6.0-17 (lb) remain queued for sustained multi-tick windows.
 - **LLM errors**: 0.
+
+- **Rotation math**: last actual master emission on either repo = `fc32354` (llm-benchmark fix(evaluator) at 08-05 23:15, ~3h49m ago). Per pitfall #88 stale-pointer recovery, last_picked by any emission = llm-benchmark. L→W sequence → **woclaw** is the pick. Cadence-override §1: wc fix(docs) today = 0 < 5 threshold → NO FLIP. lb fix(docs) today = 0.
+- **Watchdog pre-commit check**: `/usr/local/bin/heartbeat-watchdog.sh check woclaw "fix(docs): close docs/ci-failures.md 03:03 cron tick-note"` → PASS (no HINT line). V3 rule 1: non-pseudo fix(docs) any-time ALLOW. Verified: `✅ watchdog PASS`.
+- **V3 gate verification**:
+  - Rule 1 (real-code any-time ALLOW): not triggered, this is fix(docs)
+  - Rule 2 (docs(roadmap) any-time ALLOW): not triggered, this is fix(docs)
+  - Rule 3 (docs(roadmap) ≤ 2/day): wc 0/2 today, lb 0/2 today — slots available but not consumed
+  - Rule 4 (pseudo BLOCK): fix(docs) is non-pseudo, not in BLOCK list
+  - Rule 5 (consecutive-block HINT): wc block-count 0 today, lb block-count 0 today — no HINT fires
+- **ROADMAP tops accurate**: wc `next: step-w-24 R93-hub-test-agent-stream-runtime-compliance-tests` (set 22:03 07-27 `8fd239b`, active forward-looking); lb `next: step-v6.0-17 mcp_atlas_real_fetch_v1` (set 05:03 07-28 `13a538e`, active forward-looking). **No drift requiring correction** at 03:03.
+- **CI 24h gate**: wc GREEN (verified ci-gate); lb GREEN (verified ci-gate). Both real-code path and docs(roadmap) any-time ALLOW per current GREEN state.
+- **§A worktree clean**: both repos clean for tracked files (only `_tmp/` untracked tick-notes per recurrence #22 leave-in-place).
+- **§B real-code ≤5min**: NO. wc candidate_pool 0 (R93 hub/test agent-stream-runtime-compliance ≥30min multi-tick; L257 RFC 8693 PoC ~780 LOC awaiting father approval; L146 cost-router PoC ~480 LOC awaiting father approval; npm publish 0.4.0 governance-blocked). lb candidate_pool 0 (step-v6.0-17 mcp_atlas_real_fetch_v1 ≥30min cross-tick; v0.5.0 type stub 5 处真实化 sub-tasks > 5min; tsc residual `2fb572a` pattern sub-tasks > 5min; npm publish 0.4.0 governance-blocked). **All real-code candidates > 5-min single-tick budget** → real-code path OPEN but no ship candidate this tick.
+- **§C docs(roadmap)**: NO candidate staged in worktree. No ROADMAP drift.
+- **§D pseudo**: NO candidate.
+- **Single-emission rule**: this tick changes woclaw only. W→L next expected pick at 03:23 = llm-benchmark.
+- **Verification pre-commit**: `git diff --check` clean; `git status --short --branch` clean apart from untracked `_tmp/`; docs/ci-failures.md ends with `\n` verified; `git push` remote configured to git@github.com:XingP14/woclaw.git.
+- **Decision**: ship `fix(docs): close docs/ci-failures.md 03:03 cron tick-note` to woclaw — minimum-cost path. Real-code chains R93 (wc) and step-v6.0-17 (lb) remain queued for sustained multi-tick windows.
+- **LLM errors**: 0.
