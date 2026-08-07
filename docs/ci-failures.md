@@ -1231,3 +1231,82 @@ tick #3/27. At 2026-07-18 22:44:30 probe dual LOCKED<1h tight: woclaw db6aa7c (2
 - **Verification pre-commit**: `git diff --check` clean; `git status --short --branch` clean apart from untracked `_tmp/` artifacts (recurrence #22 leave-in-place); `node scripts/sync-skill-frontmatter.mjs --check` PASS (umbrella local-verifier proxy); woclaw docs/ci-failures.md ends with `\n` pattern verified (`tail -c 5 | od -c` → `: 0 . \n` after append); `git push` remote configured to git@github.com:XingP14/woclaw.git (verified).
 - **Decision**: ship `fix(docs): close docs/ci-failures.md 03:03 cron tick-note` to woclaw — minimum-cost path mirroring 00:03/01:03/02:03 dual-SKIP pattern but with the rotation-default woclaw pick (per L→W from 02:03 carry). Real-code chain #32 R93 agent-stream runtime compliance tests on wc remains queued for sustained multi-tick window (≥6 min). Real-code chain #23 step-v6.0-17 mcp_atlas_real_fetch_v1 ≥30min cross-tick ladder on lb remains queued for sustained UNLOCK window (≥6 min sustained).
 - **LLM errors**: 0.
+
+
+# Tick note 2026-08-08 02:03 (cron watchdog)
+
+**Trigger**: watchdog-heartbeat-cron tick at 02:03 CST (live expr `3 0-6,22-23 * * *`
+= 9 tick/d, drifted from prompt's claimed 27 tick/d cadence per
+`references/schedule-expr-drift-2026-07-29.md`).
+
+**Slot**: #3/9 of day-cycle 2026-08-08 (00:03, 01:03 = #1/2 = SKIPs; 02:03 = #3 = SHIP).
+
+**Rotation math**: state.json `last_picked=llm-benchmark` carry from 01:03 tick.
+Last actual master emission on either repo = `da8d13f` (lb fix(docs) 08-07 04:11:18,
+~21h52m ago). Per pitfall #88 stale-pointer recovery, last_picked by emission = llm-benchmark.
+**L→W sequence → woclaw is the pick.** Cadence-override §1: wc fix(docs) today = 0
+< 5 threshold → NO FLIP; lb fix(docs) today = 0.
+
+**Pre-rotation skip-gate**: PROCEED. Both repos DEEP UNLOCKED past 3600s floor
+(wc `9502226` age ≈ 22h56m; lb `da8d13f` age ≈ 21h52m). Dual git clean (only
+untracked `_tmp/` per recurrence #22 leave-in-place). Dual CI 24h GREEN.
+
+**V3 gate classification**:
+- Rule 1 (real-code any-time ALLOW): NOT triggered — all candidates > 5min budget.
+- Rule 2 (docs(roadmap) any-time ALLOW): NOT triggered — no drift to recover
+  (wc ROADMAP L500 next: step-w-24 R93 active per 07-27 22:03 `8fd239b`;
+  lb ROADMAP L1 next: step-v6.0-17 per 07-28 05:03 `13a538e` — both verified
+  accurate at 02:03 truth-probe).
+- Rule 3 (docs(roadmap) ≤ 2/day): wc 0/2 + lb 0/2 slots available.
+- Rule 4 (pseudo BLOCK): NOT triggered — `fix(docs)` is non-pseudo.
+- Rule 5 (consecutive-block HINT): wc block-count 0, lb block-count 0 — no HINT.
+
+**Watchdog pre-flight**: `/usr/local/bin/heartbeat-watchdog.sh check woclaw
+"fix(docs): close docs/ci-failures.md 02:03 cron tick-note"` → PASS at 02:03:30
+(no HINT line). Rule 1 non-pseudo fix(docs) any-time ALLOW. Verified `✅ watchdog PASS`.
+
+**Pre-commit gates**:
+- `git diff --check` clean
+- `git status --short --branch` clean (only untracked `_tmp/` artifacts)
+- `node scripts/sync-skill-frontmatter.mjs --check` PASS (umbrella local-verifier proxy)
+- `git push` remote configured (`git@github.com:XingP14/woclaw.git` on wc side,
+  `git@github.com:XingP14/llm-benchmark.git` on lb side)
+- woclaw docs/ci-failures.md trailing-newline verified: `tail -c 5 | od -c`
+  → `: 0 . \n` (Pitfall #78 / recurrence #47 compliance)
+
+**Heartbeat-state reconciliation plan (post-ship, pitfalls #87-#89)**:
+- `last_run` = `2026-08-08T02:03:00+08:00` (this tick ship timestamp)
+- `last_picked` = `woclaw` (matches this tick ship)
+- `woclaw.last_commit` = new SHA + time
+- `woclaw.unlock_after` = new commit time + 3600s
+- `llm_benchmark.last_commit` = unchanged `da8d13f` (08-07 04:11:18)
+- `llm_benchmark.unlock_after` = `2026-08-07T05:11:18+08:00` (already past → UNLOCKED)
+- `ticks_today_woclaw` counter increment; `commits_today_woclaw` +1
+- `ticks_today_llm_benchmark` counter increment; `commits_today_llm_benchmark` 0
+- `chain_count` increment on both repos
+
+**Emission ledger (2026-08-08 day-cycle)**:
+- 00:03 (slot #1) — dual-SKIP (dual pool-zero)
+- 01:03 (slot #2) — dual-SKIP (dual pool-zero)
+- 02:03 (slot #3) — **SHIP `fix(docs)` to woclaw** (this tick)
+- 03:03 (slot #4) — predicted SHIP to llm-benchmark (W→L rotation)
+
+**Truth-probe (Pitfall #137)**: `cd wc && git log --pretty=format:'%s'
+--since='2026-08-08 00:00' | grep -c .` = 0 (pre-ship); same probe on lb = 0.
+Confirms `heartbeat-watchdog.sh daily` returning 0/0/0/0 is the documented-bug
+lie (independently verified against `git rev-parse HEAD` + `git log --since`).
+
+**Single-emission rule**: this tick changes woclaw only. W→L next expected pick
+at 03:03 = llm-benchmark (subject to dual-UNLOCKED + candidate-feasibility +
+cadence gates; expect SHIP per 08-07 04:03 pattern).
+
+**Decision**: SHIP `fix(docs): close docs/ci-failures.md 02:03 cron tick-note` to
+woclaw. Mirror the 03:03/04:03/05:03 wc pattern from 08-06 + 08-07 03:03 ship (last
+wc ship was `9502226` 08-07 03:06:54 fix(docs) — exact 23h cycle). Real-code chains
+queued:
+- wc chain #32 R93 hub/test agent-stream-runtime-compliance ≥30min multi-tick
+- lb chain #23 step-v6.0-17 mcp_atlas_real_fetch_v1 ≥30min cross-tick ladder
+- wc L257 RFC 8693 PoC (~780 LOC) — father-approval-gated
+- wc L146 cost-router PoC (~480 LOC) — father-approval-gated
+
+**LLM errors**: 0.
