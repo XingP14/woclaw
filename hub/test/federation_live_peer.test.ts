@@ -71,6 +71,12 @@ interface PeerHarness {
   };
   /** Wait until the manager has an OPEN socket for `hubId`. */
   waitConnected(hubId: string, timeoutMs?: number): Promise<void>;
+  /**
+   * Wait until the peer has stopped receiving frames. MUST be awaited
+   * before snapshotting `received.length`, because the 'open' handler's
+   * hub_info send can still be in flight when waitConnected() resolves.
+   */
+  drainInbound(quietMs?: number, timeoutMs?: number): Promise<void>;
   /** Push a raw frame (object or string) from the peer into the manager. */
   sendFromPeer(raw: unknown): Promise<void>;
   /** Terminate the peer socket, as a crashed peer hub would. */
@@ -146,6 +152,33 @@ async function startFederationWithLivePeer(
 
   const clientSocket = (): WebSocket => priv.peers.get(hubId)!;
 
+  /**
+   * Wait until the peer has stopped receiving frames.
+   *
+   * connectToPeer's 'open' handler calls sendHubInfo() immediately, so a
+   * hub_info frame can still be in flight when waitConnected() resolves —
+   * `readyState === OPEN` is observable before the send has been delivered.
+   * A test that snapshots `received.length` at that instant and asserts on
+   * it after settle() sees the hub_info land in the window between the two,
+   * and fails with a phantom +1. Measured at 15/40 iterations standalone and
+   * far more often under full-suite parallelism, which is why this looked
+   * like a random flake. Polling until two consecutive samples agree makes
+   * the snapshot stable regardless of event-loop scheduling.
+   */
+  const drainInbound = (quietMs = 30, timeoutMs = 2000): Promise<void> =>
+    new Promise((resolve) => {
+      const deadline = Date.now() + timeoutMs;
+      let last = -1;
+      const poll = () => {
+        const now = received.length;
+        if (now === last) return resolve();
+        last = now;
+        if (Date.now() > deadline) return resolve();
+        setTimeout(poll, quietMs);
+      };
+      poll();
+    });
+
   const serverSocket = (): WebSocket => {
     if (serverSockets.length === 0) throw new Error('peer server socket not registered yet');
     return serverSockets[serverSockets.length - 1];
@@ -181,7 +214,7 @@ async function startFederationWithLivePeer(
 
   const harness: PeerHarness = {
     manager, config, peer, received, serverSockets, wss, priv,
-    waitConnected, sendFromPeer, dropPeer,
+    waitConnected, sendFromPeer, dropPeer, drainInbound,
     trackServer(wss2) { extraServers.push(wss2); },
     cleanup() {
       try { manager.stop(); } catch { /* already stopped */ }
@@ -248,6 +281,7 @@ describe('FederationManager over a live peer WebSocket (S24 live)', () => {
 
   it('connectToPeer logs "Already connected" and opens no second socket for a live hubId', async () => {
     h = await startFederationWithLivePeer();
+    await h.drainInbound();
     const before = h.received.length;
     const logSpy = vi.spyOn(console, 'log');
     // Same hubId, a deliberately different (dead) wsUrl. addPeer takes the
@@ -397,6 +431,7 @@ describe('FederationManager over a live peer WebSocket (S24 live)', () => {
     h = await startFederationWithLivePeer();
     const got: any[] = [];
     h.manager.setMemorySyncHandler(m => got.push(m));
+    await h.drainInbound();
     const before = h.received.length;
     // `peers` holds only peer-live-1, so relayMessage finds no socket and
     // drops the frame — no send, no local delivery, and NO warning, unlike
@@ -415,6 +450,7 @@ describe('FederationManager over a live peer WebSocket (S24 live)', () => {
 
   it('broadcast and syncMemory skip a peer whose socket is not OPEN', async () => {
     h = await startFederationWithLivePeer();
+    await h.drainInbound();
     const before = h.received.length;
     // Replace the map entry with a CONNECTING-shaped socket: the exact state a
     // peer sits in between addPeer() and the 'open' event.
@@ -452,6 +488,7 @@ describe('FederationManager over a live peer WebSocket (S24 live)', () => {
     h = await startFederationWithLivePeer();
     const got: any[] = [];
     h.manager.setRelayHandler(m => got.push(m));
+    await h.drainInbound();
     const before = h.received.length;
     await h.sendFromPeer({
       type: 'agent_message',
@@ -514,6 +551,7 @@ describe('FederationManager over a live peer WebSocket (S24 live)', () => {
 
     // Addressed to a third hub: relayMessage looks us up in `peers`, finds
     // nothing, and drops it. No send, no local delivery, no warning.
+    await h.drainInbound();
     const before = h.received.length;
     got.length = 0;
     await h.sendFromPeer({ type: 'memory_sync', fromHubId: 'peer-live-1', toHubId: 'far-hub-9', payload: { key: 'k9' } });
