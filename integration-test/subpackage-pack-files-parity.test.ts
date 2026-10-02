@@ -207,18 +207,26 @@ describe('subpackage npm-pack files parity (regression 07-09 03:43 cron)', () =>
     ).toBeGreaterThanOrEqual(20);
   });
 
-  it('plugin ships its 3 adapter-config/channel/errors suites via npm pack (regression 07-09 03:43 cron)', () => {
+  it('plugin ships its 4 adapter-config/channel-credential/channel-runtime/errors suites via npm pack (regression 07-09 03:43 cron)', () => {
     const plugin = results.find((r) => r.workspace === 'plugin');
     expect(plugin).toBeDefined();
     const tsFiles = plugin!.resolvedTestFiles.filter((f) => f.endsWith('.test.ts'));
     expect(
       tsFiles.length,
-      `plugin should ship its 3 *.test.ts suites, found ${tsFiles.length}`,
-    ).toBeGreaterThanOrEqual(3);
+      `plugin should ship its 4 *.test.ts suites, found ${tsFiles.length}`,
+    ).toBeGreaterThanOrEqual(4);
     // Pin specific filenames so a rename wouldn't sneak past the count gate.
+    //
+    // test/channel.test.ts was REMOVED 2026-10-02, not renamed. It asserted on
+    // its own `ws` mock (`expect(mockWs.on).toBeDefined()`) and on
+    // vi.clearAllMocks(), and imported zero production code: replacing
+    // plugin/src/channel.ts with `export const channelInstance = null` left it
+    // 2/2 green. Its runtime surface is now covered by test/channel-runtime.test.ts
+    // (45 tests) and its credential surface by test/channel-credential-readiness.test.ts.
     for (const expected of [
       'test/adapter-config.test.ts',
-      'test/channel.test.ts',
+      'test/channel-credential-readiness.test.ts',
+      'test/channel-runtime.test.ts',
       'test/errors.test.ts',
     ]) {
       expect(plugin!.resolvedTestFiles, `plugin should ship ${expected}`).toContain(expected);
