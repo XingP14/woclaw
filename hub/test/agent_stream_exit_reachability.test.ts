@@ -286,13 +286,30 @@ describe('R401.3 — agent-stream exit reachability (§3.3)', () => {
       ).toBe(false);
     }
 
-    // The forward-reference hazard, stated concretely: from hub/ the
-    // old PACKAGES_SRC resolved to a real, populated directory that is
-    // NOT part of this repository. Anchor it to the repo and the
-    // foreign path is unreachable by construction.
-    const fromHub = join(REPO_ROOT, 'hub', '..', '..', 'packages');
-    expect(resolve(fromHub)).not.toBe(resolve(anchored.PACKAGES_SRC));
-    expect(existsSync(fromHub)).toBe(true); // it was real, and wrong
+    // The forward-reference hazard, stated concretely. The old
+    // derivation from cwd=<repo>/hub pointed two levels up:
+    //
+    //     <repo>/hub/../../packages
+    //
+    // On a developer box that is another repository's packages/
+    // directory — real, populated, and NOT part of WoClaw. Any file
+    // there matching `exit: '<code>'` would have been credited as a
+    // producer in this repo. Anchored to the repo, that path is
+    // unreachable by construction.
+    //
+    // Asserted as PURE PATH ARITHMETIC, deliberately. An earlier
+    // draft also asserted `existsSync(fromHub) === true` to show the
+    // foreign path was "real, and wrong" — that passed here and FAILED
+    // in CI, because on a GitHub runner the same path is just
+    // /home/runner/work/packages and does not exist. Encoding a fact
+    // about the machine into a repo test is the very failure mode this
+    // commit removes, so the assertion stays a function of the
+    // strings alone and holds on every checkout.
+    const fromHub = resolve(REPO_ROOT, 'hub', '..', '..', 'packages');
+    expect(fromHub).not.toBe(resolve(anchored.PACKAGES_SRC));
+    // And the anchored roots are the repo's own, not a neighbour's.
+    expect(resolve(anchored.PACKAGES_SRC)).toBe(resolve(REPO_ROOT, 'packages'));
+    expect(resolve(anchored.HUB_SRC)).toBe(resolve(REPO_ROOT, 'hub', 'src'));
 
     // Sanity: the real source trees are reachable from the anchor, so
     // the assertions above are not vacuously true.
