@@ -11,7 +11,7 @@
     "start": "node bin/woclaw.js",
     "build": "mkdir -p dist && npx tsc --project tsconfig.build.json && cp -r skills openclaw.plugin.json bin dist/",
     "prepublishOnly": "npm run build",
-    "test": "vitest run test/channel.test.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "ws": "^8.21.0"
