@@ -80,7 +80,7 @@ function parseNodeTypes(raw: string | null): GraphNodeType[] | undefined {
  * downstream `Math.min(NaN, 50)` is already `NaN`, so the only externally
  * observable change is `?limit=` no longer passing NaN through to SQL.
  */
-function parseIntParam(url: URL, name: string, defaultValue: number): number {
+export function parseIntParam(url: URL, name: string, defaultValue: number): number {
   const raw = url.searchParams.get(name) || String(defaultValue);
   return parseInt(raw, 10);
 }
