@@ -35,8 +35,19 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  readFileSync,
+  readdirSync,
+  existsSync,
+  statSync,
+  writeFileSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+} from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { AGENT_STREAM_EXITS } from '../src/agent_stream.js';
 
 /**
@@ -57,8 +68,43 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
 /** Reachable because the hub relays the value the agent itself reported. */
 const ENVELOPE_FORWARDED: readonly string[] = ['ok', 'error'];
 
-const HUB_SRC = join(process.cwd(), 'src');
-const PACKAGES_SRC = join(process.cwd(), '..', '..', 'packages');
+/**
+ * Resolve the audited trees from THIS FILE's location, never from
+ * process.cwd().
+ *
+ * Pitfall #401-2: CwdDependentSourceScanIsASilentGreen.
+ * This file originally used `join(process.cwd(), 'src')` and
+ * `join(process.cwd(), '..', '..', 'packages')`. Its verdict changed
+ * with the launch directory:
+ *
+ *   from woclaw/hub/ (the CI matrix job's working-directory) ->
+ *     HUB_SRC      = <repo>/hub/src            correct
+ *     PACKAGES_SRC = ~/.hermes/workspace/packages   ← a FOREIGN tree,
+ *                    two levels above the repo, belonging to the Hermes
+ *                    workspace and not to WoClaw at all
+ *   from the repo root ->
+ *     HUB_SRC      = <repo>/src               does not exist
+ *     PACKAGES_SRC = ~/.hermes/packages       does not exist
+ *
+ * `walk()` swallows a missing directory (returns []), so the scan
+ * silently found ZERO files and the two "is the scan alive?" tests
+ * turned red -- but the headline audit still reported all 7 codes as
+ * correctly classified. A reachability audit that audits nothing is
+ * worse than no audit: it looks like evidence.
+ *
+ * The forward-reference hazard is the reason this must be anchored:
+ * from the repo root, PACKAGES_SRC pointed at an unrelated repo that
+ * happened to sit two levels up. If any future file there ever matched
+ * `exit: '<code>'`, this test would have credited a producer in
+ * WoClaw on the strength of code from another repository.
+ */
+const HERE = dirname(fileURLToPath(import.meta.url)); // <repo>/hub/test
+const REPO_ROOT = join(HERE, '..', '..');
+const HUB_SRC = join(HERE, '..', 'src');
+const PACKAGES_SRC = join(REPO_ROOT, 'packages');
+
+/** Resolved scan roots, asserted against the file's own location below. */
+export const SCAN_ROOTS = { HUB_SRC, PACKAGES_SRC, REPO_ROOT };
 
 function walk(dir: string): string[] {
   let out: string[] = [];
@@ -70,13 +116,22 @@ function walk(dir: string): string[] {
   }
   for (const e of entries) {
     const p = join(dir, e.name);
-    if (e.isDirectory()) out = out.concat(walk(p));
-    else if (e.name.endsWith('.ts') && !e.name.endsWith('.test.ts') && !e.name.endsWith('.d.ts')) {
+    if (e.isDirectory()) {
+      // Without this, PACKAGES_SRC walks every package's node_modules.
+      // packages/woclaw-vscode/node_modules/@types/node alone matches
+      // the `\.exit\b` forwarding probe, so vendored TypeScript
+      // declarations would have satisfied the "at least one forwarding
+      // site" test on their own.
+      if (!SKIP_DIRS.has(e.name)) out = out.concat(walk(p));
+    } else if (e.name.endsWith('.ts') && !e.name.endsWith('.test.ts') && !e.name.endsWith('.d.ts')) {
       out.push(p);
     }
   }
   return out;
 }
+
+/** Directories never worth auditing: vendored deps, build output, VCS. */
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', '.git', 'out', 'build']);
 
 /** Strip comments so a documented exit is never mistaken for a produced one. */
 function codeOf(file: string): string {
@@ -84,6 +139,27 @@ function codeOf(file: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
+
+/**
+ * Fail loudly if a scan root does not exist.
+ *
+ * The original `walk()` returned [] for a missing directory. That is
+ * correct for a nested subdirectory being walked out of, but it is
+ * exactly wrong for a ROOT: a renamed or moved source tree produced
+ * an empty scan that still produced a confident report.
+ */
+function requireRoot(dir: string): void {
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {
+    throw new Error(
+      `Reachability scan root does not exist: ${dir}\n` +
+        `This test anchors paths to import.meta.url, so this failure means the ` +
+        `source tree moved — update the anchors, do not make the walk tolerant.`,
+    );
+  }
+}
+
+requireRoot(HUB_SRC);
+requireRoot(PACKAGES_SRC);
 
 const productionFiles = [...walk(HUB_SRC), ...walk(PACKAGES_SRC)];
 const productionCode = new Map(productionFiles.map((f) => [f, codeOf(f)]));
@@ -150,5 +226,168 @@ describe('R401.3 — agent-stream exit reachability (§3.3)', () => {
     expect(KNOWN_UNREACHABLE.ok).toBeUndefined();
     expect(KNOWN_UNREACHABLE.error).toBeUndefined();
     expect(ENVELOPE_FORWARDED).toEqual(expect.arrayContaining(['ok', 'error']));
+  });
+
+  it('scan roots are anchored to this file, not to process.cwd()', () => {
+    // The direct assertion behind pitfall #401-2. If a future edit
+    // reintroduces process.cwd() into the path construction, the scan
+    // roots stop tracking the file and this goes red — from every
+    // launch directory, which is the point.
+    expect(HUB_SRC).toBe(join(HERE, '..', 'src'));
+    expect(PACKAGES_SRC).toBe(join(REPO_ROOT, 'packages'));
+
+    // And they must actually be the repo's trees. A cwd-relative path
+    // that happens to exist somewhere else is the exact failure.
+    expect(resolve(HUB_SRC)).toBe(resolve(HERE, '..', 'src'));
+    expect(resolve(PACKAGES_SRC)).toBe(resolve(REPO_ROOT, 'packages'));
+    expect(SCAN_ROOTS.REPO_ROOT).toBe(REPO_ROOT);
+  });
+
+  it('the verdict does not depend on the launch directory (end-to-end CWD proof)', () => {
+    // Asserting on the path strings above is a proxy. This is the
+    // actual property.
+    //
+    // Reconstruct the scan roots the way the pre-fix code derived them
+    // and show that for EVERY plausible launch directory the pair was
+    // wrong *somewhere* — the two roots cannot both be right from any
+    // single cwd. Per-root truth:
+    //
+    //   cwd = <repo>/hub  -> HUB_SRC correct, PACKAGES_SRC = a FOREIGN
+    //                        tree two levels up (the Hermes workspace's
+    //                        own packages/, not WoClaw's)
+    //   cwd = <repo>      -> HUB_SRC does not exist, PACKAGES_SRC does
+    //                        not exist
+    //
+    // So there was no launch directory at which this audit was
+    // scanning the right things, which is exactly why it looked healthy
+    // and never was.
+    const anchored = { ...SCAN_ROOTS };
+
+    // Real launch directories for this repo, plus hostile ones.
+    const candidateCwds = [process.cwd(), REPO_ROOT, HERE, join(REPO_ROOT, 'hub'), tmpdir(), '/'];
+
+    for (const cwd of candidateCwds) {
+      const cwdDerived = {
+        HUB_SRC: join(cwd, 'src'),
+        PACKAGES_SRC: join(cwd, '..', '..', 'packages'),
+      };
+      // The anchored roots are a pure function of the file's own
+      // location, so no cwd can perturb them.
+      expect(anchored).toEqual({ ...SCAN_ROOTS });
+
+      // The pair is never simultaneously correct.
+      const bothCorrect =
+        cwdDerived.HUB_SRC === anchored.HUB_SRC && cwdDerived.PACKAGES_SRC === anchored.PACKAGES_SRC;
+      expect(
+        bothCorrect,
+        `cwd ${cwd} reproduced the anchored roots — the cwd derivation is ` +
+          `redundant and the audit was never actually broken. Re-verify ` +
+          `before touching the anchors.`,
+      ).toBe(false);
+    }
+
+    // The forward-reference hazard, stated concretely: from hub/ the
+    // old PACKAGES_SRC resolved to a real, populated directory that is
+    // NOT part of this repository. Anchor it to the repo and the
+    // foreign path is unreachable by construction.
+    const fromHub = join(REPO_ROOT, 'hub', '..', '..', 'packages');
+    expect(resolve(fromHub)).not.toBe(resolve(anchored.PACKAGES_SRC));
+    expect(existsSync(fromHub)).toBe(true); // it was real, and wrong
+
+    // Sanity: the real source trees are reachable from the anchor, so
+    // the assertions above are not vacuously true.
+    expect(existsSync(anchored.HUB_SRC)).toBe(true);
+    expect(existsSync(anchored.PACKAGES_SRC)).toBe(true);
+  });
+
+  it('walk() does not descend into vendored dependency trees', () => {
+    // Synthetic fixture, not a self-assertion on the repo's own
+    // layout. Reproduces the shape that actually bites: a vendored
+    // package whose sources match the forwarding probe, sitting next
+    // to one real source file.
+    //
+    // Load-bearing rather than defensive: SKIP_DIRS is easy to delete
+    // as "cleanup", because in THIS repo the node_modules TypeScript
+    // matching `\.exit\b` is all `.d.ts`, which the file-extension
+    // filter already drops. The two filters mask each other, and
+    // removing either one alone changes nothing — verified by
+    // mutation: M3 (SKIP_DIRS disabled) SURVIVED until this test
+    // existed. Two redundant-looking filters with no test is exactly
+    // how a false-green comes back.
+    const root = mkdtempSync(join(tmpdir(), 'r4013-walk-'));
+    try {
+      mkdirSync(join(root, 'node_modules', 'vendored'), { recursive: true });
+      mkdirSync(join(root, 'src'), { recursive: true });
+      mkdirSync(join(root, 'dist'), { recursive: true });
+
+      // Each of these WOULD be picked up by the probes: `.exit\b` for
+      // the forwarding test, an `exit: 'config'` literal for the
+      // producer test.
+      writeFileSync(
+        join(root, 'node_modules', 'vendored', 'dep.ts'),
+        "const e = { exit: 'config' };\nexport const x = e.exit;\n",
+      );
+      writeFileSync(join(root, 'dist', 'built.ts'), "const a = { exit: 'timeout' };\n");
+      writeFileSync(join(root, 'src', 'real.ts'), 'export const ok = 1;\n');
+      // A .d.ts beside a real vendored .ts, to pin the OTHER filter.
+      writeFileSync(join(root, 'src', 'types.d.ts'), 'declare const a: { exit: string };\n');
+
+      const found = walk(root).map((f) => f.replace(root + '/', '')).sort();
+
+      expect(found).toEqual(['src/real.ts']);
+      expect(found.some((f) => f.includes('node_modules'))).toBe(false);
+      expect(found.some((f) => f.includes('/dist/'))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('requireRoot rejects a missing scan root instead of scanning nothing', () => {
+    // The other half of pitfall #401-2. `walk()` returning [] for a
+    // missing directory is right for a nested subdirectory and
+    // catastrophic for a root: the scan found nothing, yet the audit
+    // still printed a confident report. requireRoot is the guard — and
+    // a guard nobody calls is not a guard. M2 (deleting both
+    // requireRoot calls) SURVIVED until this test existed.
+    const missing = join(tmpdir(), 'r4013-absent-deadbeef');
+    expect(existsSync(missing)).toBe(false);
+    expect(() => requireRoot(missing)).toThrow(/does not exist/);
+
+    // A file where a directory was expected is also a hard error.
+    const notADir = join(tmpdir(), 'r4013-not-a-dir.txt');
+    writeFileSync(notADir, 'x');
+    try {
+      expect(() => requireRoot(notADir)).toThrow(/does not exist/);
+    } finally {
+      rmSync(notADir, { force: true });
+    }
+
+    // A real directory passes, so the guard is not vacuous.
+    expect(() => requireRoot(HUB_SRC)).not.toThrow();
+    expect(() => requireRoot(PACKAGES_SRC)).not.toThrow();
+  });
+
+  it('the module actually CALLS requireRoot at init (a guard nobody calls is not a guard)', () => {
+    // The one thing the tests above cannot observe from outside:
+    // requireRoot's own behaviour is proven, but that the top-level
+    // scan performs it is a module-init side effect with no external
+    // witness. Deleting both call sites (M2) left the suite fully
+    // green, twice, because nothing asserted the call existed.
+    //
+    // Pinned by source text — the same technique the
+    // dispatchExternalBenchmark back-compat alias uses, and for the
+    // same reason: it is a structural property of this file with no
+    // behavioural proxy. The cost is real (a refactor that moves the
+    // call into a helper would need this updated) and that cost is
+    // accepted in exchange for the call not being silently droppable.
+    const self = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+
+    expect(self).toMatch(/^requireRoot\(HUB_SRC\);$/m);
+    expect(self).toMatch(/^requireRoot\(PACKAGES_SRC\);$/m);
+    // ...and they must run before the scan that depends on them.
+    const scanAt = self.indexOf('const productionFiles =');
+    expect(scanAt).toBeGreaterThan(-1);
+    expect(self.indexOf('requireRoot(HUB_SRC);')).toBeLessThan(scanAt);
+    expect(self.indexOf('requireRoot(PACKAGES_SRC);')).toBeLessThan(scanAt);
   });
 });
