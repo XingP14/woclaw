@@ -4,7 +4,7 @@ import { ClawDB } from './db.js';
 import { GraphStore } from './graph/store.js';
 import { SessionStore } from './session_store.js';
 import { ForgettingScheduler } from './scheduler.js';
-import { readFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import http from 'http';
 import { errorMessage } from './errors.js';
@@ -12,6 +12,7 @@ import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
 import { DEFAULT_CONFIG } from './default_config.js';
 import { createUiRequestHandler } from './ui_static.js';
+import { loadConfigFile } from './config_file.js';
 
 // parseEnvInt / parseEnvString moved to ./env_helpers.js on 2026-10-04
 // (00:03 cron) so they can be imported by tests. DEFAULT_CONFIG and
@@ -35,8 +36,7 @@ async function main() {
   const configPath = process.env.CONFIG_FILE;
   if (configPath) {
     try {
-      const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-      config = { ...config, ...fileConfig };
+      config = loadConfigFile(configPath, config);
       hubLog(`Loaded config from ${configPath}`);
     } catch (e: unknown) {
       hubError(`Failed to load config: ${errorMessage(e)}`);
