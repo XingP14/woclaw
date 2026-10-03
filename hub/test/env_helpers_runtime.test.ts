@@ -201,23 +201,23 @@ describe('env_helpers module shape', () => {
     expect(Object.keys(mod).sort()).toEqual(['parseEnvInt', 'parseEnvString']);
   });
 
-  it('index.ts imports both helpers from ./env_helpers.js', async () => {
+  it('default_config.ts imports both helpers from ./env_helpers.js', async () => {
     const { readFileSync } = await import('fs');
     const { join, dirname } = await import('path');
     const { fileURLToPath } = await import('url');
     const hubDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-    const text = readFileSync(join(hubDir, 'src', 'index.ts'), 'utf8');
+    const text = readFileSync(join(hubDir, 'src', 'default_config.ts'), 'utf8');
     expect(text).toMatch(/import \{ parseEnvInt, parseEnvString \} from ['"]\.\/env_helpers\.js['"]/);
   });
 
-  it('index.ts no longer re-declares either helper (no shadowing copy)', () => {
+  it('default_config.ts no longer re-declares either helper (no shadowing copy)', () => {
     // A re-added local `function parseEnvInt` would shadow the import and the
     // runtime tests would keep testing the wrong symbol, silently.
     return import('fs').then(({ readFileSync }) => {
       return import('path').then(({ join, dirname }) => {
         return import('url').then(({ fileURLToPath }) => {
           const hubDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-          const text = readFileSync(join(hubDir, 'src', 'index.ts'), 'utf8');
+          const text = readFileSync(join(hubDir, 'src', 'default_config.ts'), 'utf8');
           const localInt = text.match(/^function parseEnvInt\(/gm) || [];
           const localStr = text.match(/^function parseEnvString\(/gm) || [];
           expect(localInt).toEqual([]);

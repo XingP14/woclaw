@@ -1,57 +1,30 @@
 import { WSServer } from './ws_server.js';
 import { RestServer } from './rest_server.js';
 import { ClawDB } from './db.js';
-import { Config } from './types.js';
 import { GraphStore } from './graph/store.js';
 import { SessionStore } from './session_store.js';
 import { ForgettingScheduler } from './scheduler.js';
 import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import http from 'http';
-import type { StorageConfig } from './types.js';
 import { errorMessage } from './errors.js';
 import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
-import { parseEnvInt, parseEnvString } from './env_helpers.js';
+import { DEFAULT_CONFIG } from './default_config.js';
 
 // parseEnvInt / parseEnvString moved to ./env_helpers.js on 2026-10-04
-// (00:03 cron) so they can be imported by tests. This file ends in a top-level
-// `main().catch(...)`, so anything left module-private here is unreachable from
-// a test without booting the hub — which is why the two helpers' behavioral
-// coverage was a local copy that could drift. Bodies unchanged.
-
-function buildDefaultStorageConfig(): StorageConfig {
-  const dbType = (parseEnvString('DB_TYPE', { default: 'sqlite' })).toLowerCase();
-  if (dbType === 'mysql') {
-    return {
-      type: 'mysql',
-      mysql: process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_DATABASE ? {
-        host: process.env.MYSQL_HOST,
-        port: parseEnvInt('MYSQL_PORT'),
-        user: process.env.MYSQL_USER,
-        password: parseEnvString('MYSQL_PASSWORD'),
-        database: process.env.MYSQL_DATABASE,
-        connectionLimit: parseEnvInt('MYSQL_CONNECTION_LIMIT'),
-      } : undefined,
-    };
-  }
-
-  return {
-    type: 'sqlite',
-    sqlitePath: parseEnvString('SQLITE_PATH'),
-  };
-}
-
-const DEFAULT_CONFIG: Config = {
-  port: parseEnvInt('PORT', { default: 8080 }),
-  restPort: parseEnvInt('REST_PORT', { default: 8081 }),
-  host: parseEnvString('HOST', { default: '0.0.0.0' }),
-  dataDir: parseEnvString('DATA_DIR', { default: '/data' }),
-  storage: buildDefaultStorageConfig(),
-  authToken: parseEnvString('AUTH_TOKEN', { default: 'change-me-in-production' }),
-  tlsKey: parseEnvString('TLS_KEY'),
-  tlsCert: parseEnvString('TLS_CERT'),
-};
+// (00:03 cron) so they can be imported by tests. DEFAULT_CONFIG and
+// buildDefaultStorageConfig moved to ./default_config.js on 2026-10-04
+// (02:03 cron), same reason: this file ends in a top-level `main().catch(...)`,
+// so anything left module-private here is unreachable from a test without
+// booting the hub — which is why their behavioral coverage would have had to
+// be a local copy that could drift. Bodies unchanged.
+//
+// DEFAULT_CONFIG stays a module-load-time const for index.ts's own single-boot
+// use, exactly as pre-extraction. The call-time builder is exported from
+// ./default_config.js for tests; index.ts deliberately does not use it, because
+// reading the env once at process start is the pre-extraction semantics and
+// changing it is out of scope for a behavior-preserving extraction.
 
 async function main() {
   printStartupHeader();

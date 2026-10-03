@@ -9,20 +9,26 @@ const TEST_DIR = dirname(__filename); // .../hub/test
 const HUB_DIR = dirname(TEST_DIR); // .../hub
 const INDEX_TS = join(HUB_DIR, 'src', 'index.ts');
 const ENV_HELPERS_TS = join(HUB_DIR, 'src', 'env_helpers.ts');
+const DEFAULT_CONFIG_TS = join(HUB_DIR, 'src', 'default_config.ts');
 
 describe('parseEnvString helper migration (index.ts env-var string parsing)', () => {
   it('index.ts exists at expected path', () => {
     expect(existsSync(INDEX_TS)).toBe(true);
   });
 
-  it('index.ts imports parseEnvString from ./env_helpers.js', () => {
-    // 2026-10-04 00:03 cron: the declaration moved out of index.ts to
-    // src/env_helpers.ts so tests can import the real symbol instead of a
-    // copy (index.ts ends in a top-level `main().catch(...)` and cannot be
-    // imported by a test). The behavioral coverage now lives in
-    // test/env_helpers_runtime.test.ts; the declaration-shape assertions
+  it('index.ts imports DEFAULT_CONFIG from ./default_config.js', () => {
+    // 2026-10-04 02:03 cron: DEFAULT_CONFIG and buildDefaultStorageConfig moved
+    // out of index.ts to src/default_config.ts, same reason as env_helpers on
+    // 00:03 — index.ts ends in a top-level `main().catch(...)` and cannot be
+    // imported by a test. The behavioral coverage now lives in
+    // test/default_config_runtime.test.ts; the call-site inventory assertions
     // below read the new module.
     const text = readFileSync(INDEX_TS, 'utf8');
+    expect(text).toMatch(/import \{ DEFAULT_CONFIG \} from ['"]\.\/default_config\.js['"]/);
+  });
+
+  it('default_config.ts imports parseEnvString from ./env_helpers.js', () => {
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     expect(text).toMatch(/import \{ parseEnvInt, parseEnvString \} from ['"]\.\/env_helpers\.js['"]/);
   });
 
@@ -44,15 +50,15 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
     expect(text).toMatch(/function parseEnvString[\s\S]*?return raw;\n\}/);
   });
 
-  it('index.ts calls parseEnvString exactly 8 times (all migrated sites)', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+  it('default_config.ts calls parseEnvString exactly 8 times (all migrated sites)', () => {
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     const calls = text.match(/parseEnvString\(/g) || [];
     // 8 call sites. The declaration no longer lives in this file.
     expect(calls.length).toBe(8);
   });
 
   it('parseEnvString call sites cover DB_TYPE/MYSQL_PASSWORD/SQLITE_PATH/HOST/DATA_DIR/AUTH_TOKEN/TLS_KEY/TLS_CERT', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     // 5 sites with default string
     expect(text).toMatch(/parseEnvString\('DB_TYPE', \{ default: 'sqlite' \}\)/);
     expect(text).toMatch(/parseEnvString\('HOST', \{ default: '0\.0\.0\.0' \}\)/);
@@ -65,8 +71,8 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
     expect(text).toMatch(/tlsCert: parseEnvString\('TLS_CERT'\)/);
   });
 
-  it('0 inline `process.env.X || \'default\'` sites remain in DEFAULT_CONFIG (regression gate)', () => {
-    const raw = readFileSync(INDEX_TS, 'utf8');
+  it('0 inline `process.env.X || \'default\'` sites remain in the config builders (regression gate)', () => {
+    const raw = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     const code = raw
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '');
@@ -75,8 +81,8 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
     expect(inline).toBeNull();
   });
 
-  it('0 inline `process.env.X || undefined` sites remain in DEFAULT_CONFIG (regression gate)', () => {
-    const raw = readFileSync(INDEX_TS, 'utf8');
+  it('0 inline `process.env.X || undefined` sites remain in the config builders (regression gate)', () => {
+    const raw = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     const code = raw
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '');
@@ -86,7 +92,7 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
   });
 
   it('DB_TYPE default \'sqlite\' and HOST default \'0.0.0.0\' preserved verbatim', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     expect(text).toMatch(/parseEnvString\('DB_TYPE', \{ default: 'sqlite' \}\)/);
     expect(text).toMatch(/parseEnvString\('HOST', \{ default: '0\.0\.0\.0' \}\)/);
   });

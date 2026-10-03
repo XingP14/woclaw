@@ -9,21 +9,35 @@ const TEST_DIR = dirname(__filename); // .../hub/test
 const HUB_DIR = dirname(TEST_DIR); // .../hub
 const INDEX_TS = join(HUB_DIR, 'src', 'index.ts');
 const ENV_HELPERS_TS = join(HUB_DIR, 'src', 'env_helpers.ts');
+const DEFAULT_CONFIG_TS = join(HUB_DIR, 'src', 'default_config.ts');
 
 describe('parseEnvInt helper migration (index.ts env-var integer parsing)', () => {
   it('index.ts exists at expected path', () => {
     expect(existsSync(INDEX_TS)).toBe(true);
   });
 
-  it('index.ts imports parseEnvInt from ./env_helpers.js', () => {
-    // 2026-10-04 00:03 cron: the declaration moved out of index.ts to
-    // src/env_helpers.ts so tests can import the real symbol instead of a
-    // copy (index.ts ends in a top-level `main().catch(...)` and cannot be
-    // imported by a test). The behavioral coverage now lives in
-    // test/env_helpers_runtime.test.ts; the declaration-shape assertions
+  it('index.ts imports DEFAULT_CONFIG from ./default_config.js', () => {
+    // 2026-10-04 02:03 cron: DEFAULT_CONFIG and buildDefaultStorageConfig moved
+    // out of index.ts to src/default_config.ts, same reason as env_helpers on
+    // 00:03 — index.ts ends in a top-level `main().catch(...)` and cannot be
+    // imported by a test. The behavioral coverage now lives in
+    // test/default_config_runtime.test.ts; the call-site inventory assertions
     // below read the new module.
     const text = readFileSync(INDEX_TS, 'utf8');
+    expect(text).toMatch(/import \{ DEFAULT_CONFIG \} from ['"]\.\/default_config\.js['"]/);
+  });
+
+  it('default_config.ts imports parseEnvInt from ./env_helpers.js', () => {
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     expect(text).toMatch(/import \{ parseEnvInt, parseEnvString \} from ['"]\.\/env_helpers\.js['"]/);
+  });
+
+  it('index.ts no longer re-declares the config builders (no shadowing copy)', () => {
+    // A re-added local `function buildDefaultStorageConfig` would shadow the
+    // import and the runtime tests would keep exercising the wrong symbol.
+    const text = readFileSync(INDEX_TS, 'utf8');
+    expect(text.match(/^function buildDefaultStorageConfig\(/gm) || []).toEqual([]);
+    expect(text.match(/^const DEFAULT_CONFIG: Config = \{/gm) || []).toEqual([]);
   });
 
   it('env_helpers.ts declares the parseEnvInt helper with canonical signature', () => {
@@ -44,23 +58,23 @@ describe('parseEnvInt helper migration (index.ts env-var integer parsing)', () =
     expect(text).toMatch(/return parseInt\(raw, 10\)/);
   });
 
-  it('index.ts calls parseEnvInt exactly 4 times (all migrated sites)', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+  it('default_config.ts calls parseEnvInt exactly 4 times (all migrated sites)', () => {
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     const calls = text.match(/parseEnvInt\(/g) || [];
     // 4 call sites. The declaration no longer lives in this file.
     expect(calls.length).toBe(4);
   });
 
   it('parseEnvInt call sites cover MYSQL_PORT (no default), MYSQL_CONNECTION_LIMIT (no default), PORT (default 8080), REST_PORT (default 8081)', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     expect(text).toMatch(/port: parseEnvInt\('MYSQL_PORT'\)/);
     expect(text).toMatch(/connectionLimit: parseEnvInt\('MYSQL_CONNECTION_LIMIT'\)/);
     expect(text).toMatch(/port: parseEnvInt\('PORT', \{ default: 8080 \}\)/);
     expect(text).toMatch(/restPort: parseEnvInt\('REST_PORT', \{ default: 8081 \}\)/);
   });
 
-  it('0 inline `parseInt(process.env.*)` sites remain in code (regression gate, comments stripped)', () => {
-    const raw = readFileSync(INDEX_TS, 'utf8');
+  it('0 inline `parseInt(process.env.*)` sites remain in the config builders (regression gate, comments stripped)', () => {
+    const raw = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     // Strip /** ... */ block comments and // ... line comments so the helper's
     // JSDoc reference to the old inline pattern doesn't false-positive the gate.
     const code = raw
@@ -70,8 +84,8 @@ describe('parseEnvInt helper migration (index.ts env-var integer parsing)', () =
     expect(inline).toBeNull();
   });
 
-  it('0 inline `process.env.X ? parseInt(...)` ternary sites remain (regression gate)', () => {
-    const raw = readFileSync(INDEX_TS, 'utf8');
+  it('0 inline `process.env.X ? parseInt(...)` ternary sites remain in the config builders (regression gate)', () => {
+    const raw = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     const code = raw
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '');
@@ -80,7 +94,7 @@ describe('parseEnvInt helper migration (index.ts env-var integer parsing)', () =
   });
 
   it('DEFAULT_CONFIG.port default 8080 and DEFAULT_CONFIG.restPort default 8081 preserved verbatim', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+    const text = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
     // The two defaulted sites must use the explicit 8080/8081 defaults — not
     // accidentally bumped. Regression check for the migration's constant
     // preservation.
