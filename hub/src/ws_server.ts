@@ -237,7 +237,7 @@ export class WSServer {
           this.sendError(agent.ws, 'missing_fields', 'key required');
           return;
         }
-        await this.handleMemoryRead(agent.ws, agentId, msg.key);
+        await this.handleMemoryRead(agent.ws, agentId, msg.key, msg.scope);
         break;
 
       case 'topics_list':
@@ -504,8 +504,8 @@ export class WSServer {
     }
   }
 
-  private async handleMemoryRead(ws: WS, fromAgent: string, key: string): Promise<void> {
-    const mem = await this.memory.read(key);
+  private async handleMemoryRead(ws: WS, fromAgent: string, key: string, scope: string = 'all'): Promise<void> {
+    const mem = await this.memory.read(key, scope);
     this.send(ws, {
       type: 'memory_value',
       key,

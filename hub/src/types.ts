@@ -74,6 +74,7 @@ export interface InboundMessage {
   value?: unknown;
   tags?: string[];  // v0.4: optional tags for memory entries
   ttl?: number;    // v0.4: optional TTL in seconds (0 = no expiry)
+  scope?: string;  // R408: visibility scope ('all' | 'workspace' | 'session') for memory_read
   // delegation fields
   id?: string;
   task?: DelegationTask;

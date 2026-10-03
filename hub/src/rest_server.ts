@@ -277,20 +277,23 @@ export class RestServer {
         return;
       } else if (path.startsWith('/memory/')) {
         const memPath = path.slice(8);
+        // R408: the scope guard lives on read/delete/versions as well as search, so the
+        // parameter has to be readable on these branches too, not only under /memory/search.
+        const scope = url.searchParams.get('scope') || 'all';
         // v0.4: GET /memory/:key/versions
         if (memPath.endsWith('/versions')) {
           const key = decodeURIComponent(memPath.slice(0, -9));
           if (method === 'GET') {
-            await this.handleMemoryVersions(res, key);
+            await this.handleMemoryVersions(res, key, scope);
           } else {
             RestServer.sendJsonError(res, 405, 'Method not allowed');
           }
         } else {
           const key = decodeURIComponent(memPath);
           if (method === 'GET') {
-            await this.handleMemoryGet(res, key);
+            await this.handleMemoryGet(res, key, scope);
           } else if (method === 'DELETE') {
-            await this.handleMemoryDelete(res, key);
+            await this.handleMemoryDelete(res, key, scope);
           } else {
             RestServer.sendJsonError(res, 405, 'Method not allowed');
           }
@@ -712,8 +715,8 @@ const result = this.graph.findPath(from, to, maxDepth);
     }
   }
 
-  private async handleMemoryGet(res: http.ServerResponse, key: string): Promise<void> {
-    const mem = await this.memory.read(key);
+  private async handleMemoryGet(res: http.ServerResponse, key: string, scope: string = 'all'): Promise<void> {
+    const mem = await this.memory.read(key, scope);
     if (!mem) {
       RestServer.sendJsonError(res, 404, 'Key not found');
       return;
@@ -729,8 +732,8 @@ const result = this.graph.findPath(from, to, maxDepth);
     });
   }
 
-  private async handleMemoryDelete(res: http.ServerResponse, key: string): Promise<void> {
-    const deleted = await this.memory.delete(key);
+  private async handleMemoryDelete(res: http.ServerResponse, key: string, scope: string = 'all'): Promise<void> {
+    const deleted = await this.memory.delete(key, scope);
     if (!deleted) {
       RestServer.sendJsonError(res, 404, 'Key not found');
       return;
@@ -739,8 +742,8 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   // v0.4: Memory Versioning endpoint
-  private async handleMemoryVersions(res: http.ServerResponse, key: string): Promise<void> {
-    const versions = await this.memory.getVersions(key);
+  private async handleMemoryVersions(res: http.ServerResponse, key: string, scope: string = 'all'): Promise<void> {
+    const versions = await this.memory.getVersions(key, scope);
     RestServer.sendJsonSuccess(res, 200, {
       key,
       count: versions.length,

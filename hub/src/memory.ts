@@ -164,11 +164,19 @@ export class MemoryPool {
     return { mem, duplicate, conflict, previousValue, previousUpdatedAt, previousUpdatedBy };
   }
 
-  async read(key: string): Promise<DBMemory | undefined> {
-    return this.db.getMemory(key);
+  // R407/R408: `scope` was a parameter of search() only, so a caller who knew a key
+  // bypassed the filter entirely via a direct read/delete. The guard now exists on every
+  // memory access path. Default 'all' keeps every pre-existing caller unchanged.
+  async read(key: string, scope: string = 'all'): Promise<DBMemory | undefined> {
+    const mem = await this.db.getMemory(key);
+    if (!mem) return undefined;
+    return isVisibleInScope(mem, normalizeScope(scope)) ? mem : undefined;
   }
 
-  async delete(key: string): Promise<boolean> {
+  async delete(key: string, scope: string = 'all'): Promise<boolean> {
+    const mem = await this.db.getMemory(key);
+    if (!mem) return false;
+    if (!isVisibleInScope(mem, normalizeScope(scope))) return false;
     return this.db.deleteMemory(key);
   }
 
@@ -242,8 +250,13 @@ export class MemoryPool {
   }
 
   // v0.4: Memory Versioning - get all historical versions for a key
-  async getVersions(key: string): Promise<DBMemoryVersion[]> {
-    return this.db.getMemoryVersions(key);
+  async getVersions(key: string, scope: string = 'all'): Promise<DBMemoryVersion[]> {
+    const versions = await this.db.getMemoryVersions(key);
+    // A caller with a scope must not learn a key's history when the key itself is
+    // out of scope; probe the current record rather than filtering the history rows.
+    const mem = await this.db.getMemory(key);
+    if (mem && !isVisibleInScope(mem, normalizeScope(scope))) return [];
+    return versions;
   }
 
   // v0.4: Semantic Recall - keyword + scoring approach
