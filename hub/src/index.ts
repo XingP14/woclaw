@@ -5,12 +5,13 @@ import { GraphStore } from './graph/store.js';
 import { SessionStore } from './session_store.js';
 import { ForgettingScheduler } from './scheduler.js';
 import { readFileSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { join } from 'path';
 import http from 'http';
 import { errorMessage } from './errors.js';
 import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
 import { DEFAULT_CONFIG } from './default_config.js';
+import { createUiRequestHandler } from './ui_static.js';
 
 // parseEnvInt / parseEnvString moved to ./env_helpers.js on 2026-10-04
 // (00:03 cron) so they can be imported by tests. DEFAULT_CONFIG and
@@ -81,18 +82,7 @@ async function main() {
   let uiEnabled = false;
   if (existsSync(publicDir)) {
     uiEnabled = true;
-    const mimeTypes: Record<string, string> = {
-      '.html': 'text/html', '.js': 'application/javascript',
-      '.css': 'text/css', '.json': 'application/json',
-      '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
-    };
-    const uiServer = http.createServer((req, res) => {
-      let filePath = join(publicDir, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
-      if (!existsSync(filePath)) filePath = join(publicDir, 'index.html');
-      const ext = extname(filePath);
-      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
-      res.end(readFileSync(filePath));
-    });
+    const uiServer = http.createServer(createUiRequestHandler(publicDir));
     // Chain #32 follow-up: attach an 'error' listener to uiServer BEFORE listen()
     // so a port-conflict on 8084 (EADDRINUSE when an orphaned hub process still
     // holds the port) becomes a logged warning instead of an unhandled 'error'
