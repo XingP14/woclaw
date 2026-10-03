@@ -12,69 +12,13 @@ import type { StorageConfig } from './types.js';
 import { errorMessage } from './errors.js';
 import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
+import { parseEnvInt, parseEnvString } from './env_helpers.js';
 
-/**
- * Parse an integer-valued process.env variable.
- *
- * Mirrors the dedup chain applied to URL query params (rest_server.ts
- * parseIntParam at L82-L86, 06-30 05:13 commit 045f1d7): collapses the
- * 4 inline `parseInt(process.env.X || 'default')` and
- * `process.env.X ? parseInt(process.env.X) : undefined` sites in
- * buildDefaultStorageConfig() and DEFAULT_CONFIG into a single helper
- * with explicit defaultValue semantics.
- *
- * Semantics:
- *   - Missing env var OR empty string ('') → `opts.default` if provided,
- *     else `undefined`.
- *     (matches original 4 sites: 2 `||` sites treat empty as missing → default,
- *      2 `?` sites treat empty as missing → undefined)
- *   - Present non-empty env var → `parseInt(value, 10)`. Unparseable values
- *     (e.g. PORT=abc) yield NaN — identical to the original inline behavior
- *     (preserves downstream propagation: NaN → port validation catches it).
- *
- * @param name - process.env variable name (e.g. 'PORT', 'MYSQL_PORT')
- * @param opts.default - default integer to return when env var is missing/empty.
- *                       Omit (or pass undefined) to return undefined instead.
- * @returns parsed integer, default, or undefined
- */
-function parseEnvInt(name: string, opts: { default?: number } = {}): number | undefined {
-  const raw = process.env[name];
-  if (raw === undefined || raw === '') {
-    return opts.default;
-  }
-  return parseInt(raw, 10);
-}
-
-/**
- * Parse a string-valued process.env variable.
- *
- * Mirrors the parseEnvInt helper (chain #14, 07-05 02:13 cron): collapses
- * the 8 inline `process.env.X || 'default'` and `process.env.X || undefined`
- * sites in buildDefaultStorageConfig() + DEFAULT_CONFIG into a single helper
- * with explicit defaultValue semantics.
- *
- * Semantics:
- *   - Missing env var OR empty string ('') → `opts.default` if provided,
- *     else `undefined`.
- *     (matches original 8 sites: 5 `||` sites with default-string treat empty
- *      as missing → default; 3 `|| undefined` sites treat empty as missing → undefined)
- *   - Present non-empty env var → returned verbatim (no trim, no lowercase,
- *     no parse — preserves downstream `.toLowerCase()` at DB_TYPE call site
- *     where the canonical-sqlite/mysql comparison depends on lowercased
- *     downstream behavior).
- *
- * @param name - process.env variable name (e.g. 'HOST', 'AUTH_TOKEN')
- * @param opts.default - default string to return when env var is missing/empty.
- *                       Omit (or pass undefined) to return undefined instead.
- * @returns parsed string, default, or undefined
- */
-function parseEnvString(name: string, opts: { default?: string } = {}): string | undefined {
-  const raw = process.env[name];
-  if (raw === undefined || raw === '') {
-    return opts.default;
-  }
-  return raw;
-}
+// parseEnvInt / parseEnvString moved to ./env_helpers.js on 2026-10-04
+// (00:03 cron) so they can be imported by tests. This file ends in a top-level
+// `main().catch(...)`, so anything left module-private here is unreachable from
+// a test without booting the hub — which is why the two helpers' behavioral
+// coverage was a local copy that could drift. Bodies unchanged.
 
 function buildDefaultStorageConfig(): StorageConfig {
   const dbType = (parseEnvString('DB_TYPE', { default: 'sqlite' })).toLowerCase();

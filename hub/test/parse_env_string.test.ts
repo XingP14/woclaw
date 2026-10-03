@@ -2,24 +2,37 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { parseEnvString } from '../src/env_helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const TEST_DIR = dirname(__filename); // .../hub/test
 const HUB_DIR = dirname(TEST_DIR); // .../hub
 const INDEX_TS = join(HUB_DIR, 'src', 'index.ts');
+const ENV_HELPERS_TS = join(HUB_DIR, 'src', 'env_helpers.ts');
 
 describe('parseEnvString helper migration (index.ts env-var string parsing)', () => {
   it('index.ts exists at expected path', () => {
     expect(existsSync(INDEX_TS)).toBe(true);
   });
 
-  it('index.ts declares the parseEnvString helper with canonical signature', () => {
+  it('index.ts imports parseEnvString from ./env_helpers.js', () => {
+    // 2026-10-04 00:03 cron: the declaration moved out of index.ts to
+    // src/env_helpers.ts so tests can import the real symbol instead of a
+    // copy (index.ts ends in a top-level `main().catch(...)` and cannot be
+    // imported by a test). The behavioral coverage now lives in
+    // test/env_helpers_runtime.test.ts; the declaration-shape assertions
+    // below read the new module.
     const text = readFileSync(INDEX_TS, 'utf8');
-    expect(text).toMatch(/function parseEnvString\(name: string, opts: \{ default\?: string \} = \{\}\): string \| undefined \{/);
+    expect(text).toMatch(/import \{ parseEnvInt, parseEnvString \} from ['"]\.\/env_helpers\.js['"]/);
+  });
+
+  it('env_helpers.ts declares the parseEnvString helper with canonical signature', () => {
+    const text = readFileSync(ENV_HELPERS_TS, 'utf8');
+    expect(text).toMatch(/export function parseEnvString\(name: string, opts: \{ default\?: string \} = \{\}\): string \| undefined \{/);
   });
 
   it('parseEnvString helper body checks for undefined or empty-string raw env value', () => {
-    const text = readFileSync(INDEX_TS, 'utf8');
+    const text = readFileSync(ENV_HELPERS_TS, 'utf8');
     // The helper body should be:
     //   const raw = process.env[name];
     //   if (raw === undefined || raw === '') {
@@ -31,11 +44,11 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
     expect(text).toMatch(/function parseEnvString[\s\S]*?return raw;\n\}/);
   });
 
-  it('parseEnvString is called exactly 8 times (all migrated sites)', () => {
+  it('index.ts calls parseEnvString exactly 8 times (all migrated sites)', () => {
     const text = readFileSync(INDEX_TS, 'utf8');
     const calls = text.match(/parseEnvString\(/g) || [];
-    // 1 declaration + 8 call sites = 9 total
-    expect(calls.length).toBe(9);
+    // 8 call sites. The declaration no longer lives in this file.
+    expect(calls.length).toBe(8);
   });
 
   it('parseEnvString call sites cover DB_TYPE/MYSQL_PASSWORD/SQLITE_PATH/HOST/DATA_DIR/AUTH_TOKEN/TLS_KEY/TLS_CERT', () => {
@@ -80,18 +93,15 @@ describe('parseEnvString helper migration (index.ts env-var string parsing)', ()
 });
 
 describe('parseEnvString semantics — behavioral parity with original 8 sites', () => {
-  // Behavioral parity verified by running the helper in-process against the
-  // exact same input shapes the 8 inline sites received. We copy the helper
-  // verbatim from index.ts so the test exercises the actual implementation
-  // logic.
-  function parseEnvString(name: string, opts: { default?: string } = {}): string | undefined {
-    const raw = process.env[name];
-    if (raw === undefined || raw === '') {
-      return opts.default;
-    }
-    return raw;
-  }
-
+  // Behavioral parity verified by running the real helper in-process against
+  // the exact same input shapes the 8 inline sites received.
+  //
+  // 2026-10-04 00:03 cron: this used to be a local copy of the helper,
+  // "copied verbatim from index.ts so the test exercises the actual
+  // implementation logic". It did not — it was a second implementation that
+  // could drift with every assertion staying green. The helper now lives in
+  // src/env_helpers.ts; test/env_helpers_runtime.test.ts imports it for real.
+  // These cases are kept as a second, independently-named set.
   it('returns undefined when env var is absent (parity with `process.env.X || undefined` sites)', () => {
     const NAME = 'TEST_PARSE_ENV_STRING_ABSENT';
     delete process.env[NAME];
