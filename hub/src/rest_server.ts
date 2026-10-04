@@ -238,7 +238,7 @@ export class RestServer {
         }
       } else if (path === '/memory') {
         if (method === 'GET') {
-          await this.handleMemoryList(res, url.searchParams.get('tags'));
+          await this.handleMemoryList(res, url.searchParams.get('tags'), url.searchParams.get('scope') || 'all');
         } else if (method === 'POST') {
           await this.handleMemoryWrite(req, res);
         } else {
@@ -254,12 +254,12 @@ export class RestServer {
         if (!q) {
           RestServer.sendJsonError(res, 400, 'q (query) parameter required');
         } else {
-          await this.handleMemoryRecall(res, q, intent || undefined, Math.min(limit, 50));
+          await this.handleMemoryRecall(res, q, intent || undefined, Math.min(limit, 50), url.searchParams.get('scope') || 'all');
         }
       } else if (path.startsWith('/memory/tags/')) {
         const tag = decodeURIComponent(path.slice(13));
         if (method === 'GET') {
-          await this.handleMemoryByTag(res, tag);
+          await this.handleMemoryByTag(res, tag, url.searchParams.get('scope') || 'all');
         } else {
           RestServer.sendJsonError(res, 405, 'Method not allowed');
         }
@@ -641,8 +641,8 @@ const result = this.graph.findPath(from, to, maxDepth);
     RestServer.sendJsonSuccess(res, 200, { rateLimits: statuses, count: statuses.length });
   }
 
-  private async handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null): Promise<void> {
-    let allMemory = await this.memory.getAll();
+  private async handleMemoryList(res: http.ServerResponse, tagsFilter?: string | null, scope: string = 'all'): Promise<void> {
+    let allMemory = await this.memory.getAll(scope);
     // v0.4: filter by tag (comma-separated for multiple)
     if (tagsFilter) {
       const tags = tagsFilter.split(',').map(t => t.trim());
@@ -761,8 +761,8 @@ const result = this.graph.findPath(from, to, maxDepth);
   }
 
   // v0.4: Semantic Recall endpoint
-  private async handleMemoryRecall(res: http.ServerResponse, query: string, intent?: string, limit: number = 10): Promise<void> {
-    const results = await this.memory.recall(query, intent, limit);
+  private async handleMemoryRecall(res: http.ServerResponse, query: string, intent?: string, limit: number = 10, scope: string = 'all'): Promise<void> {
+    const results = await this.memory.recall(query, intent, limit, scope);
     RestServer.sendJsonSuccess(res, 200, {
       query,
       intent: intent || null,
@@ -779,8 +779,8 @@ const result = this.graph.findPath(from, to, maxDepth);
     });
   }
 
-  private async handleMemoryByTag(res: http.ServerResponse, tag: string): Promise<void> {
-    const results = await this.memory.queryByTag(tag);
+  private async handleMemoryByTag(res: http.ServerResponse, tag: string, scope: string = 'all'): Promise<void> {
+    const results = await this.memory.queryByTag(tag, scope);
     RestServer.sendJsonSuccess(res, 200, {
       tag,
       count: results.length,

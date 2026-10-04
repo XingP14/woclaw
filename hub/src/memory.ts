@@ -180,13 +180,21 @@ export class MemoryPool {
     return this.db.deleteMemory(key);
   }
 
-  async getAll(): Promise<DBMemory[]> {
-    return this.db.getAllMemory();
+  // R409.7: R408 added `scope` to the four paths that take a `key` and reported
+  // 5/5 coverage. The enumeration paths were the missing half — and they are the
+  // *more* exposed ones, because a caller enumerating needs no prior knowledge of
+  // a key. `GET /memory` is the broadest read in the system. Default 'all' keeps
+  // every pre-existing caller unchanged.
+  async getAll(scope: string = 'all'): Promise<DBMemory[]> {
+    const all = await this.db.getAllMemory();
+    const normalized = normalizeScope(scope);
+    if (normalized === 'all') return all;
+    return all.filter(mem => isVisibleInScope(mem, normalized));
   }
 
   // v0.4: query memory by tag
-  async queryByTag(tag: string): Promise<DBMemory[]> {
-    return (await this.getAll()).filter(m => m.tags.includes(tag));
+  async queryByTag(tag: string, scope: string = 'all'): Promise<DBMemory[]> {
+    return (await this.getAll(scope)).filter(m => m.tags.includes(tag));
   }
 
   async search(query: string, limit: number = 10, scope: string = 'all'): Promise<DBMemory[]> {
@@ -260,11 +268,11 @@ export class MemoryPool {
   }
 
   // v0.4: Semantic Recall - keyword + scoring approach
-  async recall(query: string, intent?: string, limit: number = 10): Promise<DBMemory[]> {
+  async recall(query: string, intent?: string, limit: number = 10, scope: string = 'all'): Promise<DBMemory[]> {
     const keywords = tokenize(query);
     if (keywords.length === 0) return [];
 
-    const all = await this.getAll();
+    const all = await this.getAll(scope);
 
     // Score each entry
     const scored = all.map(mem => {
@@ -315,8 +323,8 @@ export class MemoryPool {
   }
 
   // v1.0: Semantic Recall - pure text similarity search (Jaccard)
-  async recallByText(query: string, limit: number = 10): Promise<DBMemory[]> {
-    const all = await this.getAll();
+  async recallByText(query: string, limit: number = 10, scope: string = 'all'): Promise<DBMemory[]> {
+    const all = await this.getAll(scope);
     if (all.length === 0) return [];
     const qTokens = new Set(query.toLowerCase().split(/[\s\W_]+/).filter((w: string) => w.length > 2));
     const scored = all.map((mem: DBMemory) => {
