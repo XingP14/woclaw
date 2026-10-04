@@ -74,6 +74,10 @@ export interface IGraphStore {
 
   // Auto-linking helpers
   linkMemoryToAgent(memoryId: string, agentId: string): void;
-  linkMemoryToTopic(memoryId: string, topic: string): void;
+  linkMemoryToTopic(memoryId: string, topicName: string): void;
   findSimilarMemories(memoryId: string, threshold?: number): GraphNode[];
+
+  // Memory-mirror lifecycle
+  syncMemoryNode(memoryKey: string, value: string, agentId: string, tags?: string[]): GraphNode;
+  removeMemoryNode(memoryKey: string): boolean;
 }

@@ -97,16 +97,26 @@ describe('R411 — scope guard does not cover the graph copy of memory', () => {
     expect(ws!.metadata.tags).toEqual(['infra']);
   });
 
-  // ---- 1. the graph copy survives a scoped delete of the memory -----------
-  it('1. the graph copy is untouched by a scoped delete of the memory', async () => {
-    // Scope 'workspace' MATCHES the key, so the guard permits the delete —
-    // this is the ordinary, authorised case, not a bypass of the guard itself.
+  // ---- 1. the graph copy is removed with the memory ---------------------
+  // R412 changed this case. It originally read:
+  //
+  //     expect(await mp.delete(WS_KEY, 'workspace')).toBe(true);
+  //     expect(await mp.getAll('workspace')).toEqual([]);
+  //     const ws = graph.getNodes('memory').find(n => n.label === WS_KEY);
+  //     expect(ws).toBeDefined();                       // <-- asserted the LEAK
+  //     expect(ws!.metadata.value).toBe(WS_VALUE);       // <-- and its value
+  //
+  // That was an honest observation recorded as a green probe, not a
+  // contract. R412 made `MemoryPool.delete()` unmirror the node, so the
+  // case now asserts the fixed retention behaviour. The read-scope gap
+  // that motivates R411 is UNCHANGED and still open: a memory that was
+  // never deleted is still served by GET /graph/nodes with no scope
+  // parameter — see cases 2, 3, 4 and 6 below.
+  it('1. the graph copy is removed with the memory (R412)', async () => {
+    // Scope 'workspace' MATCHES the key, so the guard permits the delete.
     expect(await mp.delete(WS_KEY, 'workspace')).toBe(true);
     expect(await mp.getAll('workspace')).toEqual([]);
-    // …but its value is still readable in full from the graph.
-    const ws = graph.getNodes('memory').find(n => n.label === WS_KEY);
-    expect(ws).toBeDefined();
-    expect(ws!.metadata.value).toBe(WS_VALUE);
+    expect(graph.getNodes('memory').find(n => n.label === WS_KEY)).toBeUndefined();
   });
 
   // ---- 2. enumeration has no scope parameter at all ----------------------

@@ -270,6 +270,28 @@ export class GraphStore implements IGraphStore {
   }
 
   /**
+   * Remove the node mirroring a memory pool entry, by its key label.
+   *
+   * `syncMemoryNode` is the write half of a copy that `MemoryPool.write()`
+   * maintains; this is its delete half. Without it a `MemoryPool.delete()`
+   * that returns `true` leaves the value readable in full through
+   * `GET /graph/nodes?type=memory` and `GET /graph/nodes/:id`.
+   *
+   * Matched by `type === 'memory' && label === memoryKey` — the same
+   * predicate `syncMemoryNode` uses to find-or-create, so the two halves
+   * cannot drift onto different identities. Returns false when no such
+   * node exists, which is the normal case for a pool with no graph store
+   * attached and must not be treated as an error.
+   */
+  removeMemoryNode(memoryKey: string): boolean {
+    const memNode = Array.from(this.nodes.values()).find(
+      n => n.type === 'memory' && n.label === memoryKey
+    );
+    if (!memNode) return false;
+    return this.removeNode(memNode.id);
+  }
+
+  /**
    * Create entity edge from memory node to agent node
    */
   linkMemoryToAgent(memoryId: string, agentId: string): void {

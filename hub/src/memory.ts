@@ -177,7 +177,16 @@ export class MemoryPool {
     const mem = await this.db.getMemory(key);
     if (!mem) return false;
     if (!isVisibleInScope(mem, normalizeScope(scope))) return false;
-    return this.db.deleteMemory(key);
+    const deleted = await this.db.deleteMemory(key);
+    // R412: write() mirrors the value into the graph store, so delete() has to
+    // unmirror it. A caller told `{"success": true, "deleted": key}` is still
+    // served the plaintext by GET /graph/nodes?type=memory otherwise. Best
+    // effort: the delete already happened, and a graph store that is absent or
+    // mid-teardown must not turn a successful delete into a failed one.
+    if (deleted && this.graphStore) {
+      try { this.graphStore.removeMemoryNode(key); } catch { /* copy outlives nothing */ }
+    }
+    return deleted;
   }
 
   // R409.7: R408 added `scope` to the four paths that take a `key` and reported
