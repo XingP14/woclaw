@@ -192,4 +192,64 @@ describe('R412 — a deleted memory must not survive in the graph store', () => 
       rmSync(orphanDir, { recursive: true, force: true });
     }
   });
+
+  // ---- 8. a failed DB delete must NOT evict the copy --------------------
+  // The unmirror is guarded by `deleted &&`. If that guard is ever weakened
+  // to `this.graphStore` alone, a delete that FAILED at the storage layer
+  // would still destroy the graph copy of a memory that still exists in the
+  // DB — the copy would be gone and the record would be intact, which is
+  // strictly worse than doing nothing: it makes the graph look like the
+  // authoritative store for a memory that was never deleted.
+  //
+  // `deleteMemory` is an interface method on ClawDB, so it can be stubbed to
+  // return false. The guard refuses nothing here: the scope is 'all' and the
+  // key is readable, so the ONLY thing standing between a failed delete and
+  // a destroyed copy is the `deleted &&` conjunct itself.
+  it('8. a delete that failed at the DB keeps the graph copy', async () => {
+    const original = db.deleteMemory.bind(db);
+    (db as any).deleteMemory = async (_key: string) => false;
+    try {
+      expect(await mp.delete(WS_KEY, 'all')).toBe(false);
+    } finally {
+      (db as any).deleteMemory = original;
+    }
+    // The memory itself is untouched...
+    expect((await mp.read(WS_KEY, 'all'))!.value).toBe(WS_VALUE);
+    // ...and so is its copy. Case 3's count arithmetic depends on this.
+    expect(memoryNode(WS_KEY)).toBeDefined();
+    expect(memoryNode(WS_KEY)!.metadata.value).toBe(WS_VALUE);
+    expect(graph.getNodes('memory').length).toBe(3);
+  });
+
+  // ---- 9. removeMemoryNode must report honestly on an absent node -------
+  // `if (!memNode) return false;` is the line that distinguishes "I removed
+  // your copy" from "there was no copy". Returning `true` for an absent node
+  // makes the store lie to a caller that is deciding whether it still holds
+  // a value it is obliged to destroy. Nothing else in the suite reads this
+  // return value, so a mutation here survives every other case.
+  it('9. removeMemoryNode reports false when no copy exists', async () => {
+    expect(graph.removeMemoryNode(WS_KEY)).toBe(true);
+    // Second call: the node is genuinely gone now.
+    expect(graph.removeMemoryNode(WS_KEY)).toBe(false);
+    // A key that was never mirrored is also false, not true.
+    expect(graph.removeMemoryNode('never:mirrored:key')).toBe(false);
+  });
+
+  // ---- 10. the unmirror is best-effort, never fatal --------------------
+  // A graph store that throws mid-teardown must not turn a successful delete
+  // into a thrown error, and must not be reported as a failure. This pins the
+  // try/catch that makes the unmirror "best effort" rather than "required".
+  it('10. a graph store that throws does not fail the delete', async () => {
+    const throwing = {
+      removeMemoryNode: () => { throw new Error('store torn down mid-delete'); }
+    };
+    const real = mp.graphStore;
+    mp.graphStore = throwing as any;
+    try {
+      expect(await mp.delete(WS_KEY, 'all')).toBe(true);
+      expect(await mp.read(WS_KEY, 'all')).toBeUndefined();
+    } finally {
+      mp.graphStore = real;
+    }
+  });
 });
