@@ -17,6 +17,14 @@ type WS = InstanceType<typeof WSType>;
 
 export class WSServer {
   private wss: WebSocketServer;
+  /** Underlying http/https server, retained so callers can await its `listening`
+   *  event or read its actual bound port (see startServer's error handling). */
+  private httpServer: http.Server | https.Server | null = null;
+  /** Resolves once the WS listener is bound, rejects on a bind failure. */
+  private listening: Promise<void> = Promise.resolve();
+  /** The port actually bound. Differs from config.port only when config.port
+   *  is 0 (OS-assigned), which is how tests avoid fixed-port collisions. */
+  private boundPort: number | null = null;
   private agents: Map<string, Agent<WS>> = new Map();
   private agentByWs: Map<WS, string> = new Map();
   private topics: TopicsManager;
@@ -100,6 +108,28 @@ export class WSServer {
     this.wss = new WebSocketServer({ server });
     this.wss.on('connection', (ws: WS, req) => {
       this.handleConnection(ws, req);
+    });
+    // `ws` re-emits the http.Server's 'error' on the WebSocketServer, so a
+    // bind failure would land here as an unhandled 'error' event even after
+    // the server-level listener below is attached. Handle it on both.
+    this.wss.on('error', (err: Error) => {
+      hubError(`WebSocketServer error on ${config.host}:${config.port}:`, errorMessage(err));
+    });
+
+    // The `listening` event is the only reliable signal that the bind
+    // SUCCEEDED. Awaiting it makes a port conflict surface as a rejected
+    // promise at the call site instead of a silently-absent server.
+    this.httpServer = server;
+    server.on('error', (err: NodeJS.ErrnoException) => {
+      hubError(`WebSocket server failed on ${config.host}:${config.port}:`, errorMessage(err));
+    });
+    this.listening = new Promise<void>((resolve, reject) => {
+      server.once('listening', () => {
+        const addr = server.address();
+        if (addr && typeof addr === 'object') this.boundPort = addr.port;
+        resolve();
+      });
+      server.once('error', reject);
     });
 
     server.listen(config.port, config.host);
@@ -694,6 +724,14 @@ export class WSServer {
 
   getTopicsManager(): TopicsManager {
     return this.topics;
+  }
+
+  /** Await the WS listener's bind. REJECTS on EADDRINUSE, so a caller can
+   *  never mistake a failed bind for a live server. */
+  async whenListening(): Promise<number> {
+    await this.listening;
+    if (this.boundPort === null) throw new Error('WS server is not listening');
+    return this.boundPort;
   }
 
   getMemoryPool(): MemoryPool {

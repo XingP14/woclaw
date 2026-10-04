@@ -114,6 +114,11 @@ function readJsonBody(req: http.IncomingMessage): Promise<string> {
 
 export class RestServer {
   private server: http.Server | null = null;
+  /** Resolves once the REST listener is bound, rejects on a bind failure. */
+  private listening: Promise<void> = Promise.resolve();
+  /** The port actually bound; differs from config.restPort only when it is 0
+   *  (OS-assigned), which is how tests avoid fixed-port collisions. */
+  private boundPort: number | null = null;
   private db: ClawDB;
   private topics: TopicsManager;
   private memory: MemoryPool;
@@ -182,7 +187,31 @@ export class RestServer {
       });
     }
 
+    // A bind failure is an unhandled 'error' event on the http.Server, not a
+    // throw from listen(). Without this the failure is swallowed: start()
+    // returns, the caller believes the REST surface is up, and every request
+    // silently reaches whichever other server already owns the port.
+    this.server.on('error', (err: NodeJS.ErrnoException) => {
+      hubError(`REST server failed on ${this.config.host}:${this.config.restPort}:`, errorMessage(err));
+    });
+    this.listening = new Promise<void>((resolve, reject) => {
+      this.server!.once('listening', () => {
+        const addr = this.server!.address();
+        if (addr && typeof addr === 'object') this.boundPort = addr.port;
+        resolve();
+      });
+      this.server!.once('error', reject);
+    });
+
     this.server.listen(this.config.restPort, this.config.host);
+  }
+
+  /** Await the REST listener's bind. REJECTS on EADDRINUSE, so a caller can
+   *  never mistake a failed bind for a live server. */
+  async whenListening(): Promise<number> {
+    await this.listening;
+    if (this.boundPort === null) throw new Error('REST server is not listening');
+    return this.boundPort;
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {

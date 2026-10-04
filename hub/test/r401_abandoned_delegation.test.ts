@@ -7,17 +7,22 @@ import { GraphStore } from '../src/graph/store.js';
 import type { Config } from '../src/types.js';
 
 const CFG: Config = {
-  port: 18098, restPort: 18099, host: '127.0.0.1',
+  // port 0 = let the OS assign a free port. This suite used to hard-code
+  // 18098/18099, which made it collide with any other process holding those
+  // ports — and, because a bind failure is an unhandled 'error' EVENT rather
+  // than a throw from listen(), the suite silently kept polling the OTHER
+  // server and reported its state as this test's own.
+  port: 0, restPort: 0, host: '127.0.0.1',
   dataDir: '/tmp/woclaw-r401-probe',
   storage: { type: 'sqlite', sqlitePath: '/tmp/woclaw-r401-probe/probe.db' },
   authToken: 'r401-probe-token',
 };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-const R = 'http://127.0.0.1:18099';
-const H = { 'Content-Type': 'application/json', Authorization: `Bearer ${CFG.authToken}` };
+let H: { 'Content-Type': string; Authorization: string };
 
 describe('R401: orphaned delegation — real agent dies mid-task', () => {
   let db: ClawDB, rest: RestServer, ws: WSServer;
+  let wsPort: number, restPort: number;
 
   beforeAll(async () => {
     const fs = await import('fs');
@@ -30,17 +35,22 @@ describe('R401: orphaned delegation — real agent dies mid-task', () => {
     mem.graphStore = graph;
     rest = new RestServer(CFG, db, ws.getTopicsManager(), mem, graph, ws);
     await rest.start();
+    // Await BOTH binds. If either port were unavailable these reject, so the
+    // test can no longer be satisfied by a foreign server's responses.
+    wsPort = await ws.whenListening();
+    restPort = await rest.whenListening();
+    H = { 'Content-Type': 'application/json', Authorization: `Bearer ${CFG.authToken}` };
   });
   afterAll(async () => { /* vitest tears the process down; no explicit stop API */ });
 
   it('an agent that vanishes while RUNNING leaves a permanently orphaned delegation', async () => {
     // 1. live agent connects
-    const sock = new WebSocket(`ws://127.0.0.1:18098?agentId=worker-1&token=${CFG.authToken}`);
+    const sock = new WebSocket(`ws://127.0.0.1:${wsPort}?agentId=worker-1&token=${CFG.authToken}`);
     await new Promise((res, rej) => { sock.once('open', res); sock.once('error', rej); });
     console.log('AGENT worker-1 CONNECTED');
 
     // 2. delegator (also a live agent) creates the task
-    const sockD = new WebSocket(`ws://127.0.0.1:18098?agentId=delegator-1&token=${CFG.authToken}`);
+    const sockD = new WebSocket(`ws://127.0.0.1:${wsPort}?agentId=delegator-1&token=${CFG.authToken}`);
     await new Promise((res, rej) => { sockD.once('open', res); sockD.once('error', rej); });
     const mk = (id: string) => new Promise<any>(res => {
       sockD.once('message', m => res(JSON.parse(m.toString())));
@@ -55,7 +65,7 @@ describe('R401: orphaned delegation — real agent dies mid-task', () => {
     // 3. worker accepts (no reply is sent back to the accepting agent — poll REST instead)
     sock.send(JSON.stringify({ type: 'delegate_response', id: dId, status: 'accepted' }));
     await sleep(800);
-    let st = await fetch(`${R}/delegations/${dId}`, { headers: H }).then(r => r.json());
+    let st = await fetch(`http://127.0.0.1:${restPort}/delegations/${dId}`, { headers: H }).then(r => r.json());
     console.log('STATE after accept:', st.delegation.status);
     expect(['accepted', 'running']).toContain(st.delegation.status);
 
@@ -69,13 +79,13 @@ describe('R401: orphaned delegation — real agent dies mid-task', () => {
     const seen = new Set<string>();
     while (Date.now() - t0 < 60_000) {
       await sleep(5000);
-      const cur = await fetch(`${R}/delegations/${dId}`, { headers: H }).then(r => r.json());
+      const cur = await fetch(`http://127.0.0.1:${restPort}/delegations/${dId}`, { headers: H }).then(r => r.json());
       const s = `${cur.delegation.status}`;
       seen.add(s);
       console.log(`t+${Math.round((Date.now() - t0) / 1000)}s status=${s} note=${cur.delegation.note ?? '-'}`);
     }
     // 6. who does the hub think the target is, and is that agent connected?
-    const pending = await fetch(`${R}/delegations/pending?agentId=worker-1`, { headers: H }).then(r => r.json());
+    const pending = await fetch(`http://127.0.0.1:${restPort}/delegations/pending?agentId=worker-1`, { headers: H }).then(r => r.json());
     console.log('PENDING_FOR_DEAD_AGENT:', JSON.stringify(pending));
     console.log('OBSERVED_STATUS_SET:', JSON.stringify([...seen]));
 
