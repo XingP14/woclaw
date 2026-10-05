@@ -927,6 +927,15 @@ const result = this.graph.findPath(from, to, maxDepth);
         RestServer.sendJsonError(res, 404, 'Delegation not found');
         return;
       }
+      // Guard against rewriting a terminal record. This handler used to assign
+      // `status = 'cancelled'` unconditionally, so DELETE could turn a `done` or
+      // `failed` delegation into `cancelled` and answer 200 {success: true},
+      // while handleDelegateCancel refused the exact same call over WS. Both
+      // callers now go through one predicate so the two contracts cannot drift.
+      if (!WSServer.isDelegationCancellable(d.status)) {
+        RestServer.sendJsonError(res, 409, `Cannot cancel delegation in ${d.status} state`);
+        return;
+      }
       // Update in-memory directly (REST-side cancel)
       d.status = 'cancelled';
       d.note = 'Cancelled via REST API';

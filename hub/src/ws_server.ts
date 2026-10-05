@@ -890,6 +890,23 @@ export class WSServer {
   }
 
   // v0.4: Delegation - handle delegate_cancel
+  /**
+   * The ONE definition of which delegation states may be cancelled.
+   *
+   * This existed inline in `handleDelegateCancel` only, while `DELETE
+   * /delegations/:id` in rest_server.ts assigned `status = 'cancelled'`
+   * unconditionally. Two callers, two contracts: REST could rewrite a `done`
+   * or `failed` delegation to `cancelled` and answer `200 {success: true}`,
+   * leaving a record that reads both cancelled and completed.
+   *
+   * It is exported so rest_server.ts routes through the same predicate. A
+   * shared predicate is the fix; a second guard copy would just be the same
+   * drift one layer over.
+   */
+  static isDelegationCancellable(status: import('./types.js').Delegation['status']): boolean {
+    return status === 'requested' || status === 'accepted' || status === 'running';
+  }
+
   private handleDelegateCancel(agentId: string, msg: import('./types.js').InboundMessage): void {
     const delegation = this.delegations.get(msg.id ?? '');
     if (!delegation) {
@@ -902,7 +919,7 @@ export class WSServer {
       if (agent) this.sendError(agent.ws, 'forbidden', 'Only the delegator can cancel');
       return;
     }
-    if (!['requested', 'accepted', 'running'].includes(delegation.status)) {
+    if (!WSServer.isDelegationCancellable(delegation.status)) {
       const agent = this.agents.get(agentId);
       if (agent) this.sendError(agent.ws, 'invalid_state', `Cannot cancel delegation in ${delegation.status} state`);
       return;
