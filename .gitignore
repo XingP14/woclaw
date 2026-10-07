@@ -53,3 +53,17 @@ memory/
 
 # Editor / sed backup files
 *.bak
+
+# Agent residue: `patch` writes .orig when the context does not match exactly
+# and .rej beside it, so the pre-image lands INSIDE src/ and pollutes every
+# git status. Nothing tested the ignore rules here until 2026-10-07; the guard
+# was written for one pattern and went stale. See
+# hub/test/gitignore_residue_guard.test.ts.
+*.orig
+*.rej
+
+# Probe backups and matrices. Both repos park agent residue here (354 untracked
+# entries at 2026-10-07 22:03); keeping it ignored is what makes _tmp/ usable
+# as a scratch location without a cleanup chore after every tick.
+_tmp/
+**/_tmp/
