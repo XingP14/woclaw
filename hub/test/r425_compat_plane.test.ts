@@ -10,7 +10,7 @@
  * Zero production change.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,14 +40,54 @@ function occurrences(haystack: string, needle: string): number {
   return n;
 }
 
-/** Count occurrences across the production source set (tests excluded). */
+/**
+ * R423/R426: a HAND-LISTED subject set is the defect R422 shipped and R423
+ * corrected — it silently narrows to whatever the author remembered. Both
+ * lists below used to be literal arrays. `prodFiles()` / `testFiles()` walk
+ * the tree instead, so the set cannot shrink when a file is added.
+ */
+function walkTs(dir: string, out: string[] = []): string[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const entry of entries.sort()) {
+    if (entry.startsWith('.') || entry === 'node_modules' || entry === 'dist') continue;
+    const p = join(dir, entry);
+    let isDir = false;
+    try {
+      isDir = statSync(p).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDir) {
+      walkTs(p, out);
+    } else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+/** Production source set, tests excluded. */
+function prodFiles(): string[] {
+  return walkTs(SRC).filter((p) => !p.endsWith('.test.ts'));
+}
+
+/** Every test file in the hub test tree, self excluded. */
+function testFiles(): string[] {
+  const here = fileURLToPath(import.meta.url);
+  return walkTs(join(HERE, '..', 'test')).filter((p) => p !== here);
+}
+
+/**
+ * Count occurrences across the production source set (tests excluded).
+ */
 function prodOccurrences(needle: string): number {
-  const files = [
-    'types.ts', 'federation.ts', 'ws_server.ts', 'rest_server.ts',
-    'agent_stream.ts', 'topics.ts', 'memory.ts', 'db.ts',
-  ];
   let n = 0;
-  for (const f of files) n += occurrences(readSrc(f), needle);
+  for (const p of prodFiles()) n += occurrences(readFileSync(p, 'utf8'), needle);
   return n;
 }
 
@@ -139,19 +179,13 @@ describe('R425 F2: asymmetric unknown-type semantics between transports', () => 
   });
 
   it('no production test asserts the unknown_type error code', () => {
-    // Measured across the whole test tree, not guessed.
-    const testDir = join(SRC, '..', 'test');
-    const files = [
-      'federation.test.ts', 'federation_live_peer.test.ts',
-      'federation_sync_important_memories.test.ts',
-      'r418_federation_receive_channel.test.ts',
-    ];
+    // R426: walked the whole test tree (was a 4-file literal of federation
+    // suites — 101 of 105 files never opened, and M7 proved the narrowing
+    // load-bearing-by-accident). Counting is cheap; the set is not.
+    const files = testFiles();
+    expect(files.length).toBeGreaterThan(0);
     let hits = 0;
-    for (const f of files) {
-      const p = join(testDir, f);
-      if (!existsSync(p)) continue;
-      hits += occurrences(readFileSync(p, 'utf8'), 'unknown_type');
-    }
+    for (const p of files) hits += occurrences(readFileSync(p, 'utf8'), 'unknown_type');
     expect(hits).toBe(0);
   });
 });
