@@ -32,8 +32,13 @@ describe('R414 C1: cancel is a status transition, not an interrupt', () => {
     const producers: string[] = [];
     for (const f of ['ws_server.ts', 'rest_server.ts', 'memory.ts', 'scheduler.ts',
                      'federation.ts', 'topics.ts', 'db.ts', 'agent_stream.ts']) {
-      let src: string;
-      try { src = readFileSync(join(SRC, f), 'utf8'); } catch { continue; }
+      // R421: a `catch { continue }` here made the subject list a MOVING
+      // DENOMINATOR -- this is exactly the defect R421 exists to detect, and
+      // r421_subject_set_binding.test.ts has been RED at HEAD since 8c0ddea
+      // because of this one line. Every subject above exists (verified), so
+      // the swallow bought nothing and cost a red suite. A missing subject must
+      // FAIL the suite loudly, never shrink the loop.
+      const src = readFileSync(join(SRC, f), 'utf8');
       src.split('\n').forEach((line, i) => {
         if (!/interrupted/.test(line)) return;
         // taxonomy declaration, mirror table, or a union member -- not a producer
