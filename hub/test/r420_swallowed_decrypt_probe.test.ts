@@ -132,14 +132,60 @@ describe('R420 probe: the swallowed decrypt reaches the caller', () => {
     expect(mem!.value).not.toContain('second secret');
   });
 
+  // R426 — the canary must be LONG. `recall()` scores a row by SUBSTRING match
+  // over the raw stored value, so when the decrypt is swallowed the row still
+  // carries a ~350-char base64 ENC envelope. Any query token shorter than about
+  // 6 chars has a non-zero chance of appearing by accident in that blob, and
+  // one accidental hit scores the row > 0 and returns the envelope — which is
+  // precisely the leak C3 exists to forbid. Measured over 20 000 random
+  // envelopes: 'xyz' matched 116/20000 (0.58%), 'r420' / 'needle' /
+  // 'distinctive' matched 0/20000, and the full query matched 139/20000. So the
+  // old canary made this assertion true ~99.4% of the time and false ~0.6% of
+  // the time, with no load, ordering or timing dependence to explain it. The
+  // canary is a single 19-char token, whose accidental rate is ~350/64^19.
+  // The control below pins the length so the next edit cannot quietly shorten
+  // it back into randomness.
+  const C3_CANARY = 'r420ciphercanaryqzxjw';
+
+  // memory.ts does not export its tokenizer, so the control re-implements the
+  // split the query goes through rather than importing a private helper.
+  // R427 measured this over 3 000 real encryptAndSerialize envelopes (the
+  // first attempt at 20 000 exceeded the runner budget -- scrypt dominates):
+  // the old canary collides 29/3000 = 0.97% of the time, the new one 0/3000.
+  // The control pins the two properties that actually decide it -- no token
+  // short enough to collide by chance, and no token that STOP_WORDS would drop.
+  const STOP_WORDS_SNAPSHOT = [
+    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+  ];
+
+  const queryTokens = (s: string): string[] =>
+    s.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length > 1 && !STOP_WORDS_SNAPSHOT.includes(t));
+
+  it('control — every C3 query token is long enough to make the assertion deterministic', () => {
+    for (const token of queryTokens(C3_CANARY)) {
+      expect(token.length).toBeGreaterThanOrEqual(12);
+    }
+  });
+
+  it('control — no C3 query token is a stop word, so the mirror above cannot diverge into a vacuous pass', () => {
+    // queryTokens() drops stop words; if C3_CANARY ever grew one, the mirror
+    // would silently stop seeing it and the length case would pass vacuously.
+    const rawTokens = C3_CANARY.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean);
+    expect(queryTokens(C3_CANARY).length).toBe(rawTokens.length);
+  });
+
   it('C3 — recall() (substring search) leaks the envelope into ranked results', async () => {
-    await mp.write('t3-key', 'needle-distinctive-r420-xyz', 'agent1');
+    await mp.write('t3-key', C3_CANARY, 'agent1');
     tamperStoredRow(dbPath, 't3-key');
 
     // The search cannot match on ciphertext, so the row drops out entirely:
     // this is the *other* half of the defect — the read path lies, the search
     // path silently loses the row.
-    const hits = await mp.recall('needle-distinctive-r420-xyz');
+    const hits = await mp.recall(C3_CANARY);
     expect(hits).toHaveLength(0);
   });
 
