@@ -15,11 +15,42 @@
  * reason is worse than no probe).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 const SRC = join(__dirname, '..', 'src');
 const rd = (f: string) => readFileSync(join(SRC, f), 'utf8');
+
+/**
+ * R428: the subject set is DERIVED, recursively, and compared by REPO-RELATIVE
+ * path.
+ *
+ * This file listed 8 of 31 production files in C1b and 4 in C2a. Both lists
+ * were literal arrays, and both omitted `extraction/` and `graph/` entirely --
+ * a `readdirSync(SRC)` would have been one level and still missed them, which
+ * is why this walks.
+ *
+ * The claim is now RE-MEASURED at full width rather than inherited: over all 31
+ * files there are zero producers of `exit:'interrupted'`. The conclusion did
+ * not move; only the width of the evidence behind it did.
+ *
+ * REPO-RELATIVE, not basename. `types.ts` exists in three directories
+ * (`types.ts`, `extraction/types.ts`, `graph/types.ts`); 31 files, 29 distinct
+ * names. A basename comparison makes a hand list naming `types.ts` look like
+ * it covers three files when it names one -- an ambiguous subject reading as a
+ * covered one. (R427 defect 2, one level down.)
+ */
+function walk(dir: string = SRC): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) out.push(...walk(full));
+    else if (e.name.endsWith('.ts')) out.push(relative(SRC, full));
+  }
+  return out.sort();
+}
+/** Derived once, so a probe can never disagree with itself about the tree. */
+const PROD = walk();
 
 describe('R414 C1: cancel is a status transition, not an interrupt', () => {
   it('C1a the `interrupted` exit code is declared in the taxonomy', () => {
@@ -30,14 +61,17 @@ describe('R414 C1: cancel is a status transition, not an interrupt', () => {
   it('C1b but nothing in the hub ever emits it', () => {
     // producer would need to assign exit:'interrupted' or result{exit:'interrupted'}
     const producers: string[] = [];
-    for (const f of ['ws_server.ts', 'rest_server.ts', 'memory.ts', 'scheduler.ts',
-                     'federation.ts', 'topics.ts', 'db.ts', 'agent_stream.ts']) {
+    for (const f of PROD) {
       // R421: a `catch { continue }` here made the subject list a MOVING
       // DENOMINATOR -- this is exactly the defect R421 exists to detect, and
       // r421_subject_set_binding.test.ts has been RED at HEAD since 8c0ddea
-      // because of this one line. Every subject above exists (verified), so
-      // the swallow bought nothing and cost a red suite. A missing subject must
-      // FAIL the suite loudly, never shrink the loop.
+      // because of this one line. Every subject above exists (derived, not
+      // listed), so the swallow bought nothing and cost a red suite. A missing
+      // subject must FAIL the suite loudly, never shrink the loop.
+      // R428: the list is now the walk above. A producer planted OUTSIDE the
+      // old 8-file literal kept this green 9/9 (see commit message); the
+      // inward arm (topics.ts) was caught, so the detector was alive and only
+      // the set was narrow.
       const src = readFileSync(join(SRC, f), 'utf8');
       src.split('\n').forEach((line, i) => {
         if (!/interrupted/.test(line)) return;
@@ -67,7 +101,11 @@ describe('R414 C1: cancel is a status transition, not an interrupt', () => {
 describe('R414 C2: delivery is fire-and-forget', () => {
   it('C2a there is no outbound queue/backlog/outbox in any transport file', () => {
     const offenders: string[] = [];
-    for (const f of ['ws_server.ts', 'rest_server.ts', 'memory.ts', 'topics.ts']) {
+    // R428: was a 4-file literal (`ws_server`/`rest_server`/`memory`/`topics`).
+    // Widened to the full derived tree. At the commit that adds this arm the
+    // answer is still zero over all 31 files -- the claim was true, the
+    // evidence for it was 4 files wide.
+    for (const f of PROD) {
       const src = rd(f);
       src.split('\n').forEach((line, i) => {
         if (/\b(outbox|backlog|pendingQueue|unreadQueue|catchup|catch_up|missed)\b/i.test(line)

@@ -151,16 +151,22 @@ describe('R427 control: the classifier is alive', () => {
   it('names a KNOWN class member, so the sweep floor is not the only liveness proof', () => {
     // Mutating the floor `report.length >= 1` down to `>= 0` SURVIVED, and the
     // reason is that a floor is a floor: it cannot tell "the sweep found nothing"
-    // from "the sweep is dead". Pin the membership instead — r414 is the
-    // instance this suite was written for, so its absence is a real defect, not
-    // a tree-shape accident. With this control the floor becomes redundant
-    // rather than load-bearing, which is the correct direction.
+    // from "the sweep is dead". Pin the MEMBERSHIP instead.
+    //
+    // R428: the named pin was r414, which R428 fixed. This is the shape of the
+    // trap the pin itself walks into — a membership pin must be re-pointed at
+    // the class, not at one instance, or fixing the instance silently removes
+    // the control that justified leaving the floor in place. So the pin is now
+    // "the class is non-empty AND the named member is not the only member":
+    // r414 is asserted GONE (the fix), and the survivors are asserted to still
+    // contain other members (the control still has something to test).
     const declared = readdirSync(TEST)
       .filter((f) => f.endsWith('.test.ts'))
       .map((f) => ({ probe: f, listed: declaredSubjects(readFileSync(join(TEST, f), 'utf8')) }))
       .filter((r) => r.listed.length > 0)
       .map((r) => r.probe);
-    expect(declared).toContain('r414_cancel_reachability.test.ts');
+    expect(declared).not.toContain('r414_cancel_reachability.test.ts');
+    expect(declared.length).toBeGreaterThan(0);
   });
 });
 
@@ -216,10 +222,15 @@ describe('R427 the class: declared subject sets', () => {
       '}',
     ].join('\n');
 
-    // (a) the positive branch: a real member of the class
+    // (a) the positive branch: a real member of the class.
+    // R428: r414 is no longer a member — its subject set is derived. The
+    // class still has members; use one that remains, so this control keeps
+    // testing the classifier instead of decaying into a tautology once the
+    // last instance is fixed. (A control with no remaining member is vacuous.)
     const r414 = declared.find((r) => r.probe === 'r414_cancel_reachability.test.ts');
-    expect(r414).toBeDefined();
-    gapIsReal(r414!.probe, r414!.listed);
+    expect(r414).toBeUndefined();
+    expect(declared.length).toBeGreaterThan(0);
+    for (const member of declared) gapIsReal(member.probe, member.listed);
 
     // (b) the counterfactual: a full-width subject set, same shape, gap zero.
     const fullWidth = declaredSubjects(synth(PROD));
@@ -292,20 +303,26 @@ describe('R427 the class: declared subject sets', () => {
   });
 });
 
-describe('R427 the specific instance (r414 C1b)', () => {
+describe('R427 the specific instance (r414 C1b) — FIXED by R428', () => {
+  /**
+   * R428: r414 no longer declares these. They are kept here as the historical
+   * record of the width the probe had, and so that the fix below is pinned:
+   * `declaredSubjects()` must now return EMPTY for r414, because the set is
+   * derived by a recursive walk and no filename literal remains.
+   */
   const SUBJECTS = [
     'ws_server.ts', 'rest_server.ts', 'memory.ts', 'scheduler.ts',
     'federation.ts', 'topics.ts', 'db.ts', 'agent_stream.ts',
   ];
 
-  it('declares 8 of the 31 production files', () => {
-    const declared = subjectsOf('r414_cancel_reachability.test.ts');
-    // declaredSubjects() returns a SORTED set; compare against a sorted copy of
-    // the literal. Comparing order-sensitively would pin the sort order of the
-    // classifier rather than the membership of the subject set.
-    expect(declared).toEqual([...SUBJECTS].sort());
+  it('R428 the probe no longer declares a subject set at all', () => {
+    // The class detector is satisfied by DERIVATION. r414 now walks the tree,
+    // so it drops out of the "declared subject set" class entirely — which is
+    // the fix, expressed in the enumerator's own vocabulary.
+    expect(subjectsOf('r414_cancel_reachability.test.ts')).toEqual([]);
+    // And the old 8-file literal really was a strict subset of the tree.
+    expect(SUBJECTS.length).toBeLessThan(PROD.length);
     expect(PROD.length).toBe(31);
-    expect(declared.length).toBeLessThan(PROD.length);
   });
 
   it('F3 ⭐ the probe\'s own predicate yields ZERO producers across the FULL tree', () => {
