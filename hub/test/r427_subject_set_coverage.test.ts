@@ -82,26 +82,78 @@ interface Subject {
  * probe have been in the class?" A constant cannot answer that, and a control
  * that cannot answer the counterfactual is the control that silently does
  * nothing (see the >=1 mutant in the suite comment).
+ *
+ * R429 — RESOLUTION. The original classifier did `.map((x) => basename(x))` and
+ * then checked membership against a basename set. That silently throws away the
+ * one piece of information a literal may carry about WHICH file it means, so a
+ * list naming `types.ts` -- a name held by three files -- was recorded as
+ * covering one subject when it could be covering none, one, or three.
+ *
+ * A literal that names a PATH (`graph/types.ts`, `./types.ts`) is a LOCATION
+ * claim and resolves to exactly one file, or to none. A literal that names only
+ * a BASENAME is ambiguous whenever more than one file shares it, and an
+ * ambiguous name covers nothing -- we cannot tell which file the author meant,
+ * so it cannot be counted as evidence of examining any of them. Both outcomes
+ * are returned, because reporting the count while discarding the ambiguity is
+ * the defect.
+ *
+ * The `./` and `src/` prefixes are stripped before lookup because the
+ * repo-relative form is what a walk produces while the written form is what an
+ * author types; without the normalisation, top-level `types.ts` would be the
+ * ONE file in the tree no literal could name -- the nested ones are reachable
+ * by their path, and the bare name is ambiguous, so the set would be
+ * inexpressible rather than merely imprecise.
  */
-function wouldDeclareAt(src: string, min: number): string[] {
-  if (!NEGATIVE.test(src)) return [];
-  if (!ITERATES.test(src)) return [];
-  if (DERIVES.test(src)) return [];            // derived, not declared
+interface Declaration {
+  resolved: string[];  // repo-relative paths a literal unambiguously names
+  ambiguous: string[];  // basenames held by >1 file: unexamined, and named here
+}
+
+function wouldDeclareAt(src: string, min: number): Declaration {
+  if (!NEGATIVE.test(src)) return { resolved: [], ambiguous: [] };
+  if (!ITERATES.test(src)) return { resolved: [], ambiguous: [] };
+  if (DERIVES.test(src)) return { resolved: [], ambiguous: [] }; // derived, not declared
   const lits = [...new Set(
     [...src.matchAll(/['"`]([A-Za-z0-9_./-]+\.ts)['"`]/g)].map((m) => m[1]),
-  )].map((x) => basename(x));
-  const present = [...new Set(lits)].filter((b) => PROD_BASE.has(b)).sort();
-  return present.length >= min ? present : []; // <min is a focused read, not a set
+  )];
+  const resolved = new Set<string>();
+  const ambiguous = new Set<string>();
+  for (const lit of lits) {
+    // Whether a literal is a LOCATION claim is a property of how it was
+    // WRITTEN, and that has to be decided before normalisation: `src/types.ts`
+    // is written as a path and must resolve to the top-level file, even though
+    // normalising it yields the bare string `types.ts`, which is ambiguous.
+    // Testing the normalised form instead makes the one file the author went
+    // out of their way to locate unreachable -- an author being explicit is
+    // exactly the evidence we are trying to reward.
+    const writtenAsPath = lit.includes('/');
+    const norm = lit.replace(/^\.\//, '').replace(/^src\//, '');
+    if (writtenAsPath) {
+      // A path literal names a location. Resolve it, or it names nothing here.
+      if (PROD_SET.has(norm)) resolved.add(norm);
+      continue;
+    }
+    const holders = PROD.filter((f) => basename(f) === norm);
+    if (holders.length === 1) resolved.add(holders[0]);
+    else if (holders.length > 1) ambiguous.add(norm); // R429: covers nothing
+  }
+  const out = { resolved: [...resolved].sort(), ambiguous: [...ambiguous].sort() };
+  return out.resolved.length + out.ambiguous.length >= min ? out : { resolved: [], ambiguous: [] };
 }
 
 /** The classifier as the suite ships it: a hand list needs >= 2 subjects. */
-function declaredSubjects(src: string): string[] {
+function declaredSubjects(src: string): Declaration {
   return wouldDeclareAt(src, 2);
 }
 
-function subjectsOf(probe: string): string[] {
+function subjectsOf(probe: string): Declaration {
   return declaredSubjects(readFileSync(join(TEST, probe), 'utf8'));
 }
+
+/** A probe is in the class when it names anything at all, resolved or not. */
+const isMember = (d: Declaration): boolean => d.resolved.length + d.ambiguous.length > 0;
+
+const NONE: Declaration = { resolved: [], ambiguous: [] };
 
 describe('R427 control: the classifier is alive', () => {
   it('sees the production tree it measures against', () => {
@@ -113,14 +165,14 @@ describe('R427 control: the classifier is alive', () => {
     // r424 walks its subject set. If declaredSubjects() ever returned a list for
     // it, every count below would be inflated and the finding would be a
     // detector artefact rather than a measurement.
-    expect(subjectsOf('r424_preview_plane.test.ts')).toEqual([]);
+    expect(subjectsOf('r424_preview_plane.test.ts')).toEqual(NONE);
   });
 
   it('classifies a FOCUSED read (one file, no loop) as not-a-subject-set', () => {
     // r421 reads exactly one file for a focused reason. >=2 is the threshold
     // that keeps it out of the class; if the threshold were 1, this goes red
     // and tells us the classifier is too loose.
-    expect(subjectsOf('r421_subject_set_binding.test.ts')).toEqual([]);
+    expect(subjectsOf('r421_subject_set_binding.test.ts')).toEqual(NONE);
   });
 
   it('classifies a single-subject negative probe as NOT a subject set', () => {
@@ -137,13 +189,13 @@ describe('R427 control: the classifier is alive', () => {
     // guards. `otlp_sink.test.ts` names one production file, loops, and asserts
     // a negative form: at >=2 it is out of the class, at >=1 it is in it.
     const one = subjectsOf('otlp_sink.test.ts');
-    expect(one).toEqual([]);
+    expect(one).toEqual(NONE);
     // Name the population the threshold holds out, so a future reader can see
     // the class is a decision and not an accident of tree shape: probes that
     // satisfy every other clause and are excluded ONLY by the >=2 bound.
     const heldOutByThreshold = readdirSync(TEST)
       .filter((f) => f.endsWith('.test.ts'))
-      .filter((f) => wouldDeclareAt(readFileSync(join(TEST, f), 'utf8'), 1).length >= 1);
+      .filter((f) => isMember(wouldDeclareAt(readFileSync(join(TEST, f), 'utf8'), 1)));
     expect(heldOutByThreshold).toContain('otlp_sink.test.ts');
     expect(heldOutByThreshold.length).toBeGreaterThan(5);
   });
@@ -163,7 +215,7 @@ describe('R427 control: the classifier is alive', () => {
     const declared = readdirSync(TEST)
       .filter((f) => f.endsWith('.test.ts'))
       .map((f) => ({ probe: f, listed: declaredSubjects(readFileSync(join(TEST, f), 'utf8')) }))
-      .filter((r) => r.listed.length > 0)
+      .filter((r) => isMember(r.listed))
       .map((r) => r.probe);
     expect(declared).not.toContain('r414_cancel_reachability.test.ts');
     expect(declared.length).toBeGreaterThan(0);
@@ -174,14 +226,15 @@ describe('R427 the class: declared subject sets', () => {
   const probes = readdirSync(TEST).filter((f) => f.endsWith('.test.ts'));
   const declared = probes
     .map((p) => ({ probe: p, listed: subjectsOf(p) }))
-    .filter((r) => r.listed.length > 0);
+    .filter((r) => isMember(r.listed));
 
   it('F1: every declared subject set is checked for coverage against the tree', () => {
     // This is a CHARACTERIZATION pin, not a red-until-fixed gate. It reports
     // what exists. Turning it into a hard `toEqual([])` would redden three
     // legacy suites on the tick that introduces it, and a suite that ships red
     // is a suite nobody reads — the R421 trap in its most common form.
-    const report = declared.map((r) => `${r.probe} (${r.listed.length}/${PROD.length})`);
+    const report = declared.map((r) => `${r.probe} (${r.listed.resolved.length}/${PROD.length}` +
+      (r.listed.ambiguous.length ? ' + ' + r.listed.ambiguous.length + ' ambiguous' : '') + ')');
     expect(Array.isArray(report)).toBe(true);
     // The class is non-empty, which is the finding. If this ever reads 0, the
     // sweep found no instances because the CLASSIFIER broke, not because the
@@ -210,9 +263,11 @@ describe('R427 the class: declared subject sets', () => {
     // on a synthetic full-width member (must NOT hold). A relaxation of F2's
     // bound is then killed by the second call, because the same function
     // returns false on a member F2 is supposed to reject.
-    const gapIsReal = (probe: string, listed: string[]) => {
-      const missing = PROD.filter((f) => !listed.includes(basename(f)));
-      expect(missing.length, `${probe} declares ${listed.length}/${PROD.length}; unexamined: ${missing.join(', ')}`)
+    const gapIsReal = (probe: string, listed: Declaration) => {
+      const missing = PROD.filter((f) => !listed.resolved.includes(f));
+      expect(missing.length, `${probe} declares ${listed.resolved.length}/${PROD.length}` +
+        (listed.ambiguous.length ? ` + ${listed.ambiguous.length} ambiguous` : '') +
+        `; unexamined: ${missing.join(', ')}`)
         .toBeGreaterThan(0);
     };
 
@@ -233,33 +288,53 @@ describe('R427 the class: declared subject sets', () => {
     for (const member of declared) gapIsReal(member.probe, member.listed);
 
     // (b) the counterfactual: a full-width subject set, same shape, gap zero.
-    const fullWidth = declaredSubjects(synth(PROD));
-    // The classifier matches literals by BASENAME, so a name that occurs in two
-    // directories (`types.ts` lives at both `src/types.ts` and `src/graph/types.ts`)
-    // collapses to one subject: 31 files, 29 distinct names. Measured, not assumed
-    // -- `PROD_BASE.size` is the real denominator of a hand list, and the suite's
-    // own counts must be reported against the same number or every ratio in it is
-    // quietly wrong. Pinned here so a future duplicate changes a number in the
-    // output rather than the meaning of the class.
+    //
+    // R429: this arm is now where the collision becomes ARITHMETIC rather
+    // than a sentence in a comment.
+    //
+    // `synth(PROD)` emits repo-relative literals, so the nested duplicates
+    // arrive as PATHS (`extraction/types.ts`) and each resolves exactly. The
+    // bare `types.ts` literal is ambiguous -- three files, no way to tell which
+    // one the author meant -- so it covers NONE of them, including the
+    // top-level file it most obviously refers to.
+    //
+    // I predicted 28 resolved and wrote it into the assertion; the measured
+    // value is 30, and the prediction was wrong in the interesting direction.
+    // Only ONE file is lost, not three, because the other two were reachable by
+    // path in this particular synthetic. The precise statement of the defect
+    // is therefore narrower and sharper than "collision costs coverage": a
+    // bare ambiguous name costs the file it *names*, and leaves its siblings
+    // covered by accident only when the author also listed their paths.
+    const fullWidthDecl = declaredSubjects(synth(PROD));
+    const fullWidth = fullWidthDecl.resolved;
+    // The tree shape, measured: 31 files, 29 distinct basenames, one of which
+    // (`types.ts`) is held by three. These are the real denominators; every
+    // ratio in this suite must be reported against one of them.
     expect(PROD.length).toBe(31);
     expect(PROD_BASE.size).toBe(29);
-    expect(fullWidth).toHaveLength(PROD_BASE.size);
-    // Full width means every NAME is covered, which is the property that matters
-    // for a negative claim -- an unexamined file is what lets a real producer
-    // ship green, and a name covered from either directory still leaves the other
-    // unexamined. That residual is recorded by the collision control below.
-    const gapOfFullWidth = PROD.filter((f) => !fullWidth.includes(basename(f)));
-    expect(gapOfFullWidth).toEqual([]);
+    expect(fullWidth).toHaveLength(30);
+    expect(fullWidthDecl.ambiguous).toEqual(['types.ts']);
+    // The gap is exactly the file the ambiguous name referred to.
+    const gapOfFullWidth = PROD.filter((f) => !fullWidth.includes(f));
+    expect(gapOfFullWidth).toEqual(['types.ts']);
 
-    // (c) F2's own predicate must REJECT this member. This is the arm that makes
-    // `> 0` a decision rather than a constant.
-    expect(() => gapIsReal('synthetic-full-width', fullWidth)).toThrow();
+    // (c) A PATH literal resolves: `graph/types.ts` names one file, so a list
+    // written in paths has NO gap. This is the arm that makes the previous one
+    // a finding about the WRITER rather than about the tree -- the tree is
+    // fully expressible, the basename list simply is not.
+    const pathFull = declaredSubjects(synth(PROD.map((f) => 'src/' + f))).resolved;
+    expect(pathFull).toHaveLength(PROD.length);
+    expect(PROD.filter((f) => !pathFull.includes(f))).toEqual([]);
+
+    // (d) F2's own predicate must REJECT a member with no gap. Only the path
+    // form now qualifies; that is what makes `> 0` a decision, not a constant.
+    expect(() => gapIsReal('synthetic-full-width-paths', { resolved: pathFull, ambiguous: [] })).toThrow();
 
     // And the complement: a probe declaring a strict subset still yields a gap,
     // so the two branches of the same filter are both exercised.
-    const partial = declaredSubjects(synth(PROD.slice(0, 5)));
+    const partial = declaredSubjects(synth(PROD.slice(0, 5))).resolved;
     expect(partial).toHaveLength(5);
-    expect(PROD.filter((f) => !partial.includes(basename(f))).length).toBe(PROD.length - 5);
+    expect(PROD.filter((f) => !partial.includes(f)).length).toBe(PROD.length - 5);
   });
 
   it('names a BASENAME COLLISION, so a covered name never reads as a covered file', () => {
@@ -319,7 +394,7 @@ describe('R427 the specific instance (r414 C1b) — FIXED by R428', () => {
     // The class detector is satisfied by DERIVATION. r414 now walks the tree,
     // so it drops out of the "declared subject set" class entirely — which is
     // the fix, expressed in the enumerator's own vocabulary.
-    expect(subjectsOf('r414_cancel_reachability.test.ts')).toEqual([]);
+    expect(subjectsOf('r414_cancel_reachability.test.ts')).toEqual(NONE);
     // And the old 8-file literal really was a strict subset of the tree.
     expect(SUBJECTS.length).toBeLessThan(PROD.length);
     expect(PROD.length).toBe(31);
