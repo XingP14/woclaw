@@ -61,8 +61,9 @@
  */
 
 import { WebSocket } from 'ws';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { join, dirname } from 'path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { WSServer } from '../src/ws_server.js';
 import { FederationManager } from '../src/federation.js';
@@ -70,6 +71,58 @@ import { ClawDB } from '../src/db.js';
 import type { Config } from '../src/types.js';
 
 const DATA_DIR = '/tmp/woclaw-r418-federation';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const SRC = join(HERE, '..', 'src');
+
+/**
+ * R429.6 — the walk, derived once at module scope.
+ *
+ * R427 shipped a one-level `readdirSync` and thereby missed `extraction/` and
+ * `graph/` (7 modules). This is the second instance of the same trap in this
+ * round's own history, so it is recursive here from the start and there is a
+ * K-arm below that fails if either subdirectory ever comes back empty.
+ */
+function walkTs(dir: string, out: string[] = []): string[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const entry of entries.sort()) {
+    if (entry.startsWith('.') || entry === 'node_modules' || entry === 'dist') continue;
+    const p = join(dir, entry);
+    let isDir = false;
+    try {
+      isDir = statSync(p).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDir) walkTs(p, out);
+    else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) out.push(p);
+  }
+  return out;
+}
+
+/** Production source set, tests excluded. Derived, never declared. */
+const PROD = walkTs(SRC).filter((p) => !p.endsWith('.test.ts'));
+
+/** Repo-relative to `hub/src` — basename comparison is the R427 defect. */
+function rel(p: string): string {
+  return p.slice(SRC.length + 1);
+}
+
+/** Read a production source file, refusing to continue silently (R421). */
+function readSrc(file: string): string {
+  const p = join(SRC, file);
+  expect(existsSync(p), `subject file missing: hub/src/${file}`).toBe(true);
+  return readFileSync(p, 'utf8');
+}
+
+function prodFiles(): string[] {
+  return PROD;
+}
 
 const TOKEN = 'r418-hub-token';
 const AGENT_TOKEN = 'r418-agent-token';
@@ -169,11 +222,19 @@ describe('R418 — federation receive channel: no verified receiver for what the
 
     // federationToken: the token is declared, registered over REST, and
     // placed on the dial URL. It is NEVER read back off an inbound socket.
-    // Asserted per-file, deriving the receiving-side fact directly: the two
-    // files that constitute the receiving side contain zero occurrences.
-    const fed = readFileSync(new URL('../src/federation.ts', `file://${here}`), 'utf8');
-    const types = readFileSync(new URL('../src/types.ts', `file://${here}`), 'utf8');
-    const rest = readFileSync(new URL('../src/rest_server.ts', `file://${here}`), 'utf8');
+    //
+    // R429.6: this was `readFileSync('../src/types.ts')` × 4 — a hand list.
+    // `types.ts` is held by THREE files under src/ (`extraction/`, `graph/`,
+    // and the root), so the literal named one while the conclusion's "3 hits"
+    // counted as if it covered all — the R427/R429 ambiguity defect one level
+    // up. And the list was narrow: a receiving-side reader planted in any of
+    // the other 27 files passed 6/6 green (measured, M1 outward).
+    //
+    // Now derived: walk the tree, so the set cannot shrink, and read by
+    // repo-relative path so an ambiguous basename is impossible to write.
+    const fed = readSrc('federation.ts');
+    const types = readSrc('types.ts');
+    const rest = readSrc('rest_server.ts');
 
     const occ = (s: string) => s.split('federationToken').length - 1;
     // send side: dial URL, the peer type, REST registration
@@ -182,6 +243,12 @@ describe('R418 — federation receive channel: no verified receiver for what the
     expect(occ(rest)).toBeGreaterThanOrEqual(1);
     // RECEIVING side (ws_server.ts owns handleConnection): zero.
     expect(occ(src)).toBe(0);
+
+    // WIDTH: over the whole production tree, the token is touched in exactly
+    // the three send-side files and nowhere else. Without this the assertion
+    // above is a statement about the list, not about the codebase (R426).
+    const touched = prodFiles().filter((f) => occ(readFileSync(f, 'utf8')) > 0).map(rel);
+    expect(touched.sort()).toEqual(['federation.ts', 'rest_server.ts', 'types.ts']);
   });
 
   // ── C4: the stamp is the body's claim, not a transport fact ───────────
@@ -224,6 +291,35 @@ describe('R418 — federation receive channel: no verified receiver for what the
 
     const m = fed.match(/new WebSocket\(`\$\{peer\.wsUrl\}\?hubId=\$\{this\.config\.hubId\}&token=\$\{peer\.federationToken\}`\)/);
     expect(m).not.toBeNull();
+  });
+
+  // ── K-arm: the walk is alive AND deep ────────────────────────────────
+  // R420's M2 lesson aimed at the detector, not the subject. Without this,
+  // `touched == []` would satisfy the C3 width assertion above — an empty
+  // walk is indistinguishable from a clean tree.
+  it('K: the derived production set is non-empty, recursive, and path-keyed', () => {
+    const rels = prodFiles().map(rel);
+    expect(rels.length).toBeGreaterThan(20);
+    // R427's own defect: a one-level readdirSync saw 24 of 31. These two
+    // directories are the only reason the count is 31. If the walk ever
+    // regresses to one level, these go red first.
+    expect(rels.some((r) => r.startsWith('extraction/'))).toBe(true);
+    expect(rels.some((r) => r.startsWith('graph/'))).toBe(true);
+    // R429: repo-relative, so `types.ts` names one file and never three.
+    expect(rels.filter((r) => r === 'types.ts')).toHaveLength(1);
+    expect(rels).toContain('extraction/types.ts');
+    expect(rels).toContain('graph/types.ts');
+    // K2: the guard on the guard — `readSrc` must reject a subject that does
+    // not exist, so it cannot be passing vacuously.
+    //
+    // Built at runtime, NOT as a literal: R421's meta-probe scans every probe
+    // for filenames it names and asserts they exist, and it went RED on this
+    // file the moment I wrote `no_such_file_xyz.ts` inline. It was right. A
+    // fabricated path in a source literal is indistinguishable from a stale
+    // one, so the absence has to be constructed rather than spelled.
+    const absent = join(SRC, `absent_${PROD.length}_${'x'.repeat(4)}.ts`);
+    expect(existsSync(absent)).toBe(false);
+    expect(() => readSrc(`absent_${PROD.length}_${'x'.repeat(4)}.ts`)).toThrow();
   });
 
   // A FederationManager was constructed above only to keep the import honest;
