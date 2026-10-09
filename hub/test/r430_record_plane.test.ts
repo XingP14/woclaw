@@ -144,6 +144,8 @@ interface Commit {
   short: string;
   ts: number;
   rid: string | null;
+  /** R432: round identity declared in the BODY, not the subject line. */
+  bodyRid: string | null;
   subj: string;
   citedBy: string[];
   machineOnly: string[];
@@ -151,23 +153,45 @@ interface Commit {
 
 /** `%ct` is epoch seconds — same clock as `statSync().mtimeMs`, so M3 below is a real comparison. */
 function commits(limit: number): Commit[] {
-  const log = execSync(`git log --format=%H%x7c%ct%x7c%s -${limit}`, {
+  // R432: the body is now part of the record. NUL-separated fields, then a
+  // record separator, so a multi-line commit message cannot split into fake
+  // commits the way `--format=%s\n%b` would.
+  const raw = execSync(`git log --format=%H%x7c%ct%x7c%s%x7c%b%x1e -${limit}`, {
     cwd: REPO, encoding: 'utf8',
-  }).trim().split('\n');
-  return log.map((line) => {
-    const p = line.split('|');
-    const short = p[0].slice(0, 7);
-    const subj = p.slice(2).join('|');
-    const m = subj.match(/\((?:round|r)?(\d{3})\)/i);
-    return {
-      short,
-      ts: Number(p[1]) * 1000,
-      rid: m ? String(Number(m[1])) : null,
-      subj,
-      citedBy: [...narrativeText.entries()].filter(([, t]) => cites(t, short)).map(([n]) => n),
-      machineOnly: [...machineText.entries()].filter(([, t]) => cites(t, short)).map(([n]) => n),
-    };
   });
+  return raw
+    .split('\x1e')
+    .map((rec) => rec.replace(/^\n+/, ''))
+    .filter((rec) => rec.trim().length > 0)
+    .map((rec) => {
+      const [hash, ct, subj, body = ''] = rec.split('\x7c');
+      const short = hash.slice(0, 7);
+      const m = subj.match(/\((?:round|r)?(\d{3})\)/i);
+      // R432: round identity from the body — but ONLY in DECLARATION form.
+      //
+      // A loose `[Rr]\d{3}` anywhere in the body is not just imprecise, it is
+      // inverted. Measured: `fd5b6f4` and `1d04ffc` both mention R401 while
+      // *referring back* to an earlier round ("…R401 suite both PASS", "The
+      // R401.3 exit-reachability audit resolved…"). Treating a back-reference as
+      // an identity makes a fixup look like the round it patches.
+      //
+      // The distinguishing shape is the one this project actually uses to open a
+      // round's write-up: the body's FIRST line *declares* it — `R431. …`
+      // (e14d274). A back-reference is never in first position. So: anchored to
+      // the start of the body, `R`/round-word required, terminal `.` or `:`.
+      // Bare digits are excluded outright — in commit bodies they are short shas
+      // and byte counts, not rounds.
+      const b = body.match(/^\s*(?:R(\d{3})\s*[.:]|Round\s+(\d{3})\b)/i);
+      return {
+        short,
+        ts: Number(ct) * 1000,
+        rid: m ? String(Number(m[1])) : null,
+        bodyRid: b ? String(Number((b[1] ?? b[2]) as string)) : null,
+        subj,
+        citedBy: [...narrativeText.entries()].filter(([, t]) => cites(t, short)).map(([n]) => n),
+        machineOnly: [...machineText.entries()].filter(([, t]) => cites(t, short)).map(([n]) => n),
+      };
+    });
 }
 
 const WINDOW = commits(80);
@@ -223,6 +247,45 @@ describe('R430 — the record is derived from the act, not assembled beside it',
       }
     }
     expect(backdated).toEqual([]);
+  });
+
+  it('A5 — round identity comes from subject OR body, not subject alone', () => {
+    // ⭐ R432 — the defect that found itself one round later.
+    //
+    // R430 defines a round commit as one whose SUBJECT matches
+    // /\((?:round|r)?(\d{3})\)/i. That is a naming convention I do not
+    // actually follow. e14d274 — R431, shipped 06:09 on 2026-10-10 — is
+    // titled `test(archive): pin the escape listArchived cannot see and the
+    // null that is a throw`. No tag. The round number is in the BODY's first
+    // line: "R431. session_archive.ts is 121 lines…". So the round was, by
+    // this suite's own definition, not a round.
+    //
+    // The consequence is sharper than one missed commit: A2 and A4 range over
+    // ROUNDED, and ROUNDED is derived from the subject alone. Measured over the
+    // same 80-commit window, subject-tagging yields 14 round commits and
+    // subject-or-body yields 25 — so **11 of 25 real round commits (44%) were
+    // outside the subject set of every arm in R430**. A2 could not have failed.
+    //
+    // The body match needs the `R` prefix and a non-alphanumeric boundary.
+    // Without both it is worse than useless: a bare /\d{3}/ against commit
+    // bodies matches every short sha they quote — measured above, bodies
+    // naming "104", "922", "905", "808", "401" are almost entirely shas and
+    // byte counts, not rounds. A looser matcher would have manufactured
+    // dozens of false round identities, which is R427-F1 one level down.
+    const underSubjectTag = ROUNDED.length;
+    const underBodyTag = WINDOW.filter(
+      (c) => c.rid !== null || c.bodyRid !== null
+    ).length;
+    // The window must actually contain body-only rounds, or this arm proves
+    // nothing (R421: a subject set that can shrink makes a green test a lie).
+    expect(underBodyTag).toBeGreaterThan(underSubjectTag);
+
+    const orphanRounds = WINDOW.filter((c) => c.rid === null && c.bodyRid !== null && c.citedBy.length === 0);
+    expect(
+      orphanRounds.map((c) => `${c.short} R${c.bodyRid} ${c.subj}`),
+      'round commits identified ONLY by a body tag, with no narrative write-up —\n' +
+        'these are invisible to A2/A4 because ROUNDED is derived from the subject line'
+    ).toEqual([]);
   });
 
   it('A4 — a round is not half-recorded: doc and plan entry travel together', () => {
