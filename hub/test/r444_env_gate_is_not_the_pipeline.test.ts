@@ -265,12 +265,46 @@ describe('R444 · F2 — otlp_sink.ts is exported, tested, and never wired', () 
 });
 
 describe('R444 · F3 — the variables a user must set are the undocumented ones', () => {
-  it('⭐ WOCLAW_LOG_FORMAT appears in no documentation file', () => {
+  it('⭐ WOCLAW_LOG_FORMAT appears in no USER-FACING documentation file', () => {
     const docsDir = join(TEST_DIR, '..', '..', 'docs');
-    const docs = readdirSync(docsDir)
-      .filter((f) => f.endsWith('.md'))
-      .map((f) => readFileSync(join(docsDir, f), 'utf8'))
-      .join('\n');
+    const files = readdirSync(docsDir).filter((f) => f.endsWith('.md'));
+
+    // R447 — THE SUBJECT SET WAS TWO PLANES AT ONCE.
+    //
+    // F3's claim is about DISCOVERABILITY: "the variables a user must set to get
+    // structured logging are the ones no document mentions". A round report is not
+    // a surface a user reads on their way to configuring the hub, so counting it
+    // silently widened the subject set from *user-facing docs* to *every markdown
+    // file in docs/*.
+    //
+    // Measured cost of that widening, on this repo: R446 shipped
+    // docs/R446-EXPORT-INVENTORY.md, which quotes WOCLAW_LOG_FORMAT verbatim in
+    // its findings — the round report that DISCOVERED the gap is what reddened the
+    // arm that reports the gap. The predicate and its own write-up are in direct
+    // opposition, which is R427's shape one plane up: a subject set whose scope is
+    // set by a property its owner does not control.
+    //
+    // The owner does control this one, so it is derived rather than listed: round
+    // reports are named `R<digits>-*.md`. docs/ holds 31 .md files and exactly one
+    // matches, so this is a narrow, checkable exclusion (pinned below) rather than
+    // a hand list of docs I happen to call internal.
+    const ROUND_REPORT = /^R\d+[-_]/;
+    const userDocs = files.filter((f) => !ROUND_REPORT.test(f));
+
+    // Pin the exclusion so it cannot silently grow into "exclude whatever is
+    // inconvenient": the round-report predicate must select a small, non-zero
+    // set, and it must still select the file that caused this failure.
+    const roundReports = files.filter((f) => ROUND_REPORT.test(f));
+    expect(roundReports).toContain('R446-EXPORT-INVENTORY.md');
+    expect(roundReports.length).toBeGreaterThan(0);
+    expect(roundReports.length).toBeLessThan(userDocs.length);
+    // The docs the claim is really about must still be in the subject set,
+    // otherwise the arm would pass by measuring nothing.
+    for (const required of ['INSTALL.md', 'API.md', 'PUBLISH.md']) {
+      expect(userDocs).toContain(required);
+    }
+
+    const docs = userDocs.map((f) => readFileSync(join(docsDir, f), 'utf8')).join('\n');
     expect(docs).not.toContain('WOCLAW_LOG_FORMAT');
     expect(docs).not.toContain('WOCLAW_OTLP_ENDPOINT');
     expect(docs).not.toContain('WOCLAW_OTLP_HEADERS');

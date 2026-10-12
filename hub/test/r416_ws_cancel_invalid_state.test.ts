@@ -135,6 +135,22 @@ describe('R416: the delegator\'s own WS cancel refuses a terminal state', () => 
     };
   }
 
+  /** Wait until no new frame has arrived for `quietMs` (bounded). R447. */
+  async function settle(quietMs = 150, maxMs = 2000): Promise<void> {
+    let last = -1;
+    let stableSince = Date.now();
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+      await sleep(25);
+      if (delegator.seen.length !== last) {
+        last = delegator.seen.length;
+        stableSince = Date.now();
+      } else if (Date.now() - stableSince >= quietMs) {
+        return;
+      }
+    }
+  }
+
   const get = async (id: string) =>
     (await fetch(`http://127.0.0.1:${restPort}/delegations/${id}`, {
       headers: { Authorization: `Bearer ${CFG.authToken}` },
@@ -222,7 +238,25 @@ describe('R416: the delegator\'s own WS cancel refuses a terminal state', () => 
     // before the guard, the agent gets a `delegate_status` it did not ask for
     // and no error. An agent that treats a status frame as confirmation would
     // believe a finished task was cancelled.
+    //
+    // 🔴 R447 — this arm was ALSO a flake, and its flake was a THIRD frame the
+    // test did not ask for. `delegationIn` requests a delegation to `ghost-agent`,
+    // so handleDelegateRequest takes the not-connected branch at
+    // ws_server.ts:777-781: it sets `rejected` and calls sendDelegationUpdate(id,
+    // fromAgent) — which sends a `delegate_status` to the DELEGATOR, i.e. this
+    // very socket. `cancelAsDelegator` then does `delegator.seen.length = 0` and
+    // re-reads after 200ms. When the fixture's own reject frame arrived late
+    // (it only sleeps 120ms), it landed inside the cancel window and C2 counted
+    // it as cancel traffic: "expected length +0 but got 1".
+    //
+    // Measured: green 3/3 in isolation, RED in the full 132-file run, and RED at
+    // baseline with this round's changes stashed — so it was never caused by the
+    // F3 fix. It is a harness defect, not a product defect, and the fix is to make
+    // the fixture's own traffic disjoint from what the arm measures.
     const id = await delegationIn('done');
+    // Drain until the fixture is quiescent, so the only frames left in the window
+    // are the ones the cancel itself produces.
+    await settle(delegator.seen.length);
     const { errors, updates } = await cancelAsDelegator(id);
     expect(errors).toHaveLength(1);
     expect(updates, 'no status frame may follow a refused cancel').toHaveLength(0);
