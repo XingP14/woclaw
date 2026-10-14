@@ -44,15 +44,30 @@
  *   B  a live token still admits the agent it was minted for (the control for
  *      A: proves the refusal above is not "invites never work")
  *   C  B's invite EXTENDS A's EXPIRED window — A joins post-expiry (C2)
- *   D  the clamp is a MAX: B's invite does NOT shorten A's longer window
- *      (the control for C, pinning the direction of the bug)
+ *   D  the overwrite is UNCONDITIONAL in both directions — a SHORTER second
+ *      invite DOES shorten A's honest window (the control for C, pinning the
+ *      direction of the bug)
+ *      ⚠️ CORRECTED 2026-10-15 (R458): this arm's TITLE previously read "the
+ *      overwrite direction is a MAX — a SHORTER second invite cannot shorten
+ *      A", which is the OPPOSITE of what the assertion below measures
+ *      (`toBeLessThan(aExpiry)`) and of what the arm's own body comment says.
+ *      The assertion was always right; the title was wrong. A MAX clamp is
+ *      exactly the mutation that kills this arm (matrix M3b).
+ *      See R458 matrix: M3b (Math.max clamp) KILLS arm D.
  *   E  invitedAgents correctly tracks BOTH invitees (so the ONLY broken field
  *      is the credential, not the membership — read-before-asserting, #192)
  *
  * Mutation matrix (see M-arms in the commit body):
  *   M1 delete `topic.inviteToken = <new token>`          -> A, B, C, D fail
  *   M2 delete the `topic.inviteExpiresAt = ...` assignment -> C fails
- *   M3 clamp expiry with Math.min instead of overwrite     -> D fails
+ *   M3 clamp expiry with Math.max instead of overwrite     -> D fails
+ *                                                            ✅ CONFIRMED by
+ *                                                            R458 matrix M3b
+ *   M3-WAS-MIN: the inherited header claimed Math.min      -> ❌ WRONG, R458
+ *                                                            measured M3 kills
+ *                                                            arm C (2 R457 arms)
+ *                                                            and a neighbour,
+ *                                                            NOT arm D.
  *   M4 drop `topic.invitedAgents.add(agentId)`             -> C fails (A needs
  *                                                            the membership
  *                                                            to get past the
@@ -170,7 +185,7 @@ describe('R457 — private-topic invite credential is topic-wide, not per-invite
       .toThrow('Not invited to this private topic');
   });
 
-  it('arm D: the overwrite direction is a MAX — a SHORTER second invite cannot shorten A', () => {
+  it('arm D: the overwrite is UNCONDITIONAL — a SHORTER second invite DOES shorten A', () => {
     tm.createPrivateTopic('p');
     tm.inviteToTopic('p', 'A', 10 * MIN);      // A's window: 10 min
     const aExpiry = tm.getTopic('p')!.inviteExpiresAt!;
