@@ -264,8 +264,9 @@ function readOtlpExtraHeaders(): Record<string, string> {
  *      (Round 59 §2.1: spec MUST NOT retry).
  *    - Non-2xx HTTP status → return `{sent:0, rejected:0, error: new Error(status + text)}`.
  *      Caller may choose to retry; the sink itself does NOT retry.
- *    - Network failure (fetch throws) → return `{sent:0, rejected:0, error}`
- *      where error is the original error.
+ *   - Network failure (fetch throws) → return `{sent:0, rejected:0, error}`
+ *     where error is the original error. Nothing was POSTed, so nothing
+ *     counts as sent — same arm as non-2xx.
  *  Always returns; never throws. */
 export async function sendOtlpLogsOnce(
   records: OtlpLogRecord[],
@@ -283,7 +284,7 @@ export async function sendOtlpLogsOnce(
   try {
     resp = await fetch(ep, { method: 'POST', headers, body: JSON.stringify(body) });
   } catch (e) {
-    return { sent: records.length, rejected: 0, error: e instanceof Error ? e : new Error(String(e)) };
+    return { sent: 0, rejected: 0, error: e instanceof Error ? e : new Error(String(e)) };
   }
   if (resp.status < 200 || resp.status >= 300) {
     const text = await resp.text().catch(() => '');

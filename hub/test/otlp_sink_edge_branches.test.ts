@@ -168,7 +168,7 @@ describe('otlp_sink: WOCLAW_OTLP_HEADERS parsing', () => {
 describe('otlp_sink: sendOtlpLogsOnce transport edges', () => {
   const one = () => [buildOtlpLogRecord({ ts: 0, level: 'info', event: 'a' })];
 
-  it('returns the original Error when fetch rejects, counting the batch as sent', async () => {
+  it('returns the original Error when fetch rejects, counting nothing as sent', async () => {
     process.env.WOCLAW_OTLP_ENDPOINT = ENDPOINT;
     const boom = new Error('ECONNREFUSED 127.0.0.1:4318');
     vi.stubGlobal(
@@ -178,7 +178,7 @@ describe('otlp_sink: sendOtlpLogsOnce transport edges', () => {
       })
     );
     const out = await sendOtlpLogsOnce(one(), { name: 'woclaw-hub' });
-    expect(out.sent).toBe(1);
+    expect(out.sent).toBe(0);
     expect(out.rejected).toBe(0);
     expect(out.error).toBe(boom);
     expect(getDroppedRecordsTotal()).toBe(0);
