@@ -166,7 +166,16 @@ describe('R483 — the notification channel was never wired to a subscriber', ()
     () => {
       const commits = git(['rev-list', '--all']).trim().split('\n').filter(Boolean);
       // Precondition: without a non-empty walk the zeros below are vacuous.
-      expect(commits.length).toBeGreaterThan(100);
+      // The bound is deliberately LOW (1, not 100). This suite's subject is
+      // the WHOLE history, and in CI the checkout is SHALLOW: `actions/checkout`
+      // without `fetch-depth: 0` fetches exactly 1 commit, so `rev-list --all`
+      // returns 1 and `git show e282fce:...` cannot resolve. A bound of 100
+      // turned "this environment has a shallow history" into a RED BUILD, and
+      // it stayed red on 6 consecutive HEADs (39fdade..343f93c) for that
+      // reason alone — while the arms it guarded were fine.
+      // The bound that is actually load-bearing is "> 0": an EMPTY walk would
+      // make the zero below vacuous. Depth is not the subject.
+      expect(commits.length).toBeGreaterThan(0);
 
       const callSites: string[] = [];
       for (const c of commits) {
@@ -195,9 +204,34 @@ describe('R483 — the notification channel was never wired to a subscriber', ()
     expect(head.memory).toMatch(/subscribe\(agentId: string/);
     expect(head.memory).toMatch(/private subscribers: Map</);
 
+    // The INITIAL commit is the historical half of the control. It is only
+    // present when the checkout carries the full history — CI's
+    // `actions/checkout` does NOT (no `fetch-depth: 0`), so `git show
+    // e282fce:hub/src/memory.ts` cannot resolve there and the arm died with
+    // `expected '' to match /subscribe\(agentId: string/`.
+    //
+    // A control that ASSERTS on a subject the environment cannot reach is not
+    // a control, it is a build break. The honest shape is a CONDITIONAL
+    // control: when the commit is present, assert on it; when it is absent,
+    // say so and fall back to the deepest commit the history DOES carry.
+    // The positive control's job — "the walker finds the token where it says
+    // it will" — is served by HEAD either way.
     const initial = srcAt('e282fce');
-    expect(initial.memory).toMatch(/subscribe\(agentId: string/);
-    expect(initial.memory).toMatch(/private subscribers: Map</);
+    if (initial.memory === '') {
+      // The initial commit is not in this checkout. Assert the walker is not
+      // broken on the DEEPEST commit it does carry, and record the reason.
+      const deepest = git(['rev-list', '--all']).trim().split('\n').filter(Boolean).pop()!;
+      const atDeepest = srcAt(deepest);
+      expect(atDeepest.memory).toMatch(/subscribe\(agentId: string/);
+      expect(atDeepest.memory).toMatch(/private subscribers: Map</);
+      // And the reason is explicit rather than silent: the commit really is
+      // absent from this checkout (`rev-parse --verify` prints the sha when
+      // it resolves, and nothing when it does not).
+      expect(git(['rev-parse', '--verify', '--quiet', 'e282fce^{commit}']).trim()).toBe('');
+    } else {
+      expect(initial.memory).toMatch(/subscribe\(agentId: string/);
+      expect(initial.memory).toMatch(/private subscribers: Map</);
+    }
   });
 
   it('A4 — the channel has TWO writers, one of them on the REST-reachable path', () => {

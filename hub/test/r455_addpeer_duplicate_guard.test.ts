@@ -313,11 +313,13 @@ describe('R455 — addPeer duplicate guard consults the CONNECTED map, not the C
     m.stop();
   });
 
-  it('C3 reports the healthy peer as DISCONNECTED in the configured list', async () => {
+  it('C3 reports the TERMINATED peer as DISCONNECTED in the configured list', async () => {
     const srv = await mkPeerServer(); servers.push(srv);
     const m = mkManager();
-    m.addPeer(mkPeer({ wsUrl: srv.url }));
-    m.addPeer(mkPeer({ wsUrl: srv.url }));
+    // The two dials carry DISTINCT tokens so the server can attribute each
+    // accepted socket to a peer (the dial url carries ?hubId=..&token=..).
+    m.addPeer(mkPeer({ wsUrl: srv.url, federationToken: 'tok-1' }));
+    m.addPeer(mkPeer({ wsUrl: srv.url, federationToken: 'tok-2' }));
     const cfg = (m as unknown as { config: Config }).config;
     // Poll the thing this arm ASSERTS. Polling peers.size===1 instead was a
     // race: the map is populated by the first 'open' while `status` is written
@@ -330,12 +332,64 @@ describe('R455 — addPeer duplicate guard consults the CONNECTED map, not the C
     expect(cfg.federationPeers![0].status).toBe('connected');
 
     const winner = priv(m).peers.get('peerA')!;
-    srv.sockets.find(s => s !== winner)!.terminate();
-    await until(() => cfg.federationPeers![0].status === 'disconnected');
+
+    // ── DETERMINISTIC SOCKET ATTRIBUTION ──────────────────────────────────
+    // The previous version terminated `srv.sockets.find(s => s !== winner)`.
+    // `winner` is a CLIENT-side socket and `srv.sockets` are SERVER-side
+    // sockets, so `s !== winner` is ALWAYS true and `find` always returned
+    // `srv.sockets[0]` — the first connection ACCEPTED, which is not
+    // necessarily the first connection DIALED. `peers.set` runs in each
+    // socket's 'open' handler, so the LAST one to open is the map holder, and
+    // that order varies. Under CI load the two dials were accepted in the
+    // other order, the terminated socket was then the wrong peer's, and its
+    // 'close' handler wrote 'disconnected' onto the INCOMING peer object
+    // while `config[0]` — the MERGED entry, which is the FIRST dial's
+    // object — kept reading 'connected'. The arm then failed with
+    //   expected 'connected' to be 'disconnected'
+    // on a run whose product behaviour was identical to the run that passed.
+    // The arm was ORDER-DEPENDENT, and CI found the order.
+    //
+    // A client socket and its server-side counterpart share one TCP
+    // connection: client.localPort === server.remotePort. Match on that.
+    const tcp = (s: WebSocket) =>
+      (s as unknown as { _socket?: { localPort: number; remotePort: number } })._socket;
+    const holderLocalPort = tcp(winner)?.localPort;
+    const holderSocket = srv.sockets.find(s => tcp(s)?.remotePort === holderLocalPort);
+    expect(holderSocket).toBeDefined();
+    // The LOSER is the peer whose socket is NOT the map holder.
+    const loserSocket = srv.sockets.find(s => tcp(s)?.remotePort !== holderLocalPort)!;
+    expect(loserSocket).toBeDefined();
+    // ...and the peer that owns the loser, via the token in its dial url.
+    const loserIndex = srv.sockets.indexOf(loserSocket);
+    const loserIsFirstDial = (srv.wireUrls[loserIndex] ?? '').includes('tok-1');
+
+    loserSocket.terminate();
+    await until(() => priv(m).reconnectTimeouts.size === 1);
 
     expect(winner.readyState).toBe(WebSocket.OPEN);
-    expect(cfg.federationPeers![0].status).toBe('disconnected');
-    expect(m.getPeersStatus().find(p => p.hubId === 'peerA')?.status).toBe('disconnected');
+    // The CONFIGURED entry of the terminated peer reads 'disconnected'; the
+    // other peer's entry does not. WHICH entry that is depends on which
+    // socket the map was holding — so the arm asserts the RELATION, not a
+    // hardcoded index.
+    //
+    // `config[0]` is the entry addPeer MERGED into, and the merge PRESERVES
+    // the existing entry's identity — so config[0] is still the FIRST dial's
+    // object, and only the first dial's socket writes its status onto it.
+    if (loserIsFirstDial) {
+      expect(cfg.federationPeers![0].status).toBe('disconnected');
+    } else {
+      expect(cfg.federationPeers![0].status).toBe('connected');
+    }
+    // The report the hub hands out agrees with the configured entry it reads.
+    expect(m.getPeersStatus().find(p => p.hubId === 'peerA')?.status).toBe(
+      cfg.federationPeers![0].status,
+    );
+    // And the CORE of C3 — the part that does not depend on the order — holds:
+    // the losing socket's close handler untracked the live winner and armed a
+    // reconnect at a perfectly healthy peer.
+    expect(priv(m).peers.has('peerA')).toBe(false);
+    expect(priv(m).pingIntervals.size).toBe(0);
+    expect(priv(m).reconnectTimeouts.size).toBe(1);
     clearTimeout([...priv(m).reconnectTimeouts.values()][0] as NodeJS.Timeout);
     priv(m).reconnectTimeouts.clear();
     m.stop();

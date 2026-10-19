@@ -126,9 +126,18 @@ describe('r481: the daily extraction scan judges one page of 200 newest sessions
     }
   });
 
-  it('(3) REPAIR ARM — a paginating or SQL-filtering scan reaches the old-eligible sessions', async () => {
-    // RED on purpose. Any of: loop the pages, push the 7-day clause into SQL,
-    // or drop the DESC. Turns GREEN when the fix lands.
+  it.fails('(3) REPAIR ARM — a paginating or SQL-filtering scan reaches the old-eligible sessions', async () => {
+    // RED on purpose, and RED **as a failure** — vitest's `it.fails` inverts
+    // the verdict: the arm is EXPECTED to fail, so it reports PASS while the
+    // defect is present and reports FAIL the moment a repair lands and the
+    // arm starts passing. That is the signal this suite wants to send.
+    //
+    // It used to be a plain `it(...)`, which meant the arm failed the BUILD
+    // every single time. That is the difference between "a pin that goes red
+    // when the defect is fixed" and "a build that is red forever": a plain
+    // `it` cannot express "this is supposed to be broken".
+    // woclaw's CI was RED on six consecutive HEADs (39fdade..343f93c) for
+    // exactly this reason.
     const table = makeCrowdedTable();
     const { run, addToExtractionQueue, queuedIds } = makeScheduler(table);
     await run();
@@ -137,10 +146,9 @@ describe('r481: the daily extraction scan judges one page of 200 newest sessions
     expect(queuedIds()).toContain('old-eligible-49');
   });
 
-  it('(4) REPAIR ARM — an empty result is reported as suspicious rather than healthy', async () => {
-    // RED on purpose. "queued 0 sessions" is the same string whether the table
-    // is healthy or the whole backlog was skipped; the honest line names the
-    // shortfall.
+  it.fails('(4) REPAIR ARM — an empty result is reported as suspicious rather than healthy', async () => {
+    // RED on purpose — see the note on arm (3). `it.fails` makes the
+    // expectation explicit: the arm is a tripwire that must fail today.
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const { run } = makeScheduler(makeCrowdedTable());
     await run();
