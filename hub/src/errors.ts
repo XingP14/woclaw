@@ -11,9 +11,50 @@
 // reads through a typed helper, we get the same ergonomic string output
 // while future-proofing the codebase for a strict-mode upgrade.
 
+/**
+ * Realm-safe "is this an error object" test.
+ *
+ * `instanceof Error` is realm-sensitive. A value whose prototype chain was
+ * built against a DIFFERENT realm's `Error` -- or against an error subclass
+ * whose base was captured in another realm -- fails the check even though it
+ * is an error in every practical sense.
+ *
+ * The hub case that matters: `better-sqlite3` is a NATIVE addon. It calls
+ * `addon.setErrorConstructor(SqliteError)` at module load, and
+ * `SqliteError.prototype` is chained to whichever `Error.prototype` was live
+ * in the realm that loaded it LAST. Under a test runner that gives every test
+ * FILE its own module registry, the prototype the addon captured depends on
+ * FILE ORDER, so the same database error is `instanceof Error` in one ordering
+ * and not in another. A value crossing a `vm` context boundary (worker
+ * threads, embedded runtimes) has the same property.
+ *
+ * The walk below is realm-agnostic: it looks for a prototype whose
+ * constructor is named `*Error`. It deliberately does NOT duck-type on the
+ * presence of a `message` property, because a plain object like
+ * `{ message: 'x', code: 'Y' }` is not an error and the JSON fallback for
+ * plain objects is part of the helper's published contract.
+ */
+function isErrorLike(e: unknown): boolean {
+  if (e instanceof Error) return true;
+  if (e === null || typeof e !== 'object') return false;
+  let proto: object | null = Object.getPrototypeOf(e as object);
+  while (proto !== null) {
+    const ctor = (proto as { constructor?: unknown }).constructor;
+    if (typeof ctor === 'function') {
+      const name = (ctor as { name?: unknown }).name;
+      if (typeof name === 'string' && name.endsWith('Error')) return true;
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return false;
+}
+
 /** Safely extract a human-readable message from an unknown caught value. */
 export function errorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
+  if (isErrorLike(e)) {
+    const msg = (e as { message?: unknown }).message;
+    if (typeof msg === 'string') return msg;
+  }
   if (typeof e === 'string') return e;
   if (e === undefined) return '';
   try {
@@ -25,7 +66,13 @@ export function errorMessage(e: unknown): string {
 
 /** Like errorMessage, but returns the full Error.toString() when available. */
 export function errorToString(e: unknown): string {
-  if (e instanceof Error) return e.toString();
+  if (isErrorLike(e)) {
+    const str = (e as { toString?: unknown }).toString;
+    if (typeof str === 'function') {
+      const out = (e as { toString(): unknown }).toString();
+      if (typeof out === 'string') return out;
+    }
+  }
   return errorMessage(e);
 }
 
