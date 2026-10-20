@@ -1,0 +1,78 @@
+/**
+ * R492 — cross-repo differential probe: the same helper name living in two
+ * repositories. Execute BOTH implementations side by side over a battery of
+ * inputs and report any behavioural divergence.
+ */
+import { errorMessage as woclawErrorMessage, errorToString as woclawErrorToString } from '../hub/src/errors';
+import {
+  errorMessage as lbErrorMessage,
+  errorToString as lbErrorToString,
+  errorName as lbErrorName,
+  isAbortOrTimeout as lbIsAbortOrTimeout,
+} from '../../llm-benchmark/src/errors';
+
+type Case = { name: string; value: unknown };
+
+const cases: Case[] = [
+  { name: 'plain Error', value: new Error('boom') },
+  { name: 'TypeError', value: new TypeError('bad type') },
+  { name: 'Error with empty message', value: new Error('') },
+  { name: 'Error with non-string message', value: Object.assign(new Error('x'), { message: 42 }) },
+  { name: 'plain object with message+code', value: { message: 'x', code: 'Y' } },
+  { name: 'plain object without message', value: { code: 'Y' } },
+  { name: 'string throw', value: 'plain string' },
+  { name: 'number throw', value: 42 },
+  { name: 'null', value: null },
+  { name: 'undefined', value: undefined },
+  { name: 'boolean', value: true },
+  { name: 'array', value: [1, 2, 3] },
+  { name: 'nested object', value: { a: { b: { c: 1 } } } },
+  { name: 'circular object', value: (() => { const o: any = { a: 1 }; o.self = o; return o; })() },
+  { name: 'function', value: function boom() {} },
+  { name: 'symbol', value: Symbol('sym') },
+  { name: 'bigint', value: BigInt(9) },
+  { name: 'DOMException-ish', value: Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }) },
+  { name: 'error subclass', value: class MyErr extends Error { constructor(m: string) { super(m); this.name = 'MyErr'; } } },
+];
+
+describe('R492 cross-repo differential: errorMessage / errorToString', () => {
+  it('the two repos produce IDENTICAL output for every input (no drift today)', () => {
+    const divergences: string[] = [];
+    for (const c of cases) {
+      const w = woclawErrorMessage(c.value);
+      const l = lbErrorMessage(c.value);
+      if (w !== l) divergences.push(`errorMessage[${c.name}]: woclaw=${JSON.stringify(w)} lb=${JSON.stringify(l)}`);
+      const wt = woclawErrorToString(c.value);
+      const lt = lbErrorToString(c.value);
+      if (wt !== lt) divergences.push(`errorToString[${c.name}]: woclaw=${JSON.stringify(wt)} lb=${JSON.stringify(lt)}`);
+    }
+    // eslint-disable-next-line no-console
+    console.log('R492_DIVERGENCES=' + divergences.length + ' :: ' + divergences.join(' | '));
+    expect(divergences).toEqual([]);
+  });
+
+  it('POSITIVE CONTROL: the probe can see a difference when one is introduced', () => {
+    // A deliberately different implementation must be detectable.
+    const drifted = (e: unknown) => (typeof e === 'object' && e !== null ? 'DRIFTED' : String(e));
+    let seen = 0;
+    for (const c of cases) {
+      if (drifted(c.value) !== lbErrorMessage(c.value)) seen++;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
+  it('the documented contract holds: plain object -> JSON, string -> string, undefined -> empty', () => {
+    expect(lbErrorMessage({ message: 'x', code: 'Y' })).toBe('{"message":"x","code":"Y"}');
+    expect(woclawErrorMessage({ message: 'x', code: 'Y' })).toBe('{"message":"x","code":"Y"}');
+    expect(lbErrorMessage('plain string')).toBe('plain string');
+    expect(lbErrorMessage(undefined)).toBe('');
+    expect(lbErrorMessage(null)).toBe('null');
+  });
+
+  it('llm-benchmark-only helpers exist and woclaw has no counterpart', () => {
+    expect(lbErrorName(new Error('x'))).toBe('Error');
+    expect(lbIsAbortOrTimeout(Object.assign(new Error('aborted'), { name: 'AbortError' }))).toBe(true);
+    expect(lbIsAbortOrTimeout(new Error('request timeout'))).toBe(true);
+    expect(lbIsAbortOrTimeout(new Error('ordinary failure'))).toBe(false);
+  });
+});
