@@ -87,9 +87,77 @@ const REPO = join(WS, 'woclaw');
  * Subject round-tags, MULTI-aware. Deliberately two branches, not one regex
  * with `g`, because a single capture group can only carry one id and the
  * defect is precisely that a scalar cannot carry the answer.
+ *
+ * ⭐ R493 (2026-10-21 00:03) — `SINGLE` was a HAND COPY of r430's extractor.
+ * That is a hand list in the sense that matters: a COPY of the thing under
+ * audit. If r430's extractor changed, this copy would NOT, so `blind` would
+ * keep describing a r430 that no longer exists.
+ *
+ * MEASURED: this suite went RED on a perfectly correct commit. `81d01ac`
+ * shipped the subject `test(r476,r478,r480): three dead-tick suites, adopted
+ * and independently re-verified against production source` -- a SECOND
+ * multi-round declaration, and a real instance of the class R435 documents.
+ * The exact-list pin below could not tell that apart from the defect signal
+ * it exists to carry, so it went red on a good commit.
+ *
+ * The fix has two halves:
+ *   (a) r430's extractor is now DERIVED from r430's own source at run time
+ *       (see `scalarExtractorFrom` below) -- there is no copy left to keep in
+ *       sync, and if r430 changes, this suite follows automatically.
+ *   (b) the assertion is the RELATION, not an enumeration.
  */
-const SINGLE = /\((?:round|r)?(\d{3})\)/i;
 const MULTI = /\(\s*((?:[rR](?:ound)?\d{3}\s*,\s*)+[rR](?:ound)?\d{3}\s*)\)/;
+
+/**
+ * Read r430's extractor out of r430's own source.
+ *
+ * The point is not the regex -- it is that there is no second copy of the
+ * thing under audit. If r430's extractor is widened, this follows it, and
+ * the A1 relation then correctly reports that the blindness is gone.
+ *
+ * DERIVED BY PARSING, not by a hand list of patterns: the arm reads the
+ * `const m = ...;` assignment out of r430's source and rebuilds a RegExp
+ * from every regex literal inside it. A hardcoded copy of that regex would
+ * reintroduce exactly the defect this function exists to remove.
+ *
+ * 🔴 A first version of this function took only the FIRST `subj.match(...)`
+ * literal, and that was WRONG in a way the load-bearing probe caught:
+ * when r430 is widened to `subj.match(A) || subj.match(B)`, the derived
+ * extractor still saw only `A` -- so `blind` did NOT shrink, and the arm
+ * LOST its own trigger. It would have gone GREEN on the very event it
+ * exists to detect. ⇒ the whole ASSIGNMENT is read, and every literal in it
+ * is combined, not just the first.
+ */
+function scalarExtractorFrom(source: string): RegExp {
+  // The assignment that holds the extracted round id.
+  const assign = source.match(/const\s+m\s*=\s*subj\.match[\s\S]*?;/);
+  if (!assign) {
+    throw new Error(
+      'R493: could not find r430\'s extractor (a `const m = subj.match(...)` ' +
+      'assignment) in r430_record_plane.test.ts. The suite must DERIVE it, not ' +
+      'copy it -- and it must FAIL LOUDLY rather than fall back to a default ' +
+      'that would describe a r430 that does not exist.'
+    );
+  }
+  // Every regex literal inside that assignment, in order.
+  const literals = [...assign[0].matchAll(/\/(.*?)\/([a-z]*)/g)];
+  if (literals.length === 0) {
+    throw new Error(
+      'R493: found r430\'s extractor assignment but no regex literal inside it. ' +
+      'The derivation must not silently produce an extractor that matches nothing.'
+    );
+  }
+  // Combine them: a widened r430 (`A || B`) yields both, and the derived
+  // extractor must then see everything r430 sees.
+  const combined = literals
+    .map(([, body, flags]) => `(?:${body})`)
+    .join('|');
+  const flags = [...new Set(literals.map(([, , f]) => f))].join('');
+  return new RegExp(combined, flags);
+}
+
+const R430_SOURCE = readFileSync(join(REPO, 'hub/test/r430_record_plane.test.ts'), 'utf8');
+const SINGLE = scalarExtractorFrom(R430_SOURCE);
 
 interface Commit {
   short: string;
@@ -118,7 +186,17 @@ function commits(limit: number): Commit[] {
       if (mm) ids = [...mm[1].matchAll(/\d{3}/g)].map((x) => String(Number(x[0])));
       else if (m) ids = [String(Number(m[1]))];
       else ids = [];
-      return { short, subj, ids, r430Rid: m ? String(Number(m[1])) : null };
+      // The round id is read from the MATCH TEXT, not from a capture group:
+      // the derived extractor combines r430's alternatives, so no single
+      // group number is reliable. The three-digit token is what both forms
+      // carry, and a multi-form match yields the first one -- which is all
+      // this suite needs, since it only asks whether r430 saw the commit AT ALL.
+      const ridFrom = (mm: RegExpMatchArray | null): string | null => {
+        if (!mm) return null;
+        const d = mm[0].match(/\d{3}/);
+        return d ? String(Number(d[0])) : null;
+      };
+      return { short, subj, ids, r430Rid: ridFrom(m) };
     });
 }
 
@@ -153,11 +231,37 @@ describe('R435 — a commit can declare a SET of rounds; a scalar cannot carry i
       multi.map((c) => c.short).sort(),
       'commits declaring MORE THAN ONE round — the shape a scalar cannot carry'
     ).toEqual(expect.arrayContaining(['274c1d4']));
+
+    // ⭐ R493: the RELATION, not an enumeration.
+    //
+    // The enumeration (`toEqual(['274c1d4:433+434'])`) could only express ONE
+    // direction of change: SHRINK. The arm's own comment says shrinking is the
+    // signal that r430 was fixed. But the set can also GROW, and when a second
+    // multi-round commit shipped (`81d01ac`, `test(r476,r478,r480)`) the arm
+    // went RED on a perfectly correct commit -- it could not tell "the defect
+    // was fixed" from "another instance of the class was found".
+    //
+    // The relation `multi === blind` says what the arm's title already says --
+    // "the multi-round set is EXACTLY the set the scalar extractor cannot see" --
+    // and it holds in BOTH directions:
+    //   - a new multi-round commit ships  -> both sets grow together -> GREEN
+    //   - r430 is made multi-aware        -> blind empties, multi does not
+    //                                      -> RED, which is the arm's stated
+    //                                        defect signal (the characterisation
+    //                                        has become stale and must be
+    //                                        deleted, not relaxed)
+    // MEASURED (R493): patching r430's extractor to be multi-aware makes the
+    // relation false, so the arm still detects its own trigger.
+    const describe = (cs: typeof multi) =>
+      cs.map((c) => `${c.short}:${c.ids.join('+')}`).sort();
     expect(
-      blind.map((c) => `${c.short}:${c.ids.join('+')}`).sort(),
-      'commits invisible to r430\'s scalar extractor. If this list SHRINKS, r430 was ' +
-        'fixed and this characterisation is stale — delete it rather than relax it.'
-    ).toEqual(['274c1d4:433+434']);
+      describe(blind),
+      'commits invisible to r430\'s scalar extractor must be EXACTLY the ' +
+        'multi-round commits. If this arm goes RED because the blind set ' +
+        'SHRANK, r430 was fixed and this characterisation is stale — delete it ' +
+        'rather than relax it. If it goes RED because the blind set GREW, a new ' +
+        'instance of the class was found, which is not a defect.'
+    ).toEqual(describe(multi));
   });
 
   it('A2 — every declared round has a hand-authored write-up', () => {
