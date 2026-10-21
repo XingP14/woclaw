@@ -228,7 +228,16 @@ describe('R496 — the graph is a copy of the memory, and the copy does not surv
   // can see it.
   it('P1 after a REAL hub restart the SQL store still holds the memory and the graph store is empty', async () => {
     const liveDir = mkdtempSync(join(tmpdir(), 'r496-live-'));
-    const port = 19100 + (process.pid % 300);
+    // PORT RANGE. This suite spawns REAL hub processes, and vitest runs test
+    // FILES IN PARALLEL. The other real-boot suites already own fixed ranges:
+    //   r487  19000 + (seq % 800)   -> 19000..19799
+    //   r488  19500 + (seq % 400)   -> 19500..19899  (and 19900..19989)
+    // My first draft used `19100 + (pid % 300)` = 19100..19399, which is
+    // INSIDE r487's range — and r487's arm asserts its boot output contains
+    // no EADDRINUSE. So my suite turned r487's arm red for a reason that had
+    // nothing to do with r487 (M496-3d: pick a range nobody owns, and check
+    // the neighbours' ranges before picking one).
+    const port = 21000 + (process.pid % 400);
 
     // ── boot 1: write through the real REST API ──
     // NOTE: bootReal() takes the WS port; the REST server binds port+1.
