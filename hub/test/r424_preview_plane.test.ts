@@ -71,6 +71,30 @@ function prodFiles(): string[] {
   return readdirSync(SRC).filter((f) => f.endsWith('.ts'));
 }
 
+/**
+ * Strip block + line comments so a census never reads PROSE as code
+ * (R460-3 discipline, shared with r475 / r476 / r491).
+ *
+ * R498b is what forced this change, and the reason is the shape of the
+ * instrument, not the shape of the finding. The census below asks "does the
+ * PREVIEW-PLANE vocabulary appear in production source?", and it counted
+ * every occurrence of the bare word `shadow` -- including the ones inside a
+ * COMMENT. R498b's security fix in ui_static.ts documents that
+ * `/etc/shadow` was being served; the word `shadow` in that prose is a
+ * description of the ATTACK, not a preview-plane feature, and its presence
+ * made this suite go red on a correct repair.
+ *
+ * A census that reads prose is measuring the wrong subject: four sibling
+ * suites (r475 / r476 / r491 / r488) already strip comments for exactly this
+ * reason, and a vocabulary census that counted their comments too would have
+ * been red on them as well. The strip step is not a loosening -- the census
+ * still counts every occurrence in CODE, and the control below is unaffected
+ * (it reads a token that lives in code, not in a comment).
+ */
+function stripComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+}
+
 describe('R424 control: the audit instrument is alive', () => {
   it('finds the files it claims to audit', () => {
     const files = prodFiles();
@@ -152,7 +176,8 @@ describe('R424 the preview plane in WoClaw production code', () => {
     for (const [name, rx] of Object.entries(families)) {
       let total = 0;
       for (const f of prodFiles()) {
-        total += (readFileSync(join(SRC, f), 'utf8').match(rx) ?? []).length;
+        const code = stripComments(readFileSync(join(SRC, f), 'utf8'));
+        total += (code.match(rx) ?? []).length;
       }
       if (total === 0) zero.push(name);
     }

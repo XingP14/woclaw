@@ -35,7 +35,7 @@
 // port, the error listener, the signal handlers, and the uiEnabled flag.
 
 import { readFileSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { join, extname, resolve, sep } from 'path';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 /** Extension -> Content-Type for the Web UI static server. */
@@ -56,9 +56,36 @@ export const UI_DEFAULT_CONTENT_TYPE = 'text/plain';
  * listener is bound. The two calls it makes on `res` are writeHead and end.
  */
 export function createUiRequestHandler(publicDir: string): (req: IncomingMessage, res: ServerResponse) => void {
+  // R498b 安全修复: the resolved public root. The request path is joined onto
+  // it, so the join has to be CONFINED to it.
+  const publicRoot = resolve(publicDir);
+  const indexPath = join(publicRoot, 'index.html');
   return (req, res) => {
-    let filePath = join(publicDir, req.url === '/' ? 'index.html' : req.url!.split('?')[0]);
-    if (!existsSync(filePath)) filePath = join(publicDir, 'index.html');
+    // R498b: `join` NORMALISES `..` away, so a request path can carry the
+    // joined path OUT of publicDir entirely, and the old code then read
+    // whatever file that resolved to -- an UNAUTHENTICATED ARBITRARY FILE
+    // READ (measured: /etc/shadow was served, root's password hashes and
+    // all). The fix is the same shape as llm-benchmark's R497 repair:
+    // decode, strip the leading slashes, resolve against the root, and then
+    // assert the RESOLVED path is still inside the root.
+    //
+    // The confinement is decided by the RESOLVED path, not by the spelling of
+    // the request: a textual `..` that resolves INSIDE publicDir is still
+    // served.
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(req.url === '/' ? 'index.html' : req.url!.split('?')[0]);
+    } catch {
+      decoded = 'index.html';
+    }
+    const relative = decoded.replace(/^\/+/, '');
+    const target = resolve(publicRoot, relative);
+    const isInside = target === publicRoot || target.startsWith(publicRoot + sep);
+    // A miss falls back to index.html (SPA behaviour, unchanged). The
+    // fallback target is inside the root by construction, so it needs no
+    // separate check.
+    let filePath = isInside ? target : indexPath;
+    if (!existsSync(filePath)) filePath = indexPath;
     const ext = extname(filePath);
     res.writeHead(200, { 'Content-Type': UI_MIME_TYPES[ext] || UI_DEFAULT_CONTENT_TYPE });
     res.end(readFileSync(filePath));
