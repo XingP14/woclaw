@@ -34,7 +34,7 @@
 // Bodies unchanged. index.ts keeps the `existsSync(publicDir)` gate, the
 // port, the error listener, the signal handlers, and the uiEnabled flag.
 
-import { readFileSync, existsSync, realpathSync } from 'fs';
+import { readFileSync, existsSync, realpathSync, statSync } from 'fs';
 import { join, extname, resolve, sep } from 'path';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -130,8 +130,20 @@ export function createUiRequestHandler(publicDir: string): (req: IncomingMessage
     // A miss falls back to index.html (SPA behaviour, unchanged). The
     // fallback target is inside the root by construction, so it needs no
     // separate check.
+    // R498d 安全修复: a DIRECTORY is a valid `existsSync` hit, so a directory
+    // target used to survive to `readFileSync`, which throws EISDIR. The
+    // throw happens INSIDE the http request handler, and src/index.ts
+    // registers NO `uncaughtException` handler -- so one anonymous
+    // `GET /<dir>` took the WHOLE hub process down (measured in a child
+    // process with the hub's own error configuration: the request answered
+    // nothing, every subsequent request was dead, and the process exited
+    // with EISDIR). The confinement fix above does not help here: the
+    // directory is legitimately INSIDE the root.
+    //
+    // So the served target must be a FILE, not merely an existing path. A
+    // directory is a miss -> the SPA fallback, exactly like a missing file.
     let filePath = realTarget ?? indexPath;
-    if (!existsSync(filePath)) filePath = indexPath;
+    if (!existsSync(filePath) || !statSync(filePath).isFile()) filePath = indexPath;
     const ext = extname(filePath);
     res.writeHead(200, { 'Content-Type': UI_MIME_TYPES[ext] || UI_DEFAULT_CONTENT_TYPE });
     res.end(readFileSync(filePath));
