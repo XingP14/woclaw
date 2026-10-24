@@ -34,7 +34,7 @@
 // Bodies unchanged. index.ts keeps the `existsSync(publicDir)` gate, the
 // port, the error listener, the signal handlers, and the uiEnabled flag.
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, realpathSync } from 'fs';
 import { join, extname, resolve, sep } from 'path';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -58,8 +58,48 @@ export const UI_DEFAULT_CONTENT_TYPE = 'text/plain';
 export function createUiRequestHandler(publicDir: string): (req: IncomingMessage, res: ServerResponse) => void {
   // R498b 安全修复: the resolved public root. The request path is joined onto
   // it, so the join has to be CONFINED to it.
+  //
+  // R498c 安全修复: `resolve` NORMALISES `..` but does NOT resolve SYMLINKS.
+  // A symlink that lives INSIDE publicDir (an attacker-planted one, or an
+  // operator's convenience link) therefore passes the textual containment
+  // check and still points outside the root -- measured: with
+  // `publicDir/escape -> /etc`, `GET /escape/passwd` was answered 200 with
+  // the real /etc/shadow (root's password hashes). The confinement must be
+  // decided on the REAL path of the file that will actually be opened, so the
+  // root and the candidate are both resolved with `realpathSync` and compared
+  // as real paths. `realpathSync` also normalises every intermediate symlink,
+  // so a symlinked SUBDIRECTORY cannot smuggle the target out either.
   const publicRoot = resolve(publicDir);
+  // The real path of the root itself (the root may itself be reached through
+  // a symlink -- e.g. /tmp -> /private/tmp -- and the comparison must be
+  // against the same coordinate system as the candidate's real path).
+  let realRoot: string;
+  try {
+    realRoot = realpathSync(publicRoot);
+  } catch {
+    realRoot = publicRoot;
+  }
   const indexPath = join(publicRoot, 'index.html');
+  /** Is `candidate` (already real-path'd) inside the real root? */
+  const insideRealRoot = (candidate: string): boolean =>
+    candidate === realRoot || candidate.startsWith(realRoot + sep);
+  /**
+   * Resolve a candidate path to its REAL path, and refuse it if the real
+   * path escapes the real root.
+   *
+   * Returns null when the candidate does not exist (a miss -> SPA fallback)
+   * or when it escapes (a violation -> the same miss treatment; the file is
+   * simply not served).
+   */
+  const realPathInsideRoot = (candidate: string): string | null => {
+    let real: string;
+    try {
+      real = realpathSync(candidate);
+    } catch {
+      return null; // does not exist (or is unreadable) -> a miss
+    }
+    return insideRealRoot(real) ? real : null;
+  };
   return (req, res) => {
     // R498b: `join` NORMALISES `..` away, so a request path can carry the
     // joined path OUT of publicDir entirely, and the old code then read
@@ -81,10 +121,16 @@ export function createUiRequestHandler(publicDir: string): (req: IncomingMessage
     const relative = decoded.replace(/^\/+/, '');
     const target = resolve(publicRoot, relative);
     const isInside = target === publicRoot || target.startsWith(publicRoot + sep);
+    // R498c: the textual check above is NECESSARY but NOT SUFFICIENT -- it
+    // says "the path, spelled out, starts with the root". What is served is
+    // the file that path NAMES, and a symlink inside the root can name a file
+    // outside it. So the candidate is additionally resolved to its REAL path
+    // and the REAL path is what is confined.
+    const realTarget = isInside ? realPathInsideRoot(target) : null;
     // A miss falls back to index.html (SPA behaviour, unchanged). The
     // fallback target is inside the root by construction, so it needs no
     // separate check.
-    let filePath = isInside ? target : indexPath;
+    let filePath = realTarget ?? indexPath;
     if (!existsSync(filePath)) filePath = indexPath;
     const ext = extname(filePath);
     res.writeHead(200, { 'Content-Type': UI_MIME_TYPES[ext] || UI_DEFAULT_CONTENT_TYPE });
