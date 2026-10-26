@@ -50,6 +50,7 @@ import { join, resolve, sep } from 'path';
 import net from 'node:net';
 import http from 'node:http';
 import { createUiRequestHandler } from '../src/ui_static.js';
+import { isSystemFile } from './support/system-file-marker.js';
 
 type Rec = { statusCode?: number; headers?: Record<string, string>; body?: Buffer | string };
 
@@ -95,10 +96,18 @@ function request(url: string): Rec {
   return rec;
 }
 
-/** Does this response body contain a well-known SYSTEM FILE marker? */
-function isSystemFile(body: string): boolean {
-  return /root:x:0:0/.test(body) || /root:\$1\$/.test(body) || /us-vps4/.test(body);
-}
+/**
+ * Does this response body contain a well-known SYSTEM FILE marker?
+ *
+ * The detector is SHARED, and derived from the host at runtime: the
+ * original copy here hardcoded this author's own hostname, so on a CI
+ * runner it could not recognise /etc/hostname and the control arm below
+ * failed on every push while the server was perfectly correct.
+ *
+ * ONE rule, one copy: two suites carried two copies of this predicate, and
+ * a third copy in the sibling repository.  A rule that exists in several
+ * places is a rule that will drift.
+ */
 
 describe('R498c — a symlink INSIDE publicDir must not escape it', () => {
   // (0) THE PREMISE. This arm pins a FACT ABOUT JAVASCRIPT, not about the
@@ -162,6 +171,14 @@ describe('R498c — a symlink INSIDE publicDir must not escape it', () => {
     //
     // The control is only load-bearing if the thing it controls is shown to
     // be ABLE to fail. So: feed the detector the real bytes, off-path.
+    //
+    // ⭐ AND THE ARM MUST NOT BE VACUOUS ITSELF.  Every file above may be
+    // unreadable on some host, and a loop that skips all of them exits
+    // green having checked NOTHING -- the same "control that cannot fail"
+    // shape, one level up.  So the arm counts what it actually checked and
+    // fails if it checked nothing: /etc/passwd is world-readable on every
+    // Linux, so at least one file is always available.
+    let checked = 0;
     for (const f of ['/etc/passwd', '/etc/shadow', '/etc/hostname']) {
       let content = '';
       try {
@@ -169,11 +186,16 @@ describe('R498c — a symlink INSIDE publicDir must not escape it', () => {
       } catch {
         continue; // not readable on this host -- skip, do not fail
       }
+      checked += 1;
       expect(
         isSystemFile(content),
         `the detector cannot recognise the real ${f} -- every negative arm above is vacuous`,
       ).toBe(true);
     }
+    expect(
+      checked,
+      'no system file was readable, so this control checked nothing -- it cannot fail, and every negative arm above is vacuous',
+    ).toBeGreaterThan(0);
   });
 
   // (5) F5 THE DIRECTIONAL CONTROL FOR THE REPAIR. A fix that refuses every

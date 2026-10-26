@@ -73,12 +73,13 @@
 //    fail with EADDRINUSE — which reads exactly like "the fix is broken".
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import net from 'node:net';
 import http from 'node:http';
 import { createUiRequestHandler } from '../src/ui_static.js';
+import { isSystemFile } from './support/system-file-marker.js';
 
 type Rec = { statusCode?: number; headers?: Record<string, string>; body?: Buffer | string };
 
@@ -122,10 +123,17 @@ function request(url: string): Rec {
   return rec;
 }
 
-/** Does this response body contain a well-known SYSTEM FILE marker? */
-function isSystemFile(body: string): boolean {
-  return /root:x:0:0/.test(body) || /root:\$1\$/.test(body) || /us-vps4/.test(body);
-}
+/**
+ * Does this response body contain a well-known SYSTEM FILE marker?
+ *
+ * The detector is SHARED and derived from the host at runtime: the original
+ * copy here hardcoded this author's own hostname, so on a CI runner it
+ * could not recognise /etc/hostname.
+ *
+ * ONE rule, one copy: this predicate existed in two suites in this
+ * repository and a third in the sibling repository.  A rule that lives in
+ * several places is a rule that will drift.
+ */
 
 describe('R498b — the UI static server must not serve files outside publicDir', () => {
   // (0) THE PREMISE. This arm pins a FACT ABOUT JAVASCRIPT, not about the
@@ -240,14 +248,38 @@ describe('R498b — the UI static server must not serve files outside publicDir'
   // negative arm above is vacuously true. It uses a file OUTSIDE publicDir
   // that is guaranteed to exist and to have no dot-segment.
   it('(8) F8 control: the detector CAN see a system file when one is served', () => {
-    // /etc/hostname exists on every Linux host and has no dot-segment.
+    // ⭐ TWO FIXES, BOTH MEASURED.
+    //
+    // 1. The `/us-vps4` literal was THIS AUTHOR'S HOSTNAME.  On a CI
+    //    runner the hostname is a different random label, so the arm could
+    //    not recognise the real /etc/hostname -- it failed on every push
+    //    while the server was correct.  The marker is now derived from
+    //    /etc/hostname at runtime.
+    //
+    // 2. ⭐ THE ARM WAS VACUOUS ON A FIXED SERVER.  It read the response
+    //    and asserted `served === false` ONLY IF `served` was already
+    //    true.  On a FIXED server `served` is false, so the assertion never
+    //    ran and the arm proved nothing -- it was a tautology wearing a
+    //    control's name, one level up from the control it was checking.
+    //
+    //    The property the arm actually wants is TWO-SIDED:
+    //      * the detector MUST fire on the real bytes of a system file
+    //        (otherwise every negative arm is vacuous), AND
+    //      * the server MUST NOT serve them (otherwise the server is
+    //        vulnerable).
+    //    So the detector is fed the file DIRECTLY, off the request path,
+    //    and the request is asserted separately.
+    const real = readFileSync('/etc/hostname', 'utf8');
+    expect(
+      isSystemFile(real),
+      'the detector cannot recognise the real /etc/hostname -- every negative arm above is vacuous',
+    ).toBe(true);
+
     const rec = request('/../../../../../../etc/hostname');
-    const served = isSystemFile(String(rec.body)) || /us-vps4/.test(String(rec.body));
-    if (served) {
-      // The server is still vulnerable -- the negative arms would be
-      // meaningless, so make that loud rather than silent.
-      expect(served, 'THE SERVER IS STILL VULNERABLE').toBe(false);
-    }
+    expect(
+      isSystemFile(String(rec.body)),
+      'THE SERVER IS STILL VULNERABLE -- it served a system file',
+    ).toBe(false);
   });
 
   // (8b) F8b THE ARM THAT MAKES THE DECODE STEP LOAD-BEARING.
@@ -297,10 +329,15 @@ describe('R498b — the UI static server must not serve files outside publicDir'
       '/%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2fetc/hostname',
     ]) {
       const rec = request(p);
+      // The marker is DERIVED from /etc/hostname at runtime.  The original
+      // assertion was `not.toMatch(/us-vps4/)` -- this author's own
+      // hostname, which is a DIFFERENT string on a CI runner, so the arm
+      // asserted nothing there and could not fail on the host it was
+      // written on either.
       expect(
-        String(rec.body),
+        isSystemFile(String(rec.body)),
         `encoded variant naming an existing file ${p} was served`,
-      ).not.toMatch(/us-vps4/);
+      ).toBe(false);
     }
   });
 

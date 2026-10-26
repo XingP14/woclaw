@@ -11,16 +11,25 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 SRC=src/ui_static.ts
 TEST=test/r498c_ui_static_symlink_confinement.test.ts
+# The detector lives in a SHARED module, so it is a THIRD owned file: the M6
+# arm mutates it, and the restore discipline has to cover it.  A restore
+# that leaves the detector broken would change the subject for every later
+# arm -- the "the tree is left mutated" shape.
+DETECTOR=test/support/system-file-marker.ts
 SNAP_SRC=/tmp/r498c_ui_static.snap
 SNAP_TEST=/tmp/r498c_ui_static_test.snap
+SNAP_DETECTOR=/tmp/r498c_system_file_marker.snap
 BASE_SRC=$(md5sum "$SRC" | cut -d' ' -f1)
 BASE_TEST=$(md5sum "$TEST" | cut -d' ' -f1)
+BASE_DETECTOR=$(md5sum "$DETECTOR" | cut -d' ' -f1)
 echo "baseline src  md5 = $BASE_SRC"
 echo "baseline test md5 = $BASE_TEST"
+echo "baseline det  md5 = $BASE_DETECTOR"
 cp "$SRC" "$SNAP_SRC"
 cp "$TEST" "$SNAP_TEST"
+cp "$DETECTOR" "$SNAP_DETECTOR"
 
-restore() { cp "$SNAP_SRC" "$SRC"; cp "$SNAP_TEST" "$TEST"; }
+restore() { cp "$SNAP_SRC" "$SRC"; cp "$SNAP_TEST" "$TEST"; cp "$SNAP_DETECTOR" "$DETECTOR"; }
 trap 'restore' EXIT
 
 run_suite() {
@@ -111,13 +120,19 @@ PY
 echo -n "M5 (neg control, weaker):  "; run_suite
 restore
 
-# ---- M6: THE DETECTOR-LIVENESS ARM. Break the marker regex so it can
+# ---- M6: THE DETECTOR-LIVENESS ARM. Break the marker predicate so it can
 # never fire. The F4 control arm must go RED -- otherwise the control is
 # not load-bearing and every negative arm above is vacuous.
+#
+# * THE DETECTOR MOVED. It used to be a local copy inside the suite; it is
+#   now the SHARED module test/support/system-file-marker.ts (one rule, one
+#   copy -- the sibling repository carried two more copies of the same
+#   predicate, and a rule that lives in several places drifts).  So the
+#   mutation targets the MODULE, not the suite.
 python3 - <<'PY'
-p='test/r498c_ui_static_symlink_confinement.test.ts'
+p='test/support/system-file-marker.ts'
 s=open(p).read()
-old="  return /root:x:0:0/.test(body) || /root:\\$1\\$/.test(body) || /us-vps4/.test(body);"
+old="  return MARKERS.some((m) => body.includes(m));"
 assert s.count(old)==1, f"needle count {s.count(old)}"
 s=s.replace(old,"  return false;")
 open(p,'w').write(s)
@@ -127,4 +142,8 @@ restore
 
 echo -n "restored src  md5: "; md5sum "$SRC" | cut -d' ' -f1
 echo -n "restored test md5: "; md5sum "$TEST" | cut -d' ' -f1
-{ [ "$(md5sum "$SRC" | cut -d' ' -f1)" = "$BASE_SRC" ] && [ "$(md5sum "$TEST" | cut -d' ' -f1)" = "$BASE_TEST" ]; } && echo "RESTORE OK" || echo "RESTORE FAILED"
+echo -n "restored det  md5: "; md5sum "$DETECTOR" | cut -d' ' -f1
+{ [ "$(md5sum "$SRC" | cut -d' ' -f1)" = "$BASE_SRC" ] \
+  && [ "$(md5sum "$TEST" | cut -d' ' -f1)" = "$BASE_TEST" ] \
+  && [ "$(md5sum "$DETECTOR" | cut -d' ' -f1)" = "$BASE_DETECTOR" ]; } \
+  && echo "RESTORE OK" || echo "RESTORE FAILED"
