@@ -20,7 +20,7 @@
  *       are unconditionally `console.*('[WoClaw] ...')` text. An operator who
  *       sets the documented variable gets ~5% of the hub's log output in
  *       structured form and no warning that the rest is text. The flag is real,
- *       exported, tested in 3 suites — and it is inert for 35 of 37 sites.
+ *       exported, tested in 3 suites — and it is inert for 36 of 38 sites.
  *
  *   F2 ⭐ `otlp_sink.ts` (13 KB at `hub/src/otlp_sink.ts`) has **8 exported
  *       functions and 0 production importers**. Nothing
@@ -115,7 +115,7 @@ describe('R444 · probe self-validation (control before any count)', () => {
   });
 });
 
-describe('R444 · F1 — the documented formatter switch governs 2 of 37 call sites', () => {
+describe('R444 · F1 — the documented formatter switch governs 2 of 38 call sites', () => {
   it('⭐ hubEvent is the ONLY consumer of WOCLAW_LOG_FORMAT', () => {
     // The load-bearing claim. If a future round routes hubLog through the gate,
     // this goes red — which is the point: it is the fix-detector for F1.
@@ -152,7 +152,7 @@ describe('R444 · F1 — the documented formatter switch governs 2 of 37 call si
     expect(prodTextExcluding('hub_log.ts')).not.toContain('WOCLAW_LOG_FORMAT');
   });
 
-  it('the legacy helpers are unconditionally text — the 35 call sites', () => {
+  it('the legacy helpers are unconditionally text — the 36 call sites', () => {
     const legacy = prodCallSites('hubLog') + prodCallSites('hubWarn') + prodCallSites('hubError');
     const envelope = prodCallSites('hubEvent');
     expect(legacy).toBeGreaterThan(20);
@@ -163,7 +163,7 @@ describe('R444 · F1 — the documented formatter switch governs 2 of 37 call si
 
   it('the docstring promises a whole-pipeline flip the code does not deliver', () => {
     // R424's lesson: comments are a keyword family. This one is load-bearing
-    // prose describing a branch that does not exist for 35 of 37 sites.
+    // prose describing a branch that does not exist for 36 of 38 sites.
     const hubLogSrc = readProd(join(SRC_DIR, 'hub_log.ts'));
     // The promise is wrapped across comment lines with a `// ` continuation, so
     // match on the prose with continuations joined -- asserting against the
@@ -201,7 +201,12 @@ describe('R444 · F1 — the documented formatter switch governs 2 of 37 call si
     expect(claimed[0]).toBe(28);
     expect(legacy).toBeGreaterThanOrEqual(28);
     expect(prodCallSites('hubEvent')).toBe(2);
-    expect(legacy).toBe(35);
+    // R514 (2026-10-28 03:03) added one hubWarn site to index.ts (the
+    // malformed-WEB_UI_PORT warning), so the legacy call-site count moved
+    // from 35 to 36. The DRIFT the prose describes is unchanged in kind:
+    // the docstring promises a whole-pipeline flip that the code does not
+    // deliver for any of them.
+    expect(legacy).toBe(36);
     // The claim is stated three times in the file, but not as the literal
     // "28+ call sites" each time -- two of them wrap as "the 28+ existing ...
     // call sites" across a comment line, so a single literal matchAll finds one

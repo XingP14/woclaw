@@ -46,10 +46,26 @@
  */
 
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect } from 'vitest';
 
-const SRC = join(process.cwd(), 'src');
+// R507: the subject root is anchored to THIS FILE, not to the launch
+// directory.
+//
+// The previous form was `join(process.cwd(), 'src')`.  That made this
+// suite's verdict a function of WHERE vitest was invoked: from `hub/` it
+// was 8/8 green, from the repository root it was 8/8 red with
+// `ENOENT scandir '<repo>/src'` -- and both are legal invocations (CI cds
+// into `hub/`, the repo root has its own `npm test` whose config globs
+// `hub/test/**`).  The subject asserted here (the extraction plane has no
+// production entry point) is unaffected either way.
+//
+// This repository already established the rule and already guarded it in
+// `agent_stream_exit_reachability.test.ts` (pitfall #401-2, "scan roots are
+// anchored to this file, not to process.cwd()").  This file was violating
+// a rule the repo had already written down.
+const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
 function read(rel: string): string {
   return readFileSync(join(SRC, rel), 'utf8');
@@ -123,9 +139,25 @@ describe('R417: the extraction plane has no production entry point', () => {
     // type-checks cleanly. That is why this has stayed invisible: the
     // signature promises the capability and the call site declines it.
     const sitesFound = sites('new ForgettingScheduler');
-    expect(sitesFound).toEqual(['index.ts:69']);
 
-    const line = read('index.ts').split('\n')[68];
+    // R514 (2026-10-28): this arm used to PIN the line number
+    // (`index.ts:69`) and then read that line by index.  Any unrelated edit
+    // above the call site -- and R514 added twelve lines to index.ts --
+    // moved the number and turned the arm RED about a subject (the literal
+    // `null` argument) that had not changed at all.  The line number is an
+    // ARTEFACT of the file's layout, not the subject: the subject is
+    // "the sole production construction site passes literal null".
+    //
+    // So the LINE is now DERIVED from the site the scan found, and the
+    // assertion pins the site COUNT and the file, which are the real
+    // invariants.  The content of the line -- the `null` -- is still
+    // asserted exactly.
+    expect(sitesFound).toHaveLength(1);
+    const [site] = sitesFound;
+    expect(site.startsWith('index.ts:')).toBe(true);
+
+    const lineNo = Number(site.split(':')[1]);
+    const line = read('index.ts').split('\n')[lineNo - 1];
     expect(line).toContain('new ForgettingScheduler(db, sessionStore, null)');
   });
 

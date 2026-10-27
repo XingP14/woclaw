@@ -81,13 +81,17 @@ describe('R437 — the ship-gate subject set is derived from the tree it gates',
       (f) => countSites(readFileSync(join(SRC, f), 'utf8')),
     );
     const total = listed.reduce((a, b) => a + b, 0);
-    // Real count over the listed set today is 32 (8 + 15 + 9); floor is 28.
-    // So the gate tolerates 4 silent deletions before it fires — measured, not
+    // Real count over the listed set today is 33 (8 + 15 + 10); floor is 28.
+    // So the gate tolerates 5 silent deletions before it fires — measured, not
     // asserted-from-comment. This arm makes the slack an explicit number.
+    //
+    // R514 (2026-10-28) added one hubWarn site to index.ts (the
+    // malformed-WEB_UI_PORT warning), so the count moved 32 -> 33 and the
+    // slack 4 -> 5.
     expect(total).toBeGreaterThanOrEqual(28);
     const slack = total - 28;
     // Pin the slack: a value that silently grows or shrinks is a changed gate.
-    expect(slack).toBe(4);
+    expect(slack).toBe(5);
   });
 
   it('A4: the uncovered class carries a known number of sites (exact, derived)', () => {

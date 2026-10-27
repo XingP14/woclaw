@@ -12,6 +12,7 @@ import { hubLog, hubWarn, hubError } from './hub_log.js';
 import { printStartupHeader, printConfigDump, printEndpointsBanner } from './startup_banner.js';
 import { DEFAULT_CONFIG } from './default_config.js';
 import { createUiRequestHandler } from './ui_static.js';
+import { resolveWebUiPort } from './web_ui_port.js';
 import { loadConfigFile } from './config_file.js';
 
 // parseEnvInt / parseEnvString moved to ./env_helpers.js on 2026-10-04
@@ -77,7 +78,19 @@ async function main() {
   // of main(); pre-refactor the URL printed inside uiServer.listen itself,
   // so this round shifts the print site from the listen callback to the
   // banner helper while preserving the conditional behaviour.
-  const uiPort = 8084;
+  //
+  // R514: the port is DERIVED from `WEB_UI_PORT`, not hardcoded. A fixed
+  // 8084 is a SHARED RESOURCE — every hub on a host contends for it, so the
+  // EADDRINUSE lands on whoever boots SECOND and lands on a suite that does
+  // not own the subject (measured: r487's negative control went RED on a
+  // banner EADDRINUSE that had nothing to do with its config-file subject).
+  // The two suites that boot a real hub already set `WEB_UI_PORT`; before
+  // this change the variable was read by NOBODY.
+  const webUiPort = resolveWebUiPort(process.env.WEB_UI_PORT);
+  if (webUiPort.invalid) {
+    hubWarn(`WEB_UI_PORT="${process.env.WEB_UI_PORT}" is not a valid port (expected 1-65535); using the default ${webUiPort.port}.`);
+  }
+  const uiPort = webUiPort.port;
   const publicDir = join(process.cwd(), 'public');
   let uiEnabled = false;
   if (existsSync(publicDir)) {

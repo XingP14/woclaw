@@ -264,6 +264,7 @@ spec:
 |------|--------|------|
 | `PORT` | 8082 | WebSocket 端口 |
 | `REST_PORT` | 8083 | REST API 端口 |
+| `WEB_UI_PORT` | 8084 | Web UI 静态文件服务器端口 |
 | `HOST` | 0.0.0.0 | 绑定地址 |
 | `DATA_DIR` | /data | 本地 SQLite 数据目录基址 |
 | `DB_TYPE` | sqlite | 存储后端：`sqlite` 或 `mysql` |

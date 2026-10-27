@@ -307,12 +307,16 @@ describe('R427 the class: declared subject sets', () => {
     // covered by accident only when the author also listed their paths.
     const fullWidthDecl = declaredSubjects(synth(PROD));
     const fullWidth = fullWidthDecl.resolved;
-    // The tree shape, measured: 31 files, 29 distinct basenames, one of which
-    // (`types.ts`) is held by three. These are the real denominators; every
-    // ratio in this suite must be reported against one of them.
-    expect(PROD.length).toBe(31);
-    expect(PROD_BASE.size).toBe(29);
-    expect(fullWidth).toHaveLength(30);
+    // The tree shape, measured: 32 files, 30 distinct basenames, one of
+    // which (`types.ts`) is held by three. These are the real denominators;
+    // every ratio in this suite must be reported against one of them.
+    //
+    // R514 (2026-10-28 03:03) added `hub/src/web_ui_port.ts`, so the
+    // denominators moved from 31/29 to 32/30. The ambiguity is still
+    // exactly `types.ts` — the new file's basename is unique.
+    expect(PROD.length).toBe(32);
+    expect(PROD_BASE.size).toBe(30);
+    expect(fullWidth).toHaveLength(31);
     expect(fullWidthDecl.ambiguous).toEqual(['types.ts']);
     // The gap is exactly the file the ambiguous name referred to.
     const gapOfFullWidth = PROD.filter((f) => !fullWidth.includes(f));
@@ -397,7 +401,7 @@ describe('R427 the specific instance (r414 C1b) — FIXED by R428', () => {
     expect(subjectsOf('r414_cancel_reachability.test.ts')).toEqual(NONE);
     // And the old 8-file literal really was a strict subset of the tree.
     expect(SUBJECTS.length).toBeLessThan(PROD.length);
-    expect(PROD.length).toBe(31);
+    expect(PROD.length).toBe(32);
   });
 
   it('F3 ⭐ the probe\'s own predicate yields ZERO producers across the FULL tree', () => {

@@ -150,7 +150,7 @@ const CENSUS_FILES = [
   'federation_log.ts', 'hub_log.ts', 'index.ts', 'memory.ts',
   'otlp_sink.ts', 'rest_server.ts', 'scheduler.ts', 'scheduler_log.ts',
   'session_archive.ts', 'session_store.ts', 'startup_banner.ts', 'topics.ts',
-  'types.ts', 'ui_static.ts', 'ws_server.ts',
+  'types.ts', 'ui_static.ts', 'web_ui_port.ts', 'ws_server.ts',
 ] as const;
 
 const WS_MAXPAYLOAD_DEFAULT = 100 * 1024 * 1024;
