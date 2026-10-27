@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -53,7 +54,10 @@ def main() -> int:
     if "--detector" in sys.argv:
         detector = sys.argv[sys.argv.index("--detector") + 1]
 
-    d = "/root/.hermes/cache/scratch/r503decomp"
+    # The scratch directory is DERIVED, never hardcoded: "/root/.hermes/cache"
+    # exists on exactly one host, so on any other host this script died with
+    # PermissionError before it measured anything.
+    d = tempfile.mkdtemp(prefix="r503decomp-")
     manifest = G.generate(d, N, SEED)
     proc = subprocess.run([sys.executable, detector, d],
                           capture_output=True, text=True)

@@ -66,10 +66,20 @@ import subprocess
 import sys
 import tempfile
 
-REPO = "/root/.hermes/workspace/woclaw"
-HUB = os.path.join(REPO, "hub")
-DETECTOR = os.path.join(HUB, "scripts", "r502_detector.py")
-CORPUS_MODULE = os.path.join(HUB, "scripts", "r502_corpus.py")
+# The paths are DERIVED FROM THIS FILE, never hardcoded: the repository is
+# checked out at a different absolute path in CI (and on every other host),
+# so a literal "/root/.hermes/workspace/woclaw" makes every arm that touches
+# the detector fail with PermissionError -- the suite then reports a
+# harness error while measuring nothing.
+#
+# r502_matrix.py lives in <repo>/hub/scripts/, so the repo root is two
+# levels up.  os.path.dirname is used rather than __file__ gymnastics so the
+# derivation stays readable.
+SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+HUB = os.path.dirname(SCRIPTS)
+REPO = os.path.dirname(HUB)
+DETECTOR = os.path.join(SCRIPTS, "r502_detector.py")
+CORPUS_MODULE = os.path.join(SCRIPTS, "r502_corpus.py")
 SUITE = "test/r502_detector_properties.test.ts"
 
 # A mutation is a LIST of edits: one mutation may need to touch more than one

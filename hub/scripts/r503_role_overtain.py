@@ -93,10 +93,26 @@ DETECTOR = os.path.join(HERE, "r502_detector.py")
 GENERATED_N = 60
 GENERATED_SEED = 20261025
 
-PROD_ROOTS = [
-    "/root/.hermes/workspace/woclaw/hub/src",
-    "/root/.hermes/workspace/llm-benchmark/src",
-]
+# The production roots are DERIVED, never hardcoded.
+#
+# r503_role_overtain.py lives in <woclaw>/hub/scripts/, so this repository's
+# own source root is two levels up.  A literal
+# "/root/.hermes/workspace/woclaw/hub/src" exists on exactly one host, and in
+# CI every arm of this probe measured NOTHING: `prod_hits()` silently
+# filtered the roots down to an empty list (it skips any root that is not a
+# directory) and reported "0 hits / 0 files" for BOTH variants -- so the
+# over-taint measurement compared 0 against 0 and the finding it was
+# supposed to deliver never appeared.
+#
+# The sibling checkout is DISCOVERED, not assumed: a developer who keeps
+# both repos side by side gets the cross-repo measurement, and a CI runner
+# (or a single-repo clone) measures this repository's own source.  The
+# measurement is over whatever roots exist -- never over a hardcoded list.
+REPO = os.path.dirname(os.path.dirname(HERE))          # <woclaw>
+HUB_SRC = os.path.join(REPO, "hub", "src")
+SIBLING_SRC = os.path.join(os.path.dirname(REPO), "llm-benchmark", "src")
+
+PROD_ROOTS = [HUB_SRC, SIBLING_SRC]
 
 # --------------------------------------------------------------------------
 # The variant under test: ROLE-based sourcing.

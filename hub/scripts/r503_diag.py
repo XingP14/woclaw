@@ -4,13 +4,17 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import r503_generator as G
 import r502_score_corpus as S
 
-d = "/root/.hermes/cache/scratch/r503diag"
+# The scratch directory is DERIVED, never hardcoded: "/root/.hermes/cache"
+# exists on exactly one host, so on any other host this script died with
+# PermissionError before it measured anything.
+d = tempfile.mkdtemp(prefix="r503diag-")
 manifest = G.generate(d, 60, 20261025)
 det = os.path.join(HERE, "r502_detector.py")
 proc = subprocess.run([sys.executable, det, d], capture_output=True, text=True)

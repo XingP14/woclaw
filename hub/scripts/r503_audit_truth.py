@@ -31,12 +31,17 @@ confused -- which is the confusion that produced the 15 phantom mismatches.
 """
 import os
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import r503_generator as G
 
-DEST = os.path.join("/root/.hermes/cache/scratch", "r503audit")
+# The scratch directory is DERIVED, never hardcoded: "/root/.hermes/cache"
+# exists on exactly one host.  On every other host (CI included) the script
+# died with PermissionError before it measured anything -- and the failure
+# read as "the audit found mismatches", which is the worst way to be wrong.
+DEST = tempfile.mkdtemp(prefix="r503audit-")
 N = 200
 SEED = 20261025
 

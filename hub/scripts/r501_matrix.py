@@ -42,9 +42,18 @@ import subprocess
 import sys
 import tempfile
 
-REPO = "/root/.hermes/workspace/woclaw"
-HUB = os.path.join(REPO, "hub")
-DETECTOR = os.path.join(HUB, "scripts", "r501_detector.py")
+# The paths are DERIVED FROM THIS FILE, never hardcoded: the repository is
+# checked out at a different absolute path in CI (and on every other host),
+# so a literal "/root/.hermes/workspace/woclaw" makes every arm that touches
+# the detector fail with PermissionError -- the suite then reports a
+# harness error while measuring nothing.
+#
+# r501_matrix.py lives in <repo>/hub/scripts/, so the repo root is two
+# levels up.
+SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+HUB = os.path.dirname(SCRIPTS)
+REPO = os.path.dirname(HUB)
+DETECTOR = os.path.join(SCRIPTS, "r501_detector.py")
 SUITE = "test/r501_detector_properties.test.ts"
 
 MUTATIONS = [
