@@ -70,6 +70,37 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: ${{ matrix.verify }}
 
+  schema-drift:
+    name: Schema drift gate
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # R516 — the resident schema-drift gate. It answers one question
+      # mechanically: does every column the DDL declares have a paired ALTER
+      # arm, so that it can reach a database created by an EARLIER version of
+      # the product?
+      #
+      # `continue-on-error: true` is DELIBERATE and temporary: the gate is a
+      # DEFECT-PRESENCE gate (R461 arm G / R512-14), so it is RED while the
+      # defect exists. It reports; it does not block. Flip it to blocking in
+      # the same commit that adds the two missing ALTER arms.
+      #
+      # The gate needs NO git history: the historical shape is frozen in the
+      # checked-in `hub/scripts/r516_schema_baseline.json` artifact, because
+      # CI checks out shallow and "which columns arrived after their table
+      # existed" is a temporal fact that lives only in history.
+      - name: Schema drift gate
+        working-directory: hub
+        run: python3 scripts/r516_schema_drift_gate.py
+
   integration:
     name: Root integration
     runs-on: ubuntu-latest

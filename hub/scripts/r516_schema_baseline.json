@@ -1,0 +1,135 @@
+{
+  "anchor": {
+    "commit": "0ebf13731e60376b00acb15e1c4e71cc0704ad89",
+    "db_filename": "woclaw.sqlite",
+    "rationale": "The baseline is the schema AT the first commit that created the database file the product actually opens (woclaw.sqlite). A database created before that file name existed is a DIFFERENT file and can never be opened by the current product, so it can never be a migration target. The anchor is deliberately NOT diff-based and NOT per-table-first-appearance: 8a4ebb4 deleted the SQLite storage and 0ebf137 re-added it under the new file name, so a diff-based anchor finds the RE-ADDITION for one table and the ORIGINAL for another, and a first-appearance anchor would demand ALTER arms for columns every real database already has."
+  },
+  "note": "Columns present in each table's CREATE TABLE as of the anchor commit (or at the table's own introducing commit, for tables added later). Derived once from git history (`python3 r516_schema_drift_gate.py --derive-baseline`). A column in the current CREATE TABLE that is in neither this baseline nor an ALTER TABLE is a migration gap: it will not exist in databases created before it was added.",
+  "tables": {
+    "extraction_queue": {
+      "columns": [
+        "session_id",
+        "queued_at",
+        "priority",
+        "status",
+        "retry_count"
+      ],
+      "commit": "8587866cbf737c8895acff7be2f3cc3cc18e3f40",
+      "date": "2026-04-14",
+      "pre_anchor": false,
+      "subject": "feat(db): add session tables, CRUD methods, extraction queue, feedback tables, eviction candidates (Task 2)"
+    },
+    "memory": {
+      "columns": [
+        "key",
+        "value",
+        "tags",
+        "ttl",
+        "expire_at",
+        "updated_at",
+        "updated_by"
+      ],
+      "commit": "0ebf13731e60376b00acb15e1c4e71cc0704ad89",
+      "date": "2026-04-05",
+      "pre_anchor": false,
+      "subject": "feat(hub): add sqlite and mysql storage"
+    },
+    "memory_feedback": {
+      "columns": [
+        "id",
+        "key",
+        "agent_id",
+        "adjustment",
+        "reason",
+        "created_at"
+      ],
+      "commit": "8587866cbf737c8895acff7be2f3cc3cc18e3f40",
+      "date": "2026-04-14",
+      "pre_anchor": false,
+      "subject": "feat(db): add session tables, CRUD methods, extraction queue, feedback tables, eviction candidates (Task 2)"
+    },
+    "memory_versions": {
+      "columns": [
+        "id",
+        "key",
+        "value",
+        "version",
+        "tags",
+        "ttl",
+        "expire_at",
+        "updated_at",
+        "updated_by"
+      ],
+      "commit": "0ebf13731e60376b00acb15e1c4e71cc0704ad89",
+      "date": "2026-04-05",
+      "pre_anchor": false,
+      "subject": "feat(hub): add sqlite and mysql storage"
+    },
+    "messages": {
+      "columns": [
+        "id",
+        "topic",
+        "from_agent",
+        "content",
+        "timestamp"
+      ],
+      "commit": "0ebf13731e60376b00acb15e1c4e71cc0704ad89",
+      "date": "2026-04-05",
+      "pre_anchor": false,
+      "subject": "feat(hub): add sqlite and mysql storage"
+    },
+    "session_feedback": {
+      "columns": [
+        "id",
+        "session_id",
+        "agent_id",
+        "adjustment",
+        "reason",
+        "created_at"
+      ],
+      "commit": "8587866cbf737c8895acff7be2f3cc3cc18e3f40",
+      "date": "2026-04-14",
+      "pre_anchor": false,
+      "subject": "feat(db): add session tables, CRUD methods, extraction queue, feedback tables, eviction candidates (Task 2)"
+    },
+    "sessions": {
+      "columns": [
+        "id",
+        "agent_id",
+        "framework",
+        "started_at",
+        "ended_at",
+        "transcript",
+        "summary",
+        "importance",
+        "access_count",
+        "last_accessed_at",
+        "tags",
+        "extracted",
+        "flagged",
+        "created_at"
+      ],
+      "commit": "8587866cbf737c8895acff7be2f3cc3cc18e3f40",
+      "date": "2026-04-14",
+      "pre_anchor": false,
+      "subject": "feat(db): add session tables, CRUD methods, extraction queue, feedback tables, eviction candidates (Task 2)"
+    },
+    "streams": {
+      "columns": [
+        "run_id",
+        "topic",
+        "agent_id",
+        "schema_version",
+        "started_at",
+        "events_json",
+        "exit_code",
+        "created_at"
+      ],
+      "commit": "ed9f6cc54cf551a3e594a9c14fb343ca603f226c",
+      "date": "2026-07-26",
+      "pre_anchor": false,
+      "subject": "fix(hub): close R92.7 streams SQL syntax error + duplicate REST handler (CRITICAL: tests 102\u21920 failing)"
+    }
+  },
+  "version": 2
+}
