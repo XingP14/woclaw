@@ -67,3 +67,8 @@ memory/
 # as a scratch location without a cleanup chore after every tick.
 _tmp/
 **/_tmp/
+
+# Mutation-driver snapshots. A mutation driver that is SIGKILLed mid-arm
+# leaves the tracked source mutated; the driver writes a pristine copy here
+# so the NEXT run can recover. It must never be committed.
+.r*_snapshot/
