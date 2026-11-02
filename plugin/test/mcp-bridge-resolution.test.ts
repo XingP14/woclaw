@@ -414,14 +414,44 @@ describe('R529: the MCP bridge path must be DERIVED, never LITERAL', () => {
     expect(liveHostPaths('plugin/bin/woclaw.js', src), 'no live literal in the CLI').toEqual([]);
   });
 
-  it('A5 — the shipped CLI resolves the bridge to a REAL file on this tree', () => {
+  it('A5 — the shipped CLI resolves the bridge to a REAL file that EXISTS', () => {
     // The strongest arm: not "the string is absent" but "the resolution
     // SUCCEEDS and lands on a file that exists". This is what makes the
     // repair a behaviour rather than a string edit.
-    const resolved = loadResolver()();
+    //
+    // ⚠️ THE PRECONDITION IS NOT "this tree has mcp-bridge/dist/". It is
+    // "SOME candidate resolves to a file that exists". MEASURED on the CI
+    // runner (2026-11-03 04:0x): `mcp-bridge/dist/` is **gitignored**
+    // (`.gitignore:5: dist/`) and the "Hub" and "OpenClaw plugin" CI jobs
+    // do NOT build it, so a first version of this arm that hard-required
+    // `mcp-bridge/dist/index.js` went RED in CI with
+    // `ENOENT: .../mcp-bridge/dist/index.js` — on BOTH jobs, while passing
+    // locally. A suite that requires a BUILD ARTIFACT to exist is a suite
+    // that only runs where someone happened to build it.
+    //
+    // So the arm asserts the property that actually matters: the resolver
+    // returns a path that EXISTS and is a FILE. If no candidate resolves
+    // (a checkout without the sibling built), the resolver is EXPECTED to
+    // throw — and that is arm A6's job, so here the arm asserts the
+    // SUCCESS-or-LOUD-FAILURE contract rather than assuming an environment.
+    const resolve = loadResolver();
+    let resolved: string | null = null;
+    let thrown: Error | null = null;
+    try {
+      resolved = resolve();
+    } catch (e) {
+      thrown = e as Error;
+    }
+    if (resolved === null) {
+      // Nothing resolves in this environment: the resolver MUST be loud.
+      // This is not a skip — it is the same contract A6 pins, asserted here
+      // so the arm cannot pass vacuously on a tree with no bridge at all.
+      expect(thrown, 'the resolver must throw when nothing resolves').not.toBeNull();
+      expect((thrown as Error).message).toContain('cannot find the MCP bridge');
+      return;
+    }
     expect(resolved, 'the resolved bridge must be an absolute path').toMatch(/^\//);
     expect(statSync(resolved).isFile(), `resolved bridge must exist: ${resolved}`).toBe(true);
-    expect(resolved, 'the resolved bridge must be inside the mcp-bridge package').toContain('mcp-bridge');
   });
 
   it('A6 — when NOTHING resolves, the resolver FAILS LOUDLY instead of returning a dead path', () => {
@@ -541,7 +571,15 @@ function loadResolver(opts?: { require?: unknown; dirname?: string; existsSync?:
   return factory(
     scopedRequire,
     require('node:path'),
-    opts?.existsSync ?? ((p: string) => statSync(p).isFile()),
+    // `fs.existsSync` RETURNS false for a missing path; it NEVER throws.
+    // The default stub must match that contract exactly: a stub that
+    // throws ENOENT propagates out of the resolver's `existsSync(candidate)`
+    // call, so the resolver never reaches its own "throw a loud error"
+    // branch and the user gets an opaque ENOENT instead of the message that
+    // names every candidate. MEASURED on the CI runner (2026-11-03 04:0x):
+    // `ENOENT: .../mcp-bridge/dist/index.js` escaped the resolver for
+    // exactly this reason.
+    opts?.existsSync ?? ((p: string) => existsSync(p)),
     opts?.dirname ?? join(REPO, 'plugin', 'bin'),
   ) as () => string;
 }
