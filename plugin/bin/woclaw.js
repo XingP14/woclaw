@@ -10,6 +10,66 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import os from 'os';
 import { existsSync, mkdirSync } from 'fs';
+import { createRequire } from 'module';
+
+// R529 (2026-11-02) — the MCP bridge path must be DERIVED, never LITERAL.
+//
+// THE DEFECT: both `mcp serve` code paths spawned
+//   '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js'
+// — ONE author's checkout, on ONE host. MEASURED 2026-11-02 03:31 CST on
+// this tree:
+//
+//   $ node bin/woclaw.js mcp serve
+//   Error: Cannot find module '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js'
+//
+// The path does not exist on this host either, so `woclaw mcp serve` is
+// BROKEN on every host but the author's. The literal is invisible on the
+// author's host -- the same shape R506/R511/R513 measured on the driver
+// side. The repository's OWN design doc (docs/S8-2-DESIGN.md, "子路径 B2")
+// already specifies the correct derivation:
+//
+//   const mcpPath = path.resolve(__dirname, '../../mcp-bridge/dist/index.js');
+//
+// THE FIX, IN ORDER:
+//   1. the installed-package case — `require.resolve('woclaw-mcp')`, which is
+//      how a globally-installed `xingp14-woclaw` finds its sibling package;
+//   2. the monorepo case — the doc's relative path, which is what a checkout
+//      of this repository uses;
+//   3. a LOUD failure naming every candidate, because a silent zero here
+//      would spawn `node` against a path that does not exist and the user
+//      would see an opaque module-resolution error from the CHILD.
+//
+// This mirrors `resolveMigrationScript` in bin/woclaw-cli.js, which already
+// searched a candidate list.
+const require = createRequire(import.meta.url);
+
+function resolveMcpBridge() {
+  const candidates = [];
+  try {
+    // (1) the installed-package case: `woclaw-mcp` is a sibling package.
+    candidates.push(require.resolve('woclaw-mcp'));
+  } catch { /* not installed as a dependency -- fall through */ }
+  // (2) the monorepo case: <repo>/plugin/bin/ -> <repo>/mcp-bridge/dist/.
+  candidates.push(path.resolve(__dirname, '..', '..', 'mcp-bridge', 'dist', 'index.js'));
+  // (3) the packed-plugin case: the plugin ships only its own files, so a
+  //     sibling that lives OUTSIDE the package is not reachable -- fall back
+  //     to a PATH lookup so `woclaw-mcp` on PATH still works.
+  for (const candidate of candidates) {
+    if (candidate && existsSync(candidate)) return candidate;
+  }
+  const { execFileSync } = require('child_process');
+  try {
+    const onPath = execFileSync('which', ['woclaw-mcp'], { encoding: 'utf8' }).trim();
+    if (onPath && existsSync(onPath)) return onPath;
+  } catch { /* not on PATH either */ }
+  // LOUD: name every candidate so the operator can see what was tried.
+  throw new Error(
+    'woclaw: cannot find the MCP bridge (woclaw-mcp). Tried:\n' +
+    candidates.map(c => '  - ' + c).join('\n') +
+    '\n  - `woclaw-mcp` on PATH\n' +
+    'Install it (`npm i -g woclaw-mcp`) or run from a checkout of the woclaw repository.'
+  );
+}
 
 // === CONFIG ===
 const HUB_REST = process.env.WOCLAW_REST_URL
@@ -242,7 +302,7 @@ async function shell() {
         }
         if (a[0]==='serve') {
           const { spawn } = await import('child_process');
-          const mcpPath = '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js';
+          const mcpPath = resolveMcpBridge();
           const extraArgs = [];
           if (HUB_WS !== 'ws://localhost:8082') extraArgs.push('--hub=' + HUB_WS);
           if (HUB_REST !== 'http://localhost:8083') extraArgs.push('--rest-url=' + HUB_REST);
@@ -287,7 +347,7 @@ async function main() {
       }
       if (cmdArgs[0]==='serve') {
         const { spawn } = await import('child_process');
-        const mcpPath = '/home/node/.openclaw/workspace/woclaw/mcp-bridge/dist/index.js';
+        const mcpPath = resolveMcpBridge();
         const extraArgs = [];
         if (HUB_WS !== 'ws://localhost:8082') extraArgs.push('--hub=' + HUB_WS);
         if (HUB_REST !== 'http://localhost:8083') extraArgs.push('--rest-url=' + HUB_REST);
