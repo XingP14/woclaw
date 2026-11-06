@@ -90,10 +90,18 @@ test('woclaw-vscode: updateStatusBar hides + returns before fetchHubHealth when 
   );
 });
 
-test('woclaw-vscode: AgentsTreeDataProvider items carry id label + hubot icon + joined-topic tooltip (chain #26)', () => {
+test('woclaw-vscode: AgentsTreeDataProvider items carry agentId label + hubot icon + joined-topic tooltip (chain #26, R534)', () => {
   const cls = sliceClass('AgentsTreeDataProvider');
   assert.ok(cls, 'expected `class AgentsTreeDataProvider` to extract');
-  assert.match(cls, /new\s+vscode\.TreeItem\(\s*a\.id\s*\)/, 'agent TreeItem label must be a.id');
+  // R534: the label is `a.agentId`, NOT `a.id` — the Hub's GET /agents row
+  // carries `agentId` (hub/src/ws_server.ts getAgentsInfo), and there is no
+  // `id` field at all. The old gate pinned `a.id`, which was pinning a field
+  // the Hub never sends.
+  assert.match(cls, /new\s+vscode\.TreeItem\(\s*a\.agentId\s*\)/, 'agent TreeItem label must be a.agentId');
+  assert.ok(
+    !/new\s+vscode\.TreeItem\(\s*a\.id\s*\)/.test(cls),
+    'R534 regression: agent TreeItem label must not be a.id — the Hub sends `agentId`',
+  );
   assert.match(cls, /new\s+vscode\.ThemeIcon\(\s*'hubot'\s*\)/, 'agent TreeItem must use ThemeIcon(\'hubot\')');
   assert.match(
     cls,
@@ -145,16 +153,32 @@ test('woclaw-vscode: MemoryTreeDataProvider truncates tooltip@120 + description@
   assert.match(cls, /m\.tags\.join\(\s*',\s*'\s*\)/, "memory tooltip must join tags with ', '");
 });
 
-test('woclaw-vscode: MemoryTreeDataProvider.search lower-cases query + key + value (chain #26)', () => {
+test('woclaw-vscode: MemoryTreeDataProvider.search lower-cases query + key + value (chain #26, R534)', () => {
   const cls = sliceClass('MemoryTreeDataProvider');
   assert.ok(cls, 'expected `class MemoryTreeDataProvider` to extract');
   assert.match(cls, /q\.toLowerCase\(\)/, 'search must lower-case the query');
   assert.match(cls, /m\.key\.toLowerCase\(\)/, 'search must lower-case the entry key');
   assert.match(cls, /m\.value\.toLowerCase\(\)/, 'search must lower-case the entry value');
+  // R534: the fetch is `httpGet<unknown>('/memory?limit=50')` and the
+  // narrowing happens at runtime via extractMemory() — the OLD gate pinned
+  // `httpGet<MemoryEntry[]>('/memory?limit=50')`, i.e. it pinned a bare-array
+  // claim about an endpoint the Hub serves ENVELOPED. The response is
+  // `{memory:[...]}`, so the raw body is an object and `.filter()` on it
+  // throws. The gate now pins the URL (unchanged) and the runtime unwrap.
   assert.match(
     cls,
-    /await\s+httpGet<MemoryEntry\[\]>\(\s*'\/memory\?limit=50'\s*\)/,
-    'search must fetch /memory?limit=50 with an explicit MemoryEntry[] type arg',
+    /await\s+httpGet<unknown>\(\s*'\/memory\?limit=50'\s*\)/,
+    "search must fetch /memory?limit=50 and leave the payload type unnarrowed",
+  );
+  assert.match(
+    cls,
+    /const all = extractMemory\(/,
+    'R534 regression: search must unwrap the /memory envelope with extractMemory() before filtering',
+  );
+  assert.match(
+    cls,
+    /all\.filter\(/,
+    'R534 regression: search must filter the EXTRACTED array, not the raw response body',
   );
 });
 

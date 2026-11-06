@@ -1,11 +1,24 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 import * as path from 'path';
+import {
+  HubAgent,
+  HubHealthBody,
+  HubMemoryEntry,
+  HubTopic,
+  extractAgents,
+  extractMemory,
+  extractTopics,
+  topicMembers,
+} from './hub-api';
 
-interface HubHealth { status: string; agents: number; topics: number; }
-interface Topic { name: string; agents: string[]; messageCount: number; type: string; }
-interface Agent { id: string; connectedAt: string; topics: string[]; lastSeen: string; }
-interface MemoryEntry { key: string; value: string; tags: string[]; updatedAt: string; }
+// R534: these four payload shapes are NOT declared here any more. They live
+// in ./hub-api.ts, which is pinned against the REAL Hub's responses by
+// integration-test/vscode-hub-contract.test.ts. The previous inline
+// declarations disagreed with the Hub on all four endpoints (bare array vs
+// envelope; `id` vs `agentId`; `agents: string[]` vs a count; `updatedAt`
+// as a string vs epoch millis), and the mismatch crashed the tree providers
+// on `.map()` / `.filter()`. See hub-api.ts for the full table.
 
 function createTreeEvents<T>(): { emitter: vscode.EventEmitter<T>; event: vscode.Event<T> } {
   const emitter = new vscode.EventEmitter<T>();
@@ -36,8 +49,8 @@ function httpGet<T = unknown>(path: string): Promise<T | null> {
   });
 }
 
-async function fetchHubHealth(): Promise<HubHealth | null> {
-  return httpGet<HubHealth>('/health');
+async function fetchHubHealth(): Promise<HubHealthBody | null> {
+  return httpGet<HubHealthBody>('/health');
 }
 
 interface HubStatusBar {
@@ -50,7 +63,7 @@ interface HubStatusBar {
 // green/red hex codes were duplicated across the connected + disconnected
 // branches, which risks drift if one site changes. Chain #18
 // status-bar-format-extraction parallels woclaw-side hub chain #15/#16.
-function formatHubStatusBar(health: HubHealth | null): HubStatusBar {
+function formatHubStatusBar(health: HubHealthBody | null): HubStatusBar {
   if (health && health.status === 'ok') {
     return {
       text: `$(hubot) WoClaw: ${health.agents} agents / ${health.topics} topics`,
@@ -88,33 +101,42 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
   );
   private readonly treeEvents = createTreeEvents<vscode.TreeItem | undefined>();
   readonly onDidChangeTreeData = this.treeEvents.event;
-  topics: Topic[] = [];
+  topics: HubTopic[] = [];
+  // R534: the agents list is fetched alongside the topics because the Hub's
+  // REST surface has NO topic-members endpoint — member lists exist only over
+  // the WebSocket. GET /agents carries each agent's topic list, so the
+  // members of a topic are derived from it (see hub-api.ts topicMembers).
+  private agents: HubAgent[] = [];
 
   getTreeItem(el: vscode.TreeItem): vscode.TreeItem { return el; }
   async getChildren(el?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (el && el.contextValue === 'topic') {
-      const t = el as vscode.TreeItem & Topic;
-      return t.agents.map(a => {
-        const i = new vscode.TreeItem(a);
+      const t = el as vscode.TreeItem & { topicName: string };
+      const members = topicMembers(t.topicName, this.agents);
+      return members.map(a => {
+        const i = new vscode.TreeItem(a.agentId);
         i.iconPath = new vscode.ThemeIcon('account');
         return i;
       });
     }
     return this.topics.map(t => {
-      const item = new vscode.TreeItem(t.name) as vscode.TreeItem & Topic;
-      item.name = t.name;
-      item.agents = t.agents;
-      item.messageCount = t.messageCount;
-      item.type = t.type;
+      const item = new vscode.TreeItem(t.name) as vscode.TreeItem & { topicName: string };
+      item.topicName = t.name;
+      // R534: `agents` on a topic row is a COUNT (number), not an array.
+      // The previous code typed it as string[] and rendered `t.agents.length`
+      // plus a `t.type` / `t.messageCount` that the Hub never sends.
+      const memberCount = typeof t.agents === 'number' ? t.agents : topicMembers(t.name, this.agents).length;
+      item.description = `${memberCount} agent${memberCount === 1 ? '' : 's'}`;
       item.contextValue = 'topic';
       item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
       item.iconPath = TopicsTreeDataProvider.TOPIC_ICON_URI;
-      item.tooltip = `${t.type} • ${t.messageCount} messages • ${t.agents.length} agents`;
+      item.tooltip = `${memberCount} agent${memberCount === 1 ? '' : 's'}`;
       return item;
     });
   }
   async refresh(): Promise<void> {
-    this.topics = await httpGet<Topic[]>('/topics') || [];
+    this.topics = extractTopics(await httpGet<unknown>('/topics'));
+    this.agents = extractAgents(await httpGet<unknown>('/agents'));
     this.treeEvents.emitter.fire(undefined);
   }
 }
@@ -122,34 +144,37 @@ class TopicsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>
 class AgentsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private readonly treeEvents = createTreeEvents<vscode.TreeItem | undefined>();
   readonly onDidChangeTreeData = this.treeEvents.event;
-  agents: Agent[] = [];
+  agents: HubAgent[] = [];
 
   getTreeItem(el: vscode.TreeItem): vscode.TreeItem { return el; }
   async getChildren(): Promise<vscode.TreeItem[]> {
     return this.agents.map(a => {
-      const item = new vscode.TreeItem(a.id);
+      // R534: the id field is `agentId`, not `id`; connectedAt/lastSeen are
+      // epoch millis (numbers), so they are formatted as dates explicitly.
+      const item = new vscode.TreeItem(a.agentId);
       item.iconPath = new vscode.ThemeIcon('hubot');
       item.tooltip = `Connected: ${new Date(a.connectedAt).toLocaleString()} • Topics: ${a.topics.join(', ')}`;
       return item;
     });
   }
   async refresh(): Promise<void> {
-    this.agents = await httpGet<Agent[]>('/agents') || [];
+    this.agents = extractAgents(await httpGet<unknown>('/agents'));
     this.treeEvents.emitter.fire(undefined);
   }
 }
 
 class MemoryTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   query = '';
-  entries: MemoryEntry[] = [];
+  entries: HubMemoryEntry[] = [];
 
   async search(q: string) {
     this.query = q;
+    const all = extractMemory(await httpGet<unknown>('/memory?limit=50'));
     this.entries = q
-      ? ((await httpGet<MemoryEntry[]>('/memory?limit=50')) || []).filter((m) =>
+      ? all.filter((m) =>
           m.key.toLowerCase().includes(q.toLowerCase()) ||
           m.value.toLowerCase().includes(q.toLowerCase()))
-      : ((await httpGet<MemoryEntry[]>('/memory?limit=50')) || []);
+      : all;
     this.treeEvents.emitter.fire(undefined);
   }
 

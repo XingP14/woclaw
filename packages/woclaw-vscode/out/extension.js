@@ -38,6 +38,14 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const http = __importStar(require("http"));
 const path = __importStar(require("path"));
+const hub_api_1 = require("./hub-api");
+// R534: these four payload shapes are NOT declared here any more. They live
+// in ./hub-api.ts, which is pinned against the REAL Hub's responses by
+// integration-test/vscode-hub-contract.test.ts. The previous inline
+// declarations disagreed with the Hub on all four endpoints (bare array vs
+// envelope; `id` vs `agentId`; `agents: string[]` vs a count; `updatedAt`
+// as a string vs epoch millis), and the mismatch crashed the tree providers
+// on `.map()` / `.filter()`. See hub-api.ts for the full table.
 function createTreeEvents() {
     const emitter = new vscode.EventEmitter();
     return { emitter, event: emitter.event };
@@ -106,32 +114,41 @@ class TopicsTreeDataProvider {
         this.treeEvents = createTreeEvents();
         this.onDidChangeTreeData = this.treeEvents.event;
         this.topics = [];
+        // R534: the agents list is fetched alongside the topics because the Hub's
+        // REST surface has NO topic-members endpoint — member lists exist only over
+        // the WebSocket. GET /agents carries each agent's topic list, so the
+        // members of a topic are derived from it (see hub-api.ts topicMembers).
+        this.agents = [];
     }
     getTreeItem(el) { return el; }
     async getChildren(el) {
         if (el && el.contextValue === 'topic') {
             const t = el;
-            return t.agents.map(a => {
-                const i = new vscode.TreeItem(a);
+            const members = (0, hub_api_1.topicMembers)(t.topicName, this.agents);
+            return members.map(a => {
+                const i = new vscode.TreeItem(a.agentId);
                 i.iconPath = new vscode.ThemeIcon('account');
                 return i;
             });
         }
         return this.topics.map(t => {
             const item = new vscode.TreeItem(t.name);
-            item.name = t.name;
-            item.agents = t.agents;
-            item.messageCount = t.messageCount;
-            item.type = t.type;
+            item.topicName = t.name;
+            // R534: `agents` on a topic row is a COUNT (number), not an array.
+            // The previous code typed it as string[] and rendered `t.agents.length`
+            // plus a `t.type` / `t.messageCount` that the Hub never sends.
+            const memberCount = typeof t.agents === 'number' ? t.agents : (0, hub_api_1.topicMembers)(t.name, this.agents).length;
+            item.description = `${memberCount} agent${memberCount === 1 ? '' : 's'}`;
             item.contextValue = 'topic';
             item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
             item.iconPath = TopicsTreeDataProvider.TOPIC_ICON_URI;
-            item.tooltip = `${t.type} • ${t.messageCount} messages • ${t.agents.length} agents`;
+            item.tooltip = `${memberCount} agent${memberCount === 1 ? '' : 's'}`;
             return item;
         });
     }
     async refresh() {
-        this.topics = await httpGet('/topics') || [];
+        this.topics = (0, hub_api_1.extractTopics)(await httpGet('/topics'));
+        this.agents = (0, hub_api_1.extractAgents)(await httpGet('/agents'));
         this.treeEvents.emitter.fire(undefined);
     }
 }
@@ -150,14 +167,16 @@ class AgentsTreeDataProvider {
     getTreeItem(el) { return el; }
     async getChildren() {
         return this.agents.map(a => {
-            const item = new vscode.TreeItem(a.id);
+            // R534: the id field is `agentId`, not `id`; connectedAt/lastSeen are
+            // epoch millis (numbers), so they are formatted as dates explicitly.
+            const item = new vscode.TreeItem(a.agentId);
             item.iconPath = new vscode.ThemeIcon('hubot');
             item.tooltip = `Connected: ${new Date(a.connectedAt).toLocaleString()} • Topics: ${a.topics.join(', ')}`;
             return item;
         });
     }
     async refresh() {
-        this.agents = await httpGet('/agents') || [];
+        this.agents = (0, hub_api_1.extractAgents)(await httpGet('/agents'));
         this.treeEvents.emitter.fire(undefined);
     }
 }
@@ -170,10 +189,11 @@ class MemoryTreeDataProvider {
     }
     async search(q) {
         this.query = q;
+        const all = (0, hub_api_1.extractMemory)(await httpGet('/memory?limit=50'));
         this.entries = q
-            ? ((await httpGet('/memory?limit=50')) || []).filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
+            ? all.filter((m) => m.key.toLowerCase().includes(q.toLowerCase()) ||
                 m.value.toLowerCase().includes(q.toLowerCase()))
-            : ((await httpGet('/memory?limit=50')) || []);
+            : all;
         this.treeEvents.emitter.fire(undefined);
     }
     getTreeItem(el) { return el; }

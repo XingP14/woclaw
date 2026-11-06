@@ -88,14 +88,25 @@ test('woclaw-vscode: httpGet is generic + every call site passes an explicit typ
   // (generic) so each call site can declare the expected payload type and downstream
   // assignment (this.topics / this.agents / this.entries) is statically safe under
   // tsc --strict. A regression that strips the generic back to Promise<any> would
-  // also break the 5 typed call sites (httpGet<HubHealth|Topic[]|Agent[]|MemoryEntry[]> where MemoryEntry[] has 2 call sites)
-  // because the new return type Promise<T | null> differs from Promise<any>.
+  // also break the typed call sites because the new return type Promise<T | null>
+  // differs from Promise<any>.
   //
-  // Asserts:
-  //   1. The function signature is generic + nullable (not bare Promise<any>).
-  //   2. All 5 call sites pass an explicit type argument (HubHealth ×1, Topic[] ×1,
-  //      Agent[] ×1, MemoryEntry[] ×2 — fetchHubHealth wraps the HubHealth call,
-  //      so it counts as 1 of the 5 typed call sites, not a separate 6th).
+  // R534 UPDATE: the call-site type arguments changed, because the old ones
+  // were WRONG. The extension used to assert `httpGet<Topic[]>('/topics')` —
+  // a bare-array claim — while the Hub actually serves an ENVELOPE
+  // `{topics:[...]}`. The assertion was never checked, so it compiled and
+  // shipped, and the tree providers then called `.map()` on an object
+  // ("t.map is not a function"). The contract now lives in src/hub-api.ts and
+  // is pinned against the REAL Hub by
+  // integration-test/vscode-hub-contract.test.ts.
+  //
+  // The gate that still matters here is the GENERIC-ness of httpGet (no
+  // Promise<any> leak) plus the fact that every call site still carries an
+  // explicit type argument. The specific type arguments are now:
+  //   HubHealthBody ×1 (/health — the one flat, un-enveloped endpoint)
+  //   unknown     ×4 (the four envelope endpoints — the narrowing happens at
+  //                runtime inside hub-api.ts, because asserting a type at
+  //                the call site is precisely the bug this round fixes)
   const sigRe = /function\s+httpGet\s*<[^>]+>\s*\(\s*path\s*:\s*string\s*\)\s*:\s*Promise<[^>]+>/;
   const sigLine = lines.find((ln) => /function\s+httpGet\s*[<(]/.test(ln));
   assert.ok(sigLine, 'httpGet function declaration not found in src/extension.ts');
@@ -125,10 +136,77 @@ test('woclaw-vscode: httpGet is generic + every call site passes an explicit typ
   );
   for (const ln of callLines) {
     assert.ok(
-      /\bhttpGet\s*<[A-Z][A-Za-z0-9_]+(\[\])?>\s*\(/.test(ln),
+      /\bhttpGet\s*<(unknown|[A-Z][A-Za-z0-9_]+(\[\])?)>\s*\(/.test(ln),
       `regression: httpGet call site missing explicit type arg: "${ln.trim()}"`,
     );
   }
+});
+
+test('R534: the extension does NOT assert a payload type at the call site (it unwraps at runtime)', () => {
+  // The regression that this whole round is about: a type assertion at a call
+  // site is a CLAIM, and the claim was wrong on all four endpoints. The
+  // envelope endpoints must be fetched as `unknown` and narrowed by the
+  // runtime unwrappers in src/hub-api.ts.
+  //
+  // Only /health may carry a concrete type argument — it is the one endpoint
+  // the Hub serves UN-enveloped.
+  for (const ln of lines) {
+    const m = ln.match(/\bhttpGet\s*<([^>]*)>\s*\(\s*'([^']*)'/);
+    if (!m) continue;
+    const [, typeArg, url] = m;
+    if (url === '/health') {
+      assert.strictEqual(
+        typeArg,
+        'HubHealthBody',
+        `the /health call site must keep its concrete type argument, got: ${typeArg}`,
+      );
+      continue;
+    }
+    assert.strictEqual(
+      typeArg,
+      'unknown',
+      `R534 regression: the ${url} call site asserts \`${typeArg}\` at the call site. `
+      + 'The Hub serves an ENVELOPE there, so the payload type must be narrowed at '
+      + 'runtime by src/hub-api.ts, not asserted here.',
+    );
+  }
+});
+
+test('R534: the four envelope endpoints are unwrapped by the runtime helpers, not assigned raw', () => {
+  // The unwrapping must be visible in the source: a bare assignment of the
+  // httpGet result into the provider's array field is exactly the bug.
+  // Each envelope endpoint's fetch must go through an extract*() helper.
+  const codeOnly = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+
+  // /topics and /memory must be wrapped in their extractor.
+  assert.match(
+    codeOnly,
+    /this\.topics\s*=\s*extractTopics\(/,
+    'R534 regression: topics are assigned without extractTopics() — the raw envelope would be used as an array',
+  );
+  assert.match(
+    codeOnly,
+    /this\.entries\s*=\s*q\s*\?\s*all\.filter\(/,
+    'R534 regression: memory entries are not filtered from an extracted array',
+  );
+  assert.match(
+    codeOnly,
+    /const all = extractMemory\(/,
+    'R534 regression: memory is fetched without extractMemory()',
+  );
+  assert.match(
+    codeOnly,
+    /this\.agents\s*=\s*extractAgents\(/,
+    'R534 regression: agents are assigned without extractAgents() — the raw envelope would be used as an array',
+  );
+
+  // And the raw-body anti-pattern must be gone entirely.
+  assert.ok(
+    !/await\s+httpGet<[^>]*>\(\s*'\/(topics|agents|memory)[^']*'\s*\)\s*\|\|\s*\[\]/.test(codeOnly),
+    'R534 regression: an envelope endpoint is still assigned raw with `|| []`',
+  );
 });
 
 test('woclaw-vscode: no inline require(...) calls + path is imported at top of file (regression: 06-29 cron require→top-level-import)', () => {
